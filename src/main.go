@@ -13,9 +13,9 @@ import (
 
 func main() {
 	err := run(config{
-		ResourceGroupName:    "rg-container-apps-tenant",
+		ResourceGroupName:    "rg-aca-tenant",
 		SubscriptionID:       "2a6936a5-fc30-492a-ab19-ec59068b5b96",
-		ManagedEnvironmentID: "/subscriptions/2a6936a5-fc30-492a-ab19-ec59068b5b96/resourceGroups/rg-container-apps/providers/Microsoft.App/managedEnvironments/me-container-apps",
+		ManagedEnvironmentID: "/subscriptions/2a6936a5-fc30-492a-ab19-ec59068b5b96/resourceGroups/rg-aca-platform/providers/Microsoft.App/managedEnvironments/me-container-apps",
 		Location:             "west europe",
 	})
 	if err != nil {
@@ -52,48 +52,12 @@ func run(cfg config) error {
 		}
 	}
 
-	app := armappcontainers.ContainerApp{
-		Location: &cfg.Location,
-		Identity: nil,
-		Properties: &armappcontainers.ContainerAppProperties{
-			ManagedEnvironmentID: &cfg.ManagedEnvironmentID,
-			Configuration: &armappcontainers.Configuration{
-				ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
-				Dapr: &armappcontainers.Dapr{
-					AppID:   toPtr("foo-bar"),
-					Enabled: toPtr(true),
-				},
-				Ingress: &armappcontainers.Ingress{
-					External:      toPtr(true),
-					TargetPort:    toPtr(int32(80)),
-					AllowInsecure: toPtr(false),
-				},
-				Registries: nil,
-				Secrets:    nil,
-			},
-			Template: &armappcontainers.Template{
-				Containers: []*armappcontainers.Container{
-					{
-						Name:  toPtr("simple-hello-world-container"),
-						Image: toPtr("mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"),
-						Resources: &armappcontainers.ContainerResources{
-							CPU:    toPtr(float64(0.25)),
-							Memory: toPtr(".5Gi"),
-						},
-					},
-				},
-				Scale: &armappcontainers.Scale{
-					MaxReplicas: toPtr(int32(1)),
-					MinReplicas: toPtr(int32(1)),
-				},
-			},
-		},
-		Tags: map[string]*string{
-			"hidden-xca.xenit.io/gitops": toPtr("true"),
-		},
+	aca, err := getAzureContainerApp(cfg)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	res, err := client.BeginCreateOrUpdate(ctx, cfg.ResourceGroupName, "foo-bar", app, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
+	res, err := client.BeginCreateOrUpdate(ctx, cfg.ResourceGroupName, aca.Name, *aca.ContainerApp, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create or update: %w", err)
 	}
@@ -117,4 +81,17 @@ func run(cfg config) error {
 
 func toPtr[T any](a T) *T {
 	return &a
+}
+
+func getAzureContainerApp(cfg config) (AzureContainerApp, error) {
+	b, err := os.ReadFile("./test/yaml/example.yaml")
+	if err != nil {
+		return AzureContainerApp{}, err
+	}
+	aca := AzureContainerApp{}
+	err = aca.Unmarshal(b, cfg)
+	if err != nil {
+		return AzureContainerApp{}, err
+	}
+	return aca, nil
 }
