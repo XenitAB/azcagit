@@ -4,11 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
-
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
 )
 
 func main() {
@@ -32,49 +27,44 @@ type config struct {
 }
 
 func run(cfg config) error {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
+	client, err := getContainerAppsClient(cfg.SubscriptionID)
 	if err != nil {
-		return fmt.Errorf("failed to obtain a credential: %w", err)
+		return err
 	}
+
 	ctx := context.Background()
-	client, err := armappcontainers.NewContainerAppsClient(cfg.SubscriptionID, cred, nil)
+	apps, err := listContainerApps(ctx, client, cfg.ResourceGroupName)
 	if err != nil {
-		return fmt.Errorf("failed to create client: %w", err)
-	}
-	pager := client.NewListByResourceGroupPager(cfg.ResourceGroupName, nil)
-	for pager.More() {
-		nextResult, err := pager.NextPage(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to advance page: %w", err)
-		}
-		for idx, v := range nextResult.Value {
-			fmt.Printf("Name #%d: %s\n", idx, *v.Name)
-		}
+		return err
 	}
 
-	aca, err := getAzureContainerApp(cfg)
-	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+	for app := range apps {
+		fmt.Printf("App: %s\n", app)
 	}
 
-	res, err := client.BeginCreateOrUpdate(ctx, cfg.ResourceGroupName, aca.Name, *aca.ContainerApp, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to create or update: %w", err)
-	}
+	// aca, err := getAzureContainerApp(cfg)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to read file: %w", err)
+	// }
 
-	pollRes, err := res.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{
-		Frequency: 5 * time.Second,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to create or update: %w", err)
-	}
+	// res, err := client.BeginCreateOrUpdate(ctx, cfg.ResourceGroupName, aca.Name, *aca.ContainerApp, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
+	// if err != nil {
+	// 	return fmt.Errorf("failed to create or update: %w", err)
+	// }
 
-	b, err := pollRes.ContainerApp.MarshalJSON()
-	if err != nil {
-		return fmt.Errorf("failed to marshal json poll result: %w", err)
-	}
+	// pollRes, err := res.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{
+	// 	Frequency: 5 * time.Second,
+	// })
+	// if err != nil {
+	// 	return fmt.Errorf("failed to create or update: %w", err)
+	// }
 
-	fmt.Printf("Result: %s\n", string(b))
+	// b, err := pollRes.ContainerApp.MarshalJSON()
+	// if err != nil {
+	// 	return fmt.Errorf("failed to marshal json poll result: %w", err)
+	// }
+
+	// fmt.Printf("Result: %s\n", string(b))
 
 	return nil
 }
