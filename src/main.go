@@ -41,33 +41,7 @@ func run(cfg config) error {
 	}
 
 	ctx := context.Background()
-	reconcile(ctx, cfg, client)
-
-	// aca, err := getAzureContainerApp(cfg)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to read file: %w", err)
-	// }
-
-	// res, err := client.BeginCreateOrUpdate(ctx, cfg.ResourceGroupName, aca.Name, *aca.ContainerApp, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
-	// if err != nil {
-	// 	return fmt.Errorf("failed to create or update: %w", err)
-	// }
-
-	// pollRes, err := res.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{
-	// 	Frequency: 5 * time.Second,
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("failed to create or update: %w", err)
-	// }
-
-	// b, err := pollRes.ContainerApp.MarshalJSON()
-	// if err != nil {
-	// 	return fmt.Errorf("failed to marshal json poll result: %w", err)
-	// }
-
-	// fmt.Printf("Result: %s\n", string(b))
-
-	return nil
+	return reconcile(ctx, cfg, client)
 }
 
 func reconcile(ctx context.Context, cfg config, client *armappcontainers.ContainerAppsClient) error {
