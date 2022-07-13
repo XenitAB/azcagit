@@ -165,7 +165,7 @@ apiVersion: aca.xenit.io/v1alpha1
 name: foo
 `,
 			expectedResult: AzureContainerApps{
-				{
+				"foo": {
 					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Name:       "foo",
@@ -186,12 +186,12 @@ apiVersion: aca.xenit.io/v1alpha1
 name: bar
 `,
 			expectedResult: AzureContainerApps{
-				{
+				"foo": {
 					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Name:       "foo",
 				},
-				{
+				"bar": {
 					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Name:       "bar",

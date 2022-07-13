@@ -19,18 +19,36 @@ func getContainerAppsClient(subscriptionId string) (*armappcontainers.ContainerA
 	return client, nil
 }
 
-func listContainerApps(ctx context.Context, client *armappcontainers.ContainerAppsClient, resourceGroupName string) (map[string]struct{}, error) {
-	apps := map[string]struct{}{}
+type liveContainerApp struct {
+	app     *armappcontainers.ContainerApp
+	managed bool
+}
+
+type liveContainerApps map[string]liveContainerApp
+
+func listContainerApps(ctx context.Context, client *armappcontainers.ContainerAppsClient, resourceGroupName string) (*liveContainerApps, error) {
+	apps := make(liveContainerApps)
 	pager := client.NewListByResourceGroupPager(resourceGroupName, nil)
 	for pager.More() {
 		nextResult, err := pager.NextPage(ctx)
 		if err != nil {
 			return nil, err
 		}
-		for _, v := range nextResult.Value {
-			apps[*v.Name] = struct{}{}
+		for _, app := range nextResult.Value {
+			managed := false
+			tag, ok := app.Tags["aca.xenit.io"]
+			if ok {
+				if *tag == "true" {
+					managed = true
+				}
+			}
+
+			apps[*app.Name] = liveContainerApp{
+				app,
+				managed,
+			}
 		}
 	}
 
-	return apps, nil
+	return &apps, nil
 }

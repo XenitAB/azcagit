@@ -1,3 +1,6 @@
+SHELL := /bin/bash
+.ONESHELL:
+
 TAG = $$(git rev-parse --short HEAD)
 IMG ?= ghcr.io/xenitab/node-ttl:$(TAG)
 
@@ -18,3 +21,8 @@ test: fmt vet
 
 docker-build:
 	docker build -t ${IMG} .
+
+terraform-up:
+	cd test/terraform
+	terraform init
+	terraform apply -auto-approve
