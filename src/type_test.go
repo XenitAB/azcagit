@@ -19,21 +19,19 @@ func TestAzureContainerApp(t *testing.T) {
 			rawYaml: `
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: foo
+metadata:
+  name: foo
 `,
-			expectedResult: AzureContainerApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Name:       "foo",
-			},
-			expectedError: "",
+			expectedResult: AzureContainerApp{},
+			expectedError:  "spec is missing",
 		},
 		{
 			testDescription: "invalid kind",
 			rawYaml: `
 kind: foobar
 apiVersion: aca.xenit.io/v1alpha1
-name: foo
+metadata:
+  name: foo
 `,
 			expectedResult: AzureContainerApp{},
 			expectedError:  "kind should be AzureContainerApp",
@@ -43,7 +41,8 @@ name: foo
 			rawYaml: `
 kind: AzureContainerApp
 apiVersion: foobar
-name: foo
+metadata:
+  name: foo
 `,
 			expectedResult: AzureContainerApp{},
 			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha1",
@@ -53,16 +52,22 @@ name: foo
 			rawYaml: `
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: foo
-containerapp:
+metadata:
+  name: foo
+spec:
   location: foobar
 `,
 			expectedResult: AzureContainerApp{
 				Kind:       "AzureContainerApp",
 				APIVersion: "aca.xenit.io/v1alpha1",
-				Name:       "foo",
-				ContainerApp: &armappcontainers.ContainerApp{
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &armappcontainers.ContainerApp{
 					Location: toPtr("foobar"),
+					Tags: map[string]*string{
+						"aca.xenit.io": toPtr("true"),
+					},
 				},
 			},
 			expectedError: "",
@@ -72,8 +77,9 @@ containerapp:
 			rawYaml: `
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: foo
-containerapp:
+metadata:
+  name: foo
+spec:
   foobar: baz
 `,
 			expectedResult: AzureContainerApp{},
@@ -84,8 +90,9 @@ containerapp:
 			rawYaml: `
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: foo
-containerapp:
+metadata:
+  name: foo
+spec:
   location: foobar
   properties:
     configuration:
@@ -104,9 +111,14 @@ containerapp:
 			expectedResult: AzureContainerApp{
 				Kind:       "AzureContainerApp",
 				APIVersion: "aca.xenit.io/v1alpha1",
-				Name:       "foo",
-				ContainerApp: &armappcontainers.ContainerApp{
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &armappcontainers.ContainerApp{
 					Location: toPtr("foobar"),
+					Tags: map[string]*string{
+						"aca.xenit.io": toPtr("true"),
+					},
 					Identity: nil,
 					Properties: &armappcontainers.ContainerAppProperties{
 						Configuration: &armappcontainers.Configuration{
@@ -162,13 +174,24 @@ func TestAzureContainerApps(t *testing.T) {
 			rawYaml: `
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: foo
+metadata:
+ name: foo
+spec:
+  location: foobar
 `,
 			expectedResult: AzureContainerApps{
 				"foo": {
 					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
-					Name:       "foo",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &armappcontainers.ContainerApp{
+						Location: toPtr("foobar"),
+						Tags: map[string]*string{
+							"aca.xenit.io": toPtr("true"),
+						},
+					},
 				},
 			},
 			expectedLenght: 1,
@@ -179,22 +202,44 @@ name: foo
 			rawYaml: `
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: foo
+metadata:
+ name: foo
+spec:
+  location: foobar
 ---
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: bar
+metadata:
+ name: bar
+spec:
+  location: foobar
 `,
 			expectedResult: AzureContainerApps{
 				"foo": {
 					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
-					Name:       "foo",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &armappcontainers.ContainerApp{
+						Location: toPtr("foobar"),
+						Tags: map[string]*string{
+							"aca.xenit.io": toPtr("true"),
+						},
+					},
 				},
 				"bar": {
 					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
-					Name:       "bar",
+					Metadata: map[string]string{
+						"name": "bar",
+					},
+					Specification: &armappcontainers.ContainerApp{
+						Location: toPtr("foobar"),
+						Tags: map[string]*string{
+							"aca.xenit.io": toPtr("true"),
+						},
+					},
 				},
 			},
 			expectedLenght: 2,
@@ -205,14 +250,34 @@ name: bar
 			rawYaml: `
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: foo
+metadata:
+ name: foo
+spec:
+  location: foobar
 ---
 kind: foobar
 apiVersion: aca.xenit.io/v1alpha1
-name: bar
+metadata:
+ name: bar
+spec:
+  location: foobar
 `,
-			expectedResult: AzureContainerApps{},
-			expectedLenght: 0,
+			expectedResult: AzureContainerApps{
+				"foo": {
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha1",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &armappcontainers.ContainerApp{
+						Location: toPtr("foobar"),
+						Tags: map[string]*string{
+							"aca.xenit.io": toPtr("true"),
+						},
+					},
+				},
+			},
+			expectedLenght: 1,
 			expectedError:  "kind should be AzureContainerApp",
 		},
 	}

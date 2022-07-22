@@ -1,7 +1,8 @@
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: foo1
-containerapp:
+metadata:
+  name: foo1
+spec:
   location: west europe
   properties:
     configuration:
@@ -19,8 +20,9 @@ containerapp:
 ---
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
-name: foo2
-containerapp:
+metadata:
+  name: foo2
+spec:
   location: west europe
   properties:
     configuration:

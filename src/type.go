@@ -17,10 +17,23 @@ const (
 )
 
 type AzureContainerApp struct {
-	Kind         string                         `json:"kind,omitempty" yaml:"kind,omitempty"`
-	APIVersion   string                         `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
-	Name         string                         `json:"name,omitempty" yaml:"name,omitempty"`
-	ContainerApp *armappcontainers.ContainerApp `json:"containerapp,omitempty" yaml:"containerapp,omitempty"`
+	Kind          string                         `json:"kind,omitempty" yaml:"kind,omitempty"`
+	APIVersion    string                         `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
+	Metadata      map[string]string              `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Specification *armappcontainers.ContainerApp `json:"spec,omitempty" yaml:"spec,omitempty"`
+}
+
+func (aca *AzureContainerApp) Name() string {
+	if aca.Metadata == nil {
+		return ""
+	}
+
+	name, ok := aca.Metadata["name"]
+	if !ok {
+		return ""
+	}
+
+	return name
 }
 
 func (aca *AzureContainerApp) ValidateFields() error {
@@ -33,7 +46,22 @@ func (aca *AzureContainerApp) ValidateFields() error {
 		errs = append(errs, "apiVersion for "+aca.Kind+" should be "+requiredVersion)
 	}
 
-	if aca.ContainerApp != nil && aca.ContainerApp.Properties != nil && aca.ContainerApp.Properties.ManagedEnvironmentID != nil {
+	if aca.Specification == nil {
+		errs = append(errs, "spec is missing")
+	}
+
+	if aca.Metadata == nil {
+		errs = append(errs, "metadata is missing")
+	}
+
+	if aca.Metadata != nil {
+		_, ok := aca.Metadata["name"]
+		if !ok {
+			errs = append(errs, "name missing from metadata")
+		}
+	}
+
+	if aca.Specification != nil && aca.Specification.Properties != nil && aca.Specification.Properties.ManagedEnvironmentID != nil {
 		errs = append(errs, "managedEnvironmentID can't be set through json")
 	}
 
@@ -63,20 +91,21 @@ func (aca *AzureContainerApp) Unmarshal(y []byte, cfg config) error {
 	}
 
 	if cfg.ManagedEnvironmentID != "" {
-		if newAca.ContainerApp == nil {
-			newAca.ContainerApp = &armappcontainers.ContainerApp{}
+		if newAca.Specification == nil {
+			newAca.Specification = &armappcontainers.ContainerApp{}
 		}
-		if newAca.ContainerApp.Properties == nil {
-			newAca.ContainerApp.Properties = &armappcontainers.ContainerAppProperties{}
+
+		if newAca.Specification.Properties == nil {
+			newAca.Specification.Properties = &armappcontainers.ContainerAppProperties{}
 		}
-		newAca.ContainerApp.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
+		newAca.Specification.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
 	}
 
-	if newAca.ContainerApp.Tags == nil {
-		newAca.ContainerApp.Tags = make(map[string]*string)
+	if newAca.Specification.Tags == nil {
+		newAca.Specification.Tags = make(map[string]*string)
 	}
 
-	newAca.ContainerApp.Tags["aca.xenit.io"] = toPtr("true")
+	newAca.Specification.Tags["aca.xenit.io"] = toPtr("true")
 
 	*aca = newAca
 	return nil
@@ -95,11 +124,11 @@ func (acas *AzureContainerApps) Unmarshal(y []byte, cfg config) error {
 		if err != nil {
 			return err
 		}
-		_, ok := (*acas)[aca.Name]
+		_, ok := (*acas)[aca.Name()]
 		if ok {
-			return fmt.Errorf("multiple instances of %q", aca.Name)
+			return fmt.Errorf("multiple instances of %q", aca.Name())
 		}
-		(*acas)[aca.Name] = aca
+		(*acas)[aca.Name()] = aca
 	}
 	return nil
 }

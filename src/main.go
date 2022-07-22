@@ -20,7 +20,7 @@ func main() {
 		YAMLPath:             "./test/yaml",
 	})
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "application returned an error: %v", err)
+		fmt.Fprintf(os.Stderr, "application returned an error: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -73,10 +73,11 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 
 	for name, aca := range *fsACAs {
 		liveACA, ok := (*liveACAs)[name]
-		if !liveACA.managed {
-			return fmt.Errorf("trying to update a non-managed app: %s", name)
-		}
 		if ok {
+			if !liveACA.managed {
+				return fmt.Errorf("trying to update a non-managed app: %s", name)
+			}
+
 			fmt.Printf("starting fsACA update: %s\n", name)
 			err := updateACA(ctx, aca, cfg, client)
 			if err != nil {
@@ -86,6 +87,7 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 			fmt.Printf("finished fsACA update: %s\n", name)
 			continue
 		}
+
 		fmt.Printf("starting fsACA creation: %s\n", name)
 		err := createACA(ctx, aca, cfg, client)
 		if err != nil {
@@ -99,7 +101,7 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 }
 
 func updateACA(ctx context.Context, aca AzureContainerApp, cfg config, client *armappcontainers.ContainerAppsClient) error {
-	res, err := client.BeginUpdate(ctx, cfg.ResourceGroupName, aca.Name, *aca.ContainerApp, &armappcontainers.ContainerAppsClientBeginUpdateOptions{})
+	res, err := client.BeginUpdate(ctx, cfg.ResourceGroupName, aca.Name(), *aca.Specification, &armappcontainers.ContainerAppsClientBeginUpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update: %w", err)
 	}
@@ -115,7 +117,7 @@ func updateACA(ctx context.Context, aca AzureContainerApp, cfg config, client *a
 }
 
 func createACA(ctx context.Context, aca AzureContainerApp, cfg config, client *armappcontainers.ContainerAppsClient) error {
-	res, err := client.BeginCreateOrUpdate(ctx, cfg.ResourceGroupName, aca.Name, *aca.ContainerApp, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
+	res, err := client.BeginCreateOrUpdate(ctx, cfg.ResourceGroupName, aca.Name(), *aca.Specification, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create: %w", err)
 	}
