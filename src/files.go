@@ -6,13 +6,15 @@ import (
 	"strings"
 )
 
-func listYamlFromPath(path string) ([]string, error) {
+type YAMLFiles map[string][]byte
+
+func listYamlFromPath(path string) (*YAMLFiles, error) {
 	fsys := os.DirFS(path)
 	return listYamlFromFS(fsys)
 }
 
-func listYamlFromFS(fsys fs.FS) ([]string, error) {
-	var files []string
+func listYamlFromFS(fsys fs.FS) (*YAMLFiles, error) {
+	files := make(YAMLFiles)
 	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		switch {
 		case err != nil:
@@ -23,10 +25,15 @@ func listYamlFromFS(fsys fs.FS) ([]string, error) {
 			return nil
 		}
 
-		files = append(files, path)
+		b, err := fs.ReadFile(fsys, path)
+		if err != nil {
+			return err
+		}
+
+		files[path] = b
 
 		return nil
 	})
 
-	return files, nil
+	return &files, nil
 }

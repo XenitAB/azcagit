@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
@@ -133,15 +132,11 @@ func (acas *AzureContainerApps) Unmarshal(y []byte, cfg config) error {
 	return nil
 }
 
-func GetAzureContainerAppFromFiles(files []string, cfg config) (*AzureContainerApps, error) {
+func GetAzureContainerAppFromFiles(yamlFiles *YAMLFiles, cfg config) (*AzureContainerApps, error) {
 	acas := AzureContainerApps{}
-	for _, file := range files {
-		path := fmt.Sprintf("%s/%s", cfg.YAMLPath, file)
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return nil, err
-		}
-		err = acas.Unmarshal(b, cfg)
+	for path := range *yamlFiles {
+		content := (*yamlFiles)[path]
+		err := acas.Unmarshal(content, cfg)
 		if err != nil {
 			return nil, err
 		}

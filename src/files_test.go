@@ -27,5 +27,5 @@ func TestListYamlFromFS(t *testing.T) {
 	}
 	yamlFiles, err := listYamlFromFS(fsys)
 	require.NoError(t, err)
-	require.Len(t, yamlFiles, 3)
+	require.Len(t, *yamlFiles, 3)
 }

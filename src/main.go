@@ -153,9 +153,9 @@ func toPtr[T any](a T) *T {
 }
 
 func getACAs(cfg config) (*AzureContainerApps, error) {
-	files, err := listYamlFromPath(cfg.YAMLPath)
+	yamlFiles, err := listYamlFromPath(cfg.YAMLPath)
 	if err != nil {
 		return nil, err
 	}
-	return GetAzureContainerAppFromFiles(files, cfg)
+	return GetAzureContainerAppFromFiles(yamlFiles, cfg)
 }
