@@ -17,7 +17,9 @@ func main() {
 		ManagedEnvironmentID: "/subscriptions/2a6936a5-fc30-492a-ab19-ec59068b5b96/resourceGroups/rg-aca-platform/providers/Microsoft.App/managedEnvironments/me-container-apps",
 		Location:             "west europe",
 		ReconcileInterval:    "10s",
-		YAMLPath:             "./test/yaml",
+		CheckoutPath:         "/tmp/foo",
+		GitUrl:               "https://github.com/simongottschlag/aca-test-yaml.git",
+		GitBranch:            "main",
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "application returned an error: %v\n", err)
@@ -31,7 +33,9 @@ type config struct {
 	ManagedEnvironmentID string
 	Location             string
 	ReconcileInterval    string
-	YAMLPath             string
+	CheckoutPath         string
+	GitUrl               string
+	GitBranch            string
 }
 
 func run(cfg config) error {
@@ -41,18 +45,31 @@ func run(cfg config) error {
 	}
 
 	ctx := context.Background()
-	return reconcile(ctx, cfg, client)
+	hash, err := reconcile(ctx, cfg, client, "")
+	if err != nil {
+		return err
+	}
+	_, err = reconcile(ctx, cfg, client, hash)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func reconcile(ctx context.Context, cfg config, client *armappcontainers.ContainerAppsClient) error {
-	fsACAs, err := getACAs(cfg)
+func reconcile(ctx context.Context, cfg config, client *armappcontainers.ContainerAppsClient, lastHash string) (string, error) {
+	fsACAs, hash, err := getACAs(ctx, cfg, lastHash)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		return "", fmt.Errorf("failed to read file: %w", err)
+	}
+
+	if fsACAs == nil {
+		fmt.Printf("Skipping reconcile, lastHash %q equals hash %q\n", lastHash, hash)
+		return hash, nil
 	}
 
 	liveACAs, err := listContainerApps(ctx, client, cfg.ResourceGroupName)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	for name, aca := range *liveACAs {
@@ -65,7 +82,7 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 			err := deleteACA(ctx, name, cfg, client)
 			if err != nil {
 				fmt.Printf("failed liveACA deletion: %s\n", name)
-				return err
+				return "", err
 			}
 			fmt.Printf("finished liveACA deletion: %s\n", name)
 		}
@@ -75,14 +92,14 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 		liveACA, ok := (*liveACAs)[name]
 		if ok {
 			if !liveACA.managed {
-				return fmt.Errorf("trying to update a non-managed app: %s", name)
+				return "", fmt.Errorf("trying to update a non-managed app: %s", name)
 			}
 
 			fmt.Printf("starting fsACA update: %s\n", name)
 			err := updateACA(ctx, aca, cfg, client)
 			if err != nil {
 				fmt.Printf("failed fsACA update: %s\n", name)
-				return err
+				return "", err
 			}
 			fmt.Printf("finished fsACA update: %s\n", name)
 			continue
@@ -92,12 +109,12 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 		err := createACA(ctx, aca, cfg, client)
 		if err != nil {
 			fmt.Printf("failed fsACA creation: %s\n", name)
-			return err
+			return "", err
 		}
 		fmt.Printf("finished fsACA creation: %s\n", name)
 	}
 
-	return nil
+	return hash, nil
 }
 
 func updateACA(ctx context.Context, aca AzureContainerApp, cfg config, client *armappcontainers.ContainerAppsClient) error {
@@ -152,10 +169,20 @@ func toPtr[T any](a T) *T {
 	return &a
 }
 
-func getACAs(cfg config) (*AzureContainerApps, error) {
-	yamlFiles, err := listYamlFromPath(cfg.YAMLPath)
+func getACAs(ctx context.Context, cfg config, lastHash string) (*AzureContainerApps, string, error) {
+	yamlFiles, hash, err := checkout(ctx, cfg.CheckoutPath, cfg.GitUrl, cfg.GitBranch, lastHash)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	return GetAzureContainerAppFromFiles(yamlFiles, cfg)
+
+	if lastHash == hash {
+		return nil, hash, nil
+	}
+
+	apps, err := GetAzureContainerAppFromFiles(yamlFiles, cfg)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return apps, hash, nil
 }
