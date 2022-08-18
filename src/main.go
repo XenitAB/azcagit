@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
@@ -44,28 +45,89 @@ func run(cfg config) error {
 		return err
 	}
 
-	ctx := context.Background()
-	hash, err := reconcile(ctx, cfg, client, "")
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	tickerInterval, err := time.ParseDuration(cfg.ReconcileInterval)
 	if err != nil {
 		return err
 	}
-	_, err = reconcile(ctx, cfg, client, hash)
-	if err != nil {
-		return err
+
+	ticker := time.NewTicker(tickerInterval)
+
+	var hash string
+	db := make(containerAppDB)
+
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("context done")
+			return nil
+		case <-ticker.C:
+			hash, err = reconcile(ctx, cfg, client, hash, &db)
+			if err != nil {
+				fmt.Printf("reconcile error: %v\n", err)
+			}
+			ticker.Reset(tickerInterval)
+		}
 	}
-	return nil
 }
 
-func reconcile(ctx context.Context, cfg config, client *armappcontainers.ContainerAppsClient, lastHash string) (string, error) {
+type containerAppDB map[string]time.Time
+
+func (db *containerAppDB) set(name string, app liveContainerApp) {
+	if app.app == nil {
+		return
+	}
+	if app.app.SystemData == nil {
+		return
+	}
+
+	timestamp := app.app.SystemData.LastModifiedAt
+	if timestamp == nil {
+		if app.app.SystemData.CreatedAt == nil {
+			return
+		}
+		timestamp = app.app.SystemData.CreatedAt
+	}
+
+	(*db)[name] = *timestamp
+}
+
+func (db *containerAppDB) needsUpdate(name string, app liveContainerApp) bool {
+	dbTime, ok := (*db)[name]
+	if !ok {
+		return true
+	}
+
+	if app.app == nil {
+		return true
+	}
+	if app.app.SystemData == nil {
+		return true
+	}
+
+	timestamp := app.app.SystemData.LastModifiedAt
+	if timestamp == nil {
+		if app.app.SystemData.CreatedAt == nil {
+			return true
+		}
+		timestamp = app.app.SystemData.CreatedAt
+	}
+
+	return dbTime != *timestamp
+}
+
+func reconcile(ctx context.Context, cfg config, client *armappcontainers.ContainerAppsClient, lastHash string, db *containerAppDB) (string, error) {
 	fsACAs, hash, err := getACAs(ctx, cfg, lastHash)
 	if err != nil {
 		return "", fmt.Errorf("failed to read file: %w", err)
 	}
 
-	if fsACAs == nil {
-		fmt.Printf("Skipping reconcile, lastHash %q equals hash %q\n", lastHash, hash)
-		return hash, nil
-	}
+	// if fsACAs == nil {
+	// 	fmt.Printf("Skipping reconcile, lastHash %q equals hash %q\n", lastHash, hash)
+	// 	return hash, nil
+	// }
 
 	liveACAs, err := listContainerApps(ctx, client, cfg.ResourceGroupName)
 	if err != nil {
@@ -90,6 +152,10 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 
 	for name, aca := range *fsACAs {
 		liveACA, ok := (*liveACAs)[name]
+		if !db.needsUpdate(name, liveACA) {
+			fmt.Printf("Skipping update: %s\n", name)
+			continue
+		}
 		if ok {
 			if !liveACA.managed {
 				return "", fmt.Errorf("trying to update a non-managed app: %s", name)
@@ -112,6 +178,15 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 			return "", err
 		}
 		fmt.Printf("finished fsACA creation: %s\n", name)
+	}
+
+	newLiveACAs, err := listContainerApps(ctx, client, cfg.ResourceGroupName)
+	if err != nil {
+		return "", err
+	}
+
+	for name, aca := range *newLiveACAs {
+		db.set(name, aca)
 	}
 
 	return hash, nil
@@ -175,9 +250,9 @@ func getACAs(ctx context.Context, cfg config, lastHash string) (*AzureContainerA
 		return nil, "", err
 	}
 
-	if lastHash == hash {
-		return nil, hash, nil
-	}
+	// if lastHash == hash {
+	// 	return nil, hash, nil
+	// }
 
 	apps, err := GetAzureContainerAppFromFiles(yamlFiles, cfg)
 	if err != nil {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/fluxcd/source-controller/pkg/git"
 	"github.com/fluxcd/source-controller/pkg/git/libgit2"
@@ -17,14 +16,12 @@ func checkout(ctx context.Context, path string, url string, branch string, lastH
 		return nil, "", err
 	}
 
-	fmt.Println("Got strategy")
-
-	commit, err := strat.Checkout(ctx, path, url, &git.AuthOptions{})
+	commit, err := strat.Checkout(ctx, path, url, &git.AuthOptions{
+		TransportOptionsURL: url,
+	})
 	if err != nil {
 		return nil, "", err
 	}
-
-	fmt.Println("Checkout complete")
 
 	yamlFiles, err := listYamlFromPath(path)
 	if err != nil {
