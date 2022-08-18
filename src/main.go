@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
 	"os"
 	"os/signal"
@@ -73,49 +74,72 @@ func run(cfg config) error {
 	}
 }
 
-type containerAppDB map[string]time.Time
+type containerAppDBEntry struct {
+	modified  time.Time
+	localHash string
+}
+type containerAppDB map[string]containerAppDBEntry
 
-func (db *containerAppDB) set(name string, app liveContainerApp) {
-	if app.app == nil {
+func (db *containerAppDB) set(name string, live, local *armappcontainers.ContainerApp) {
+	if live == nil {
 		return
 	}
-	if app.app.SystemData == nil {
+	if live.SystemData == nil {
 		return
 	}
 
-	timestamp := app.app.SystemData.LastModifiedAt
+	timestamp := live.SystemData.LastModifiedAt
 	if timestamp == nil {
-		if app.app.SystemData.CreatedAt == nil {
+		if live.SystemData.CreatedAt == nil {
 			return
 		}
-		timestamp = app.app.SystemData.CreatedAt
+		timestamp = live.SystemData.CreatedAt
 	}
 
-	(*db)[name] = *timestamp
+	b, err := local.MarshalJSON()
+	if err != nil {
+		return
+	}
+	hash := fmt.Sprintf("%x", md5.Sum(b))
+
+	(*db)[name] = containerAppDBEntry{
+		modified:  *timestamp,
+		localHash: hash,
+	}
 }
 
-func (db *containerAppDB) needsUpdate(name string, app liveContainerApp) bool {
-	dbTime, ok := (*db)[name]
+func (db *containerAppDB) needsUpdate(name string, live, local *armappcontainers.ContainerApp) bool {
+	entry, ok := (*db)[name]
 	if !ok {
 		return true
 	}
 
-	if app.app == nil {
+	if live == nil {
 		return true
 	}
-	if app.app.SystemData == nil {
+	if live.SystemData == nil {
 		return true
 	}
 
-	timestamp := app.app.SystemData.LastModifiedAt
+	timestamp := live.SystemData.LastModifiedAt
 	if timestamp == nil {
-		if app.app.SystemData.CreatedAt == nil {
+		if live.SystemData.CreatedAt == nil {
 			return true
 		}
-		timestamp = app.app.SystemData.CreatedAt
+		timestamp = live.SystemData.CreatedAt
 	}
 
-	return dbTime != *timestamp
+	if entry.modified != *timestamp {
+		return true
+	}
+
+	b, err := local.MarshalJSON()
+	if err != nil {
+		return true
+	}
+
+	hash := fmt.Sprintf("%x", md5.Sum(b))
+	return entry.localHash != hash
 }
 
 func reconcile(ctx context.Context, cfg config, client *armappcontainers.ContainerAppsClient, lastHash string, db *containerAppDB) (string, error) {
@@ -123,11 +147,6 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 	if err != nil {
 		return "", fmt.Errorf("failed to read file: %w", err)
 	}
-
-	// if fsACAs == nil {
-	// 	fmt.Printf("Skipping reconcile, lastHash %q equals hash %q\n", lastHash, hash)
-	// 	return hash, nil
-	// }
 
 	liveACAs, err := listContainerApps(ctx, client, cfg.ResourceGroupName)
 	if err != nil {
@@ -152,7 +171,7 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 
 	for name, aca := range *fsACAs {
 		liveACA, ok := (*liveACAs)[name]
-		if !db.needsUpdate(name, liveACA) {
+		if !db.needsUpdate(name, liveACA.app, aca.Specification) {
 			fmt.Printf("Skipping update: %s\n", name)
 			continue
 		}
@@ -162,7 +181,7 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 			}
 
 			fmt.Printf("starting fsACA update: %s\n", name)
-			err := updateACA(ctx, aca, cfg, client)
+			err := createOrUpdateACA(ctx, aca, cfg, client)
 			if err != nil {
 				fmt.Printf("failed fsACA update: %s\n", name)
 				return "", err
@@ -172,7 +191,7 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 		}
 
 		fmt.Printf("starting fsACA creation: %s\n", name)
-		err := createACA(ctx, aca, cfg, client)
+		err := createOrUpdateACA(ctx, aca, cfg, client)
 		if err != nil {
 			fmt.Printf("failed fsACA creation: %s\n", name)
 			return "", err
@@ -185,30 +204,18 @@ func reconcile(ctx context.Context, cfg config, client *armappcontainers.Contain
 		return "", err
 	}
 
-	for name, aca := range *newLiveACAs {
-		db.set(name, aca)
+	for name, aca := range *fsACAs {
+		liveACA, ok := (*newLiveACAs)[name]
+		if !ok {
+			return "", fmt.Errorf("unable to locate %s after create or update", name)
+		}
+		db.set(name, liveACA.app, aca.Specification)
 	}
 
 	return hash, nil
 }
 
-func updateACA(ctx context.Context, aca AzureContainerApp, cfg config, client *armappcontainers.ContainerAppsClient) error {
-	res, err := client.BeginUpdate(ctx, cfg.ResourceGroupName, aca.Name(), *aca.Specification, &armappcontainers.ContainerAppsClientBeginUpdateOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to update: %w", err)
-	}
-
-	_, err = res.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{
-		Frequency: 5 * time.Second,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to update: %w", err)
-	}
-
-	return nil
-}
-
-func createACA(ctx context.Context, aca AzureContainerApp, cfg config, client *armappcontainers.ContainerAppsClient) error {
+func createOrUpdateACA(ctx context.Context, aca AzureContainerApp, cfg config, client *armappcontainers.ContainerAppsClient) error {
 	res, err := client.BeginCreateOrUpdate(ctx, cfg.ResourceGroupName, aca.Name(), *aca.Specification, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create: %w", err)
@@ -249,10 +256,6 @@ func getACAs(ctx context.Context, cfg config, lastHash string) (*AzureContainerA
 	if err != nil {
 		return nil, "", err
 	}
-
-	// if lastHash == hash {
-	// 	return nil, hash, nil
-	// }
 
 	apps, err := GetAzureContainerAppFromFiles(yamlFiles, cfg)
 	if err != nil {
