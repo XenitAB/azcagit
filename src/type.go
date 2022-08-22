@@ -64,33 +64,6 @@ func (aca *AzureContainerApp) ValidateFields() error {
 		errs = append(errs, "managedEnvironmentID can't be set through json")
 	}
 
-	// if aca.Specification.Properties == nil {
-	// 	aca.Specification.Properties = &armappcontainers.ContainerAppProperties{
-	// 		Configuration: &armappcontainers.Configuration{
-	// 			Secrets:    []*armappcontainers.Secret{},
-	// 			Registries: []*armappcontainers.RegistryCredentials{},
-	// 			Ingress:    nil,
-	// 			Dapr:       nil,
-	// 		},
-	// 	}
-	// }
-
-	// if aca.Specification.Properties.Configuration == nil {
-	// 	aca.Specification.Properties.Configuration = &armappcontainers.Configuration{
-	// 		Secrets:    []*armappcontainers.Secret{},
-	// 		Registries: []*armappcontainers.RegistryCredentials{},
-	// 		Ingress:    nil,
-	// 		Dapr:       nil,
-	// 	}
-	// }
-
-	// if aca.Specification.Properties.Configuration.Secrets == nil {
-	// 	aca.Specification.Properties.Configuration.Secrets = []*armappcontainers.Secret{}
-	// }
-	// if aca.Specification.Properties.Configuration.Registries == nil {
-	// 	aca.Specification.Properties.Configuration.Registries = []*armappcontainers.RegistryCredentials{}
-	// }
-
 	if len(errs) == 0 {
 		return nil
 	}
