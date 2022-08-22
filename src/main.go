@@ -32,19 +32,19 @@ func main() {
 }
 
 func run(cfg config.Config) error {
-	remoteClient, err := remote.NewAzureRemote(cfg)
+	sourceClient, err := source.NewGitSource(cfg)
 	if err != nil {
 		return err
 	}
 
-	sourceClient, err := source.NewInMemSource(cfg)
+	remoteClient, err := remote.NewAzureRemote(cfg)
 	if err != nil {
 		return err
 	}
 
 	cache := cache.NewCache()
 
-	reconcileClient, err := reconcile.NewReconciler(sourceClient, remoteClient, cache)
+	reconciler, err := reconcile.NewReconciler(sourceClient, remoteClient, cache)
 	if err != nil {
 		return err
 	}
@@ -65,7 +65,7 @@ func run(cfg config.Config) error {
 			fmt.Println("context done")
 			return nil
 		case <-ticker.C:
-			err := reconcileClient.Run(ctx)
+			err := reconciler.Run(ctx)
 			if err != nil {
 				fmt.Printf("reconcile error: %v\n", err)
 			}

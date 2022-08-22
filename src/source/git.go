@@ -15,6 +15,12 @@ type GitSource struct {
 
 var _ Source = (*GitSource)(nil)
 
+func NewGitSource(cfg config.Config) (*GitSource, error) {
+	return &GitSource{
+		cfg,
+	}, nil
+}
+
 func (s *GitSource) Get(ctx context.Context) (*SourceApps, error) {
 	yamlFiles, err := s.checkout(ctx)
 	if err != nil {

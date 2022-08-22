@@ -9,25 +9,21 @@ import (
 	"github.com/xenitab/aca-gitops-engine/src/source"
 )
 
-type Reconcile interface {
-	Run(ctx context.Context) error
-}
-
-type reconcile struct {
+type Reconciler struct {
 	sourceClient source.Source
 	remoteClient remote.Remote
 	cache        *cache.Cache
 }
 
-func NewReconciler(sourceClient source.Source, remoteClient remote.Remote, cache *cache.Cache) (*reconcile, error) {
-	return &reconcile{
+func NewReconciler(sourceClient source.Source, remoteClient remote.Remote, cache *cache.Cache) (*Reconciler, error) {
+	return &Reconciler{
 		sourceClient,
 		remoteClient,
 		cache,
 	}, nil
 }
 
-func (r *reconcile) Run(ctx context.Context) error {
+func (r *Reconciler) Run(ctx context.Context) error {
 	sourceApps, err := r.sourceClient.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
@@ -44,13 +40,13 @@ func (r *reconcile) Run(ctx context.Context) error {
 			if !rmtApp.Managed() {
 				continue
 			}
-			fmt.Printf("starting liveACA deletion: %s\n", name)
+			fmt.Printf("starting remote app deletion: %s\n", name)
 			err := r.remoteClient.Delete(ctx, name)
 			if err != nil {
-				fmt.Printf("failed liveACA deletion: %s\n", name)
+				fmt.Printf("failed remote app deletion: %s\n", name)
 				return err
 			}
-			fmt.Printf("finished liveACA deletion: %s\n", name)
+			fmt.Printf("finished remote app deletion: %s\n", name)
 		}
 	}
 
@@ -65,23 +61,23 @@ func (r *reconcile) Run(ctx context.Context) error {
 				return fmt.Errorf("trying to update a non-managed app: %s", name)
 			}
 
-			fmt.Printf("starting fsACA update: %s\n", name)
+			fmt.Printf("starting update: %s\n", name)
 			err := r.remoteClient.CreateOrUpdate(ctx, name, *sourceApp.Specification)
 			if err != nil {
-				fmt.Printf("failed fsACA update: %s\n", name)
+				fmt.Printf("failed update: %s\n", name)
 				return err
 			}
-			fmt.Printf("finished fsACA update: %s\n", name)
+			fmt.Printf("finished update: %s\n", name)
 			continue
 		}
 
-		fmt.Printf("starting fsACA creation: %s\n", name)
+		fmt.Printf("starting creation: %s\n", name)
 		err := r.remoteClient.CreateOrUpdate(ctx, name, *sourceApp.Specification)
 		if err != nil {
-			fmt.Printf("failed fsACA creation: %s\n", name)
+			fmt.Printf("failed creation: %s\n", name)
 			return err
 		}
-		fmt.Printf("finished fsACA creation: %s\n", name)
+		fmt.Printf("finished creation: %s\n", name)
 	}
 
 	newRemoteApps, err := r.remoteClient.List(ctx)
