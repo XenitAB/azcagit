@@ -1,4 +1,4 @@
-package main
+package source
 
 import (
 	"bytes"
@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
+	"github.com/xenitab/aca-gitops-engine/src/config"
 	"sigs.k8s.io/yaml"
 )
 
@@ -15,14 +16,14 @@ const (
 	AzureContainerAppKind    = "AzureContainerApp"
 )
 
-type AzureContainerApp struct {
+type SourceApp struct {
 	Kind          string                         `json:"kind,omitempty" yaml:"kind,omitempty"`
 	APIVersion    string                         `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
 	Metadata      map[string]string              `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Specification *armappcontainers.ContainerApp `json:"spec,omitempty" yaml:"spec,omitempty"`
 }
 
-func (aca *AzureContainerApp) Name() string {
+func (aca *SourceApp) Name() string {
 	if aca.Metadata == nil {
 		return ""
 	}
@@ -35,7 +36,7 @@ func (aca *AzureContainerApp) Name() string {
 	return name
 }
 
-func (aca *AzureContainerApp) ValidateFields() error {
+func (aca *SourceApp) ValidateFields() error {
 	var errs []string
 	if aca.Kind != "" && aca.Kind != AzureContainerAppKind {
 		errs = append(errs, "kind should be "+AzureContainerAppKind)
@@ -71,14 +72,14 @@ func (aca *AzureContainerApp) ValidateFields() error {
 	return fmt.Errorf(strings.Join(errs, "\n"))
 }
 
-func (aca *AzureContainerApp) Unmarshal(y []byte, cfg config) error {
+func (aca *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 	j, err := yaml.YAMLToJSON(y)
 	if err != nil {
 		return err
 	}
 	dec := json.NewDecoder(bytes.NewReader(j))
 	dec.DisallowUnknownFields()
-	var newAca AzureContainerApp
+	var newAca SourceApp
 	err = dec.Decode(&newAca)
 	if err != nil {
 		return err
@@ -110,15 +111,15 @@ func (aca *AzureContainerApp) Unmarshal(y []byte, cfg config) error {
 	return nil
 }
 
-type AzureContainerApps map[string]AzureContainerApp
+type SourceApps map[string]SourceApp
 
-func (acas *AzureContainerApps) Unmarshal(y []byte, cfg config) error {
+func (acas *SourceApps) Unmarshal(y []byte, cfg config.Config) error {
 	if acas == nil {
-		acas = toPtr(make(AzureContainerApps))
+		acas = toPtr(make(SourceApps))
 	}
 	parts := strings.Split(string(y), "---")
 	for _, part := range parts {
-		var aca AzureContainerApp
+		var aca SourceApp
 		err := aca.Unmarshal([]byte(part), cfg)
 		if err != nil {
 			return err
@@ -132,8 +133,8 @@ func (acas *AzureContainerApps) Unmarshal(y []byte, cfg config) error {
 	return nil
 }
 
-func GetAzureContainerAppFromFiles(yamlFiles *YAMLFiles, cfg config) (*AzureContainerApps, error) {
-	acas := AzureContainerApps{}
+func getAzureContainerAppsFromFiles(yamlFiles *map[string][]byte, cfg config.Config) (*SourceApps, error) {
+	acas := SourceApps{}
 	for path := range *yamlFiles {
 		content := (*yamlFiles)[path]
 		err := acas.Unmarshal(content, cfg)

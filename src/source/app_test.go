@@ -1,28 +1,29 @@
-package main
+package source
 
 import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
 	"github.com/stretchr/testify/require"
+	"github.com/xenitab/aca-gitops-engine/src/config"
 )
 
-func TestAzureContainerApp(t *testing.T) {
+func TestSourceApp(t *testing.T) {
 	cases := []struct {
 		testDescription string
 		rawYaml         string
-		expectedResult  AzureContainerApp
+		expectedResult  SourceApp
 		expectedError   string
 	}{
 		{
 			testDescription: "plain working",
 			rawYaml: `
-kind: AzureContainerApp
+kind: SourceApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
 `,
-			expectedResult: AzureContainerApp{},
+			expectedResult: SourceApp{},
 			expectedError:  "spec is missing",
 		},
 		{
@@ -33,32 +34,32 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
 `,
-			expectedResult: AzureContainerApp{},
-			expectedError:  "kind should be AzureContainerApp",
+			expectedResult: SourceApp{},
+			expectedError:  "kind should be SourceApp",
 		},
 		{
 			testDescription: "invalid apiVersion",
 			rawYaml: `
-kind: AzureContainerApp
+kind: SourceApp
 apiVersion: foobar
 metadata:
   name: foo
 `,
-			expectedResult: AzureContainerApp{},
-			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha1",
+			expectedResult: SourceApp{},
+			expectedError:  "apiVersion for SourceApp should be aca.xenit.io/v1alpha1",
 		},
 		{
 			testDescription: "containerapp location",
 			rawYaml: `
-kind: AzureContainerApp
+kind: SourceApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
 spec:
   location: foobar
 `,
-			expectedResult: AzureContainerApp{
-				Kind:       "AzureContainerApp",
+			expectedResult: SourceApp{
+				Kind:       "SourceApp",
 				APIVersion: "aca.xenit.io/v1alpha1",
 				Metadata: map[string]string{
 					"name": "foo",
@@ -75,20 +76,20 @@ spec:
 		{
 			testDescription: "containerapp invalid property",
 			rawYaml: `
-kind: AzureContainerApp
+kind: SourceApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
 spec:
   foobar: baz
 `,
-			expectedResult: AzureContainerApp{},
+			expectedResult: SourceApp{},
 			expectedError:  "json: unknown field \"foobar\"",
 		},
 		{
 			testDescription: "containerapp with multiple properties",
 			rawYaml: `
-kind: AzureContainerApp
+kind: SourceApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
@@ -108,8 +109,8 @@ spec:
         minReplicas: 1
         maxReplicas: 1
 `,
-			expectedResult: AzureContainerApp{
-				Kind:       "AzureContainerApp",
+			expectedResult: SourceApp{
+				Kind:       "SourceApp",
 				APIVersion: "aca.xenit.io/v1alpha1",
 				Metadata: map[string]string{
 					"name": "foo",
@@ -149,8 +150,8 @@ spec:
 
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
-		aca := AzureContainerApp{}
-		err := aca.Unmarshal([]byte(c.rawYaml), config{})
+		aca := SourceApp{}
+		err := aca.Unmarshal([]byte(c.rawYaml), config.Config{})
 		if c.expectedError != "" {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), c.expectedError)
@@ -161,27 +162,27 @@ spec:
 	}
 }
 
-func TestAzureContainerApps(t *testing.T) {
+func TestSourceApps(t *testing.T) {
 	cases := []struct {
 		testDescription string
 		rawYaml         string
-		expectedResult  AzureContainerApps
+		expectedResult  SourceApps
 		expectedLenght  int
 		expectedError   string
 	}{
 		{
 			testDescription: "plain working, single document",
 			rawYaml: `
-kind: AzureContainerApp
+kind: SourceApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: foo
 spec:
   location: foobar
 `,
-			expectedResult: AzureContainerApps{
+			expectedResult: SourceApps{
 				"foo": {
-					Kind:       "AzureContainerApp",
+					Kind:       "SourceApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Metadata: map[string]string{
 						"name": "foo",
@@ -200,23 +201,23 @@ spec:
 		{
 			testDescription: "plain working, two documents",
 			rawYaml: `
-kind: AzureContainerApp
+kind: SourceApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: foo
 spec:
   location: foobar
 ---
-kind: AzureContainerApp
+kind: SourceApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: bar
 spec:
   location: foobar
 `,
-			expectedResult: AzureContainerApps{
+			expectedResult: SourceApps{
 				"foo": {
-					Kind:       "AzureContainerApp",
+					Kind:       "SourceApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Metadata: map[string]string{
 						"name": "foo",
@@ -229,7 +230,7 @@ spec:
 					},
 				},
 				"bar": {
-					Kind:       "AzureContainerApp",
+					Kind:       "SourceApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Metadata: map[string]string{
 						"name": "bar",
@@ -248,7 +249,7 @@ spec:
 		{
 			testDescription: "one valid, one invalid",
 			rawYaml: `
-kind: AzureContainerApp
+kind: SourceApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: foo
@@ -262,9 +263,9 @@ metadata:
 spec:
   location: foobar
 `,
-			expectedResult: AzureContainerApps{
+			expectedResult: SourceApps{
 				"foo": {
-					Kind:       "AzureContainerApp",
+					Kind:       "SourceApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Metadata: map[string]string{
 						"name": "foo",
@@ -278,14 +279,14 @@ spec:
 				},
 			},
 			expectedLenght: 1,
-			expectedError:  "kind should be AzureContainerApp",
+			expectedError:  "kind should be SourceApp",
 		},
 	}
 
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
-		acas := AzureContainerApps{}
-		err := acas.Unmarshal([]byte(c.rawYaml), config{})
+		acas := SourceApps{}
+		err := acas.Unmarshal([]byte(c.rawYaml), config.Config{})
 		require.Len(t, acas, c.expectedLenght)
 		if c.expectedError != "" {
 			require.Error(t, err)

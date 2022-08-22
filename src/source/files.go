@@ -1,4 +1,4 @@
-package main
+package source
 
 import (
 	"io/fs"
@@ -6,15 +6,13 @@ import (
 	"strings"
 )
 
-type YAMLFiles map[string][]byte
-
-func listYamlFromPath(path string) (*YAMLFiles, error) {
+func listYamlFromPath(path string) (*map[string][]byte, error) {
 	fsys := os.DirFS(path)
 	return listYamlFromFS(fsys)
 }
 
-func listYamlFromFS(fsys fs.FS) (*YAMLFiles, error) {
-	files := make(YAMLFiles)
+func listYamlFromFS(fsys fs.FS) (*map[string][]byte, error) {
+	files := make(map[string][]byte)
 	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		switch {
 		case err != nil:
