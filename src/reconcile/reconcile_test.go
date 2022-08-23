@@ -167,7 +167,7 @@ func TestReconciler(t *testing.T) {
 			},
 		}, nil)
 		err := reconciler.Run(ctx)
-		require.ErrorContains(t, err, "unable to locate foo2 after set")
+		require.ErrorContains(t, err, "unable to locate foo2 after create or update")
 		actions := remoteClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo1")
