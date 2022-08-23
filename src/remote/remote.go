@@ -8,6 +8,7 @@ import (
 
 type Remote interface {
 	Get(ctx context.Context) (*RemoteApps, error)
-	Set(ctx context.Context, name string, app armappcontainers.ContainerApp) error
+	Create(ctx context.Context, name string, app armappcontainers.ContainerApp) error
+	Update(ctx context.Context, name string, app armappcontainers.ContainerApp) error
 	Delete(ctx context.Context, name string) error
 }

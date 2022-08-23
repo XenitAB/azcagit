@@ -72,7 +72,7 @@ func (r *Reconciler) Run(ctx context.Context) error {
 			}
 
 			fmt.Printf("starting update: %s\n", name)
-			err := r.remoteClient.Set(ctx, name, *sourceApp.Specification)
+			err := r.remoteClient.Update(ctx, name, *sourceApp.Specification)
 			if err != nil {
 				fmt.Printf("failed update: %s\n", name)
 				return err
@@ -82,7 +82,7 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		}
 
 		fmt.Printf("starting creation: %s\n", name)
-		err := r.remoteClient.Set(ctx, name, *sourceApp.Specification)
+		err := r.remoteClient.Create(ctx, name, *sourceApp.Specification)
 		if err != nil {
 			fmt.Printf("failed creation: %s\n", name)
 			return err

@@ -72,7 +72,7 @@ func (r *AzureRemote) Get(ctx context.Context) (*RemoteApps, error) {
 	return &apps, nil
 }
 
-func (r *AzureRemote) Set(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
+func (r *AzureRemote) Create(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
 	res, err := r.client.BeginCreateOrUpdate(ctx, r.resourceGroup, name, app, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create: %w", err)
@@ -86,6 +86,10 @@ func (r *AzureRemote) Set(ctx context.Context, name string, app armappcontainers
 	}
 
 	return nil
+}
+
+func (r *AzureRemote) Update(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
+	return r.Create(ctx, name, app)
 }
 
 func (r *AzureRemote) Delete(ctx context.Context, name string) error {

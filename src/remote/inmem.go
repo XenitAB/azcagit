@@ -10,7 +10,8 @@ import (
 type inMemRemoteActions int
 
 const (
-	InMemRemoteActionsSet inMemRemoteActions = iota
+	InMemRemoteActionsCreate inMemRemoteActions = iota
+	InMemRemoteActionsUpdate
 	InMemRemoteActionsDelete
 )
 
@@ -27,7 +28,10 @@ type InMemRemote struct {
 		secondErr        error
 		second           bool
 	}
-	createOrUpdateResponse struct {
+	createResponse struct {
+		err error
+	}
+	updateResponse struct {
 		err error
 	}
 	deleteResponse struct {
@@ -66,13 +70,22 @@ func (r *InMemRemote) ResetGetSecond() {
 	r.getResponse.second = false
 }
 
-func (r *InMemRemote) Set(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
-	r.actions = append(r.actions, inMemRemoteAction{Name: name, Action: InMemRemoteActionsSet})
-	return r.createOrUpdateResponse.err
+func (r *InMemRemote) Create(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
+	r.actions = append(r.actions, inMemRemoteAction{Name: name, Action: InMemRemoteActionsCreate})
+	return r.createResponse.err
 }
 
-func (r *InMemRemote) SetResponse(err error) {
-	r.createOrUpdateResponse.err = err
+func (r *InMemRemote) CreateResponse(err error) {
+	r.createResponse.err = err
+}
+
+func (r *InMemRemote) Update(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
+	r.actions = append(r.actions, inMemRemoteAction{Name: name, Action: InMemRemoteActionsUpdate})
+	return r.updateResponse.err
+}
+
+func (r *InMemRemote) UpdateResponse(err error) {
+	r.updateResponse.err = err
 }
 
 func (r *InMemRemote) Delete(ctx context.Context, name string) error {

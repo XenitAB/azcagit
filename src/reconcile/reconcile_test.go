@@ -31,7 +31,8 @@ func TestReconciler(t *testing.T) {
 		remoteClient.GetFirstResponse(nil, nil)
 		remoteClient.GetSecondResponse(nil, nil)
 		remoteClient.ResetGetSecond()
-		remoteClient.SetResponse(nil)
+		remoteClient.CreateResponse(nil)
+		remoteClient.UpdateResponse(nil)
 		remoteClient.DeleteResponse(nil)
 		remoteClient.ResetActions()
 	}
@@ -102,7 +103,7 @@ func TestReconciler(t *testing.T) {
 		actions := remoteClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsSet)
+		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
 	}()
 
 	// sourceClient.Get() returns one SourceApp without error
@@ -132,7 +133,7 @@ func TestReconciler(t *testing.T) {
 		actions := remoteClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsSet)
+		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
 	}()
 
 	// sourceClient.Get() returns two SourceApps without error
@@ -170,9 +171,9 @@ func TestReconciler(t *testing.T) {
 		actions := remoteClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo1")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsSet)
+		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
 		require.Equal(t, actions[1].Name, "foo2")
-		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsSet)
+		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsCreate)
 	}()
 
 	// sourceClient.Get() returns two SourceApps without error
@@ -214,9 +215,9 @@ func TestReconciler(t *testing.T) {
 		actions := remoteClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo1")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsSet)
+		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
 		require.Equal(t, actions[1].Name, "foo2")
-		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsSet)
+		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsCreate)
 	}()
 
 	// sourceClient.Get() returns one SourceApps without error
@@ -257,7 +258,7 @@ func TestReconciler(t *testing.T) {
 		require.Equal(t, actions[0].Name, "foo2")
 		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsDelete)
 		require.Equal(t, actions[1].Name, "foo1")
-		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsSet)
+		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsUpdate)
 	}()
 
 	// test cache
@@ -324,7 +325,7 @@ func TestReconciler(t *testing.T) {
 			actions := remoteClient.Actions()
 			require.Len(t, actions, 1)
 			require.Equal(t, actions[0].Name, "foo1")
-			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsSet)
+			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsUpdate)
 			remoteClient.ResetActions()
 		}
 
@@ -349,7 +350,7 @@ func TestReconciler(t *testing.T) {
 			actions := remoteClient.Actions()
 			require.Len(t, actions, 1)
 			require.Equal(t, actions[0].Name, "foo1")
-			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsSet)
+			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsUpdate)
 			remoteClient.ResetActions()
 		}
 
@@ -369,7 +370,7 @@ func TestReconciler(t *testing.T) {
 			actions := remoteClient.Actions()
 			require.Len(t, actions, 1)
 			require.Equal(t, actions[0].Name, "foo1")
-			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsSet)
+			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsUpdate)
 			remoteClient.ResetActions()
 		}
 	}()
@@ -439,7 +440,7 @@ func TestReconciler(t *testing.T) {
 				Managed: true,
 			},
 		}, nil)
-		remoteClient.SetResponse(fmt.Errorf("update foobar"))
+		remoteClient.UpdateResponse(fmt.Errorf("update foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "update foobar")
 	}()
@@ -461,7 +462,7 @@ func TestReconciler(t *testing.T) {
 			},
 		}, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.SetResponse(fmt.Errorf("new app foobar"))
+		remoteClient.CreateResponse(fmt.Errorf("new app foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "new app foobar")
 	}()
