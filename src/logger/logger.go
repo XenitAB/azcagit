@@ -8,8 +8,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type Logger struct{}
-
 func NewLoggerContext(ctx context.Context) (context.Context, error) {
 	zapLog, err := zap.NewProduction()
 	if err != nil {
