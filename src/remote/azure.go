@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
@@ -26,15 +25,6 @@ func NewAzureRemote(cfg config.Config) (*AzureRemote, error) {
 	}
 
 	client, err := armappcontainers.NewContainerAppsClient(cfg.SubscriptionID, cred, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// FIXME: We need a good way to resolve if we have a working credential or not.
-	//        This is just a bad workaround until something better comes around.
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	_, err = cred.GetToken(ctx, policy.TokenRequestOptions{Scopes: []string{"https://management.core.windows.net"}})
 	if err != nil {
 		return nil, err
 	}
