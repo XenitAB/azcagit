@@ -27,11 +27,7 @@ func (s *GitSource) Get(ctx context.Context) (*SourceApps, error) {
 		return nil, err
 	}
 
-	apps, err := getAzureContainerAppsFromFiles(yamlFiles, s.cfg)
-	if err != nil {
-		return nil, err
-	}
-
+	apps := getSourceAppsFromFiles(yamlFiles, s.cfg)
 	return apps, nil
 }
 

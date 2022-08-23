@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
+	"github.com/hashicorp/go-multierror"
 	"github.com/xenitab/aca-gitops-engine/src/config"
 	"sigs.k8s.io/yaml"
 )
@@ -22,6 +23,11 @@ type SourceApp struct {
 	APIVersion    string                         `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
 	Metadata      map[string]string              `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Specification *armappcontainers.ContainerApp `json:"spec,omitempty" yaml:"spec,omitempty"`
+	err           error
+}
+
+func (app *SourceApp) Error() error {
+	return app.err
 }
 
 func (app *SourceApp) Name() string {
@@ -114,29 +120,35 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 
 type SourceApps map[string]SourceApp
 
-func (apps *SourceApps) Unmarshal(y []byte, cfg config.Config) error {
+func (apps *SourceApps) Unmarshal(path string, y []byte, cfg config.Config) {
 	if apps == nil {
 		apps = toPtr(make(SourceApps))
 	}
 	parts := strings.Split(string(y), "---")
-	for _, part := range parts {
+	for i, part := range parts {
 		var app SourceApp
 		err := app.Unmarshal([]byte(part), cfg)
 		if err != nil {
-			return err
+			app.err = fmt.Errorf("unable to unmarshal SourceApp from %s (document %d): %w", path, i, err)
+			(*apps)[fmt.Sprintf("%s-%d", path, i)] = app
+			continue
 		}
 		_, ok := (*apps)[app.Name()]
 		if ok {
-			return fmt.Errorf("multiple instances of %q", app.Name())
+			app.err = fmt.Errorf("unable to add %s (document %d) with name %s as name is a duplicate", path, i, app.Name())
+			(*apps)[fmt.Sprintf("%s-%d-%s", path, i, app.Name())] = app
+			continue
 		}
 		(*apps)[app.Name()] = app
 	}
-	return nil
 }
 
 func (apps *SourceApps) GetSortedNames() []string {
 	names := []string{}
-	for name := range *apps {
+	for name, app := range *apps {
+		if app.Error() != nil {
+			continue
+		}
 		names = append(names, name)
 	}
 	sort.Strings(names)
@@ -145,17 +157,28 @@ func (apps *SourceApps) GetSortedNames() []string {
 
 func (apps *SourceApps) Get(name string) (SourceApp, bool) {
 	app, ok := (*apps)[name]
+	if app.Error() != nil {
+		return SourceApp{}, false
+	}
 	return app, ok
 }
 
-func getAzureContainerAppsFromFiles(yamlFiles *map[string][]byte, cfg config.Config) (*SourceApps, error) {
+func (apps *SourceApps) Error() error {
+	var result *multierror.Error
+	for _, app := range *apps {
+		if app.Error() != nil {
+			result = multierror.Append(app.Error(), result)
+		}
+	}
+
+	return result.ErrorOrNil()
+}
+
+func getSourceAppsFromFiles(yamlFiles *map[string][]byte, cfg config.Config) *SourceApps {
 	apps := SourceApps{}
 	for path := range *yamlFiles {
 		content := (*yamlFiles)[path]
-		err := apps.Unmarshal(content, cfg)
-		if err != nil {
-			return nil, err
-		}
+		apps.Unmarshal(path, content, cfg)
 	}
-	return &apps, nil
+	return &apps
 }

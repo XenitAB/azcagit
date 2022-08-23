@@ -3,6 +3,7 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/xenitab/aca-gitops-engine/src/cache"
 	"github.com/xenitab/aca-gitops-engine/src/remote"
@@ -33,6 +34,10 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		return fmt.Errorf("sourceApps is nil")
 	}
 
+	if sourceApps.Error() != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %v\n", sourceApps.Error())
+	}
+
 	remoteApps, err := r.remoteClient.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get remoteApps: %w", err)
@@ -43,8 +48,12 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	}
 
 	for _, name := range remoteApps.GetSortedNames() {
-		remoteApp := (*remoteApps)[name]
-		_, ok := (*sourceApps)[name]
+		if sourceApps.Error() != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: won't be deleting any remoteApps while sourceApps have errors\n")
+			break
+		}
+		remoteApp, _ := remoteApps.Get(name)
+		_, ok := sourceApps.Get(name)
 		if !ok {
 			if !remoteApp.Managed {
 				continue
@@ -60,8 +69,8 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	}
 
 	for _, name := range sourceApps.GetSortedNames() {
-		sourceApp := (*sourceApps)[name]
-		remoteApp, ok := (*remoteApps)[name]
+		sourceApp, _ := sourceApps.Get(name)
+		remoteApp, ok := remoteApps.Get(name)
 		if !r.cache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification) {
 			fmt.Printf("Skipping update: %s\n", name)
 			continue
@@ -96,8 +105,8 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	}
 
 	for _, name := range sourceApps.GetSortedNames() {
-		sourceApp := (*sourceApps)[name]
-		remoteApp, ok := (*newRemoteApps)[name]
+		sourceApp, _ := sourceApps.Get(name)
+		remoteApp, ok := newRemoteApps.Get(name)
 		if !ok {
 			return fmt.Errorf("unable to locate %s after set", name)
 		}
