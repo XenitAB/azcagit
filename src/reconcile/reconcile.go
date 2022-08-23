@@ -71,7 +71,8 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	for _, name := range sourceApps.GetSortedNames() {
 		sourceApp, _ := sourceApps.Get(name)
 		remoteApp, ok := remoteApps.Get(name)
-		if !r.cache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification) {
+		needsUpdate, updateReason := r.cache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification)
+		if !needsUpdate {
 			log.Info("skipping update, no changes", "app", name)
 			continue
 		}
@@ -84,7 +85,7 @@ func (r *Reconciler) Run(ctx context.Context) error {
 			if err != nil {
 				return fmt.Errorf("failed to update %s: %w", name, err)
 			}
-			log.Info("updated remoteApp", "app", name)
+			log.Info("updated remoteApp", "app", name, "reason", updateReason)
 			continue
 		}
 
@@ -92,7 +93,7 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
-		log.Info("created remoteApp", "app", name)
+		log.Info("created remoteApp", "app", name, "reason", updateReason)
 	}
 
 	newRemoteApps, err := r.remoteClient.Get(ctx)
