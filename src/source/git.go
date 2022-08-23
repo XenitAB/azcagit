@@ -2,6 +2,8 @@ package source
 
 import (
 	"context"
+	"fmt"
+	"path/filepath"
 
 	"github.com/fluxcd/source-controller/pkg/git"
 	"github.com/fluxcd/source-controller/pkg/git/libgit2"
@@ -57,7 +59,12 @@ func (s *GitSource) checkout(ctx context.Context) (*map[string][]byte, error) {
 		s.lastCommitHash = newCommitHash
 	}
 
-	yamlFiles, err := listYamlFromPath(s.cfg.CheckoutPath)
+	yamlPath := filepath.Clean(s.cfg.CheckoutPath)
+	if s.cfg.GitYamlPath != "" {
+		yamlPath = filepath.Clean(fmt.Sprintf("%s/%s", yamlPath, s.cfg.GitYamlPath))
+	}
+
+	yamlFiles, err := listYamlFromPath(yamlPath)
 	if err != nil {
 		return nil, err
 	}

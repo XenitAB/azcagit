@@ -13,6 +13,7 @@ type Config struct {
 	CheckoutPath         string `arg:"-c,--checkout-path,env:CHECKOUT_PATH,required" help:"The local path where the git repository should be checked out"`
 	GitUrl               string `arg:"-u,--git-url,env:GIT_URL,required" help:"The git url to checkout"`
 	GitBranch            string `arg:"-b,--git-branch,env:GIT_BRANCH" default:"main" help:"The git branch to checkout"`
+	GitYamlPath          string `arg:"--git-yaml-path,env:GIT_YAML_ROOT" default:"" help:"The path where the yaml files are located"`
 }
 
 func NewConfig(args []string) (Config, error) {

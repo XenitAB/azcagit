@@ -36,4 +36,5 @@ run:
 		--reconcile-interval "10s" \
 		--checkout-path "/tmp/foo" \
 		--git-url "https://github.com/simongottschlag/aca-test-yaml.git" \
-		--git-branch "main"
+		--git-branch "main" \
+		--git-yaml-path "yaml/"
