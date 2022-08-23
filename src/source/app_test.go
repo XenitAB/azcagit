@@ -1,17 +1,18 @@
-package main
+package source
 
 import (
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
 	"github.com/stretchr/testify/require"
+	"github.com/xenitab/azcagit/src/config"
 )
 
-func TestAzureContainerApp(t *testing.T) {
+func TestSourceApp(t *testing.T) {
 	cases := []struct {
 		testDescription string
 		rawYaml         string
-		expectedResult  AzureContainerApp
+		expectedResult  SourceApp
 		expectedError   string
 	}{
 		{
@@ -22,7 +23,7 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
 `,
-			expectedResult: AzureContainerApp{},
+			expectedResult: SourceApp{},
 			expectedError:  "spec is missing",
 		},
 		{
@@ -33,7 +34,7 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
 `,
-			expectedResult: AzureContainerApp{},
+			expectedResult: SourceApp{},
 			expectedError:  "kind should be AzureContainerApp",
 		},
 		{
@@ -44,7 +45,7 @@ apiVersion: foobar
 metadata:
   name: foo
 `,
-			expectedResult: AzureContainerApp{},
+			expectedResult: SourceApp{},
 			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha1",
 		},
 		{
@@ -57,7 +58,7 @@ metadata:
 spec:
   location: foobar
 `,
-			expectedResult: AzureContainerApp{
+			expectedResult: SourceApp{
 				Kind:       "AzureContainerApp",
 				APIVersion: "aca.xenit.io/v1alpha1",
 				Metadata: map[string]string{
@@ -82,7 +83,7 @@ metadata:
 spec:
   foobar: baz
 `,
-			expectedResult: AzureContainerApp{},
+			expectedResult: SourceApp{},
 			expectedError:  "json: unknown field \"foobar\"",
 		},
 		{
@@ -108,7 +109,7 @@ spec:
         minReplicas: 1
         maxReplicas: 1
 `,
-			expectedResult: AzureContainerApp{
+			expectedResult: SourceApp{
 				Kind:       "AzureContainerApp",
 				APIVersion: "aca.xenit.io/v1alpha1",
 				Metadata: map[string]string{
@@ -149,23 +150,23 @@ spec:
 
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
-		aca := AzureContainerApp{}
-		err := aca.Unmarshal([]byte(c.rawYaml), config{})
+		app := SourceApp{}
+		err := app.Unmarshal([]byte(c.rawYaml), config.Config{})
 		if c.expectedError != "" {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), c.expectedError)
 		} else {
 			require.NoError(t, err)
 		}
-		require.Equal(t, c.expectedResult, aca)
+		require.Equal(t, c.expectedResult, app)
 	}
 }
 
-func TestAzureContainerApps(t *testing.T) {
+func TestSourceApps(t *testing.T) {
 	cases := []struct {
 		testDescription string
 		rawYaml         string
-		expectedResult  AzureContainerApps
+		expectedResult  SourceApps
 		expectedLenght  int
 		expectedError   string
 	}{
@@ -179,7 +180,7 @@ metadata:
 spec:
   location: foobar
 `,
-			expectedResult: AzureContainerApps{
+			expectedResult: SourceApps{
 				"foo": {
 					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
@@ -214,7 +215,7 @@ metadata:
 spec:
   location: foobar
 `,
-			expectedResult: AzureContainerApps{
+			expectedResult: SourceApps{
 				"foo": {
 					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
@@ -262,7 +263,7 @@ metadata:
 spec:
   location: foobar
 `,
-			expectedResult: AzureContainerApps{
+			expectedResult: SourceApps{
 				"foo": {
 					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
@@ -277,22 +278,30 @@ spec:
 					},
 				},
 			},
-			expectedLenght: 1,
+			expectedLenght: 2,
 			expectedError:  "kind should be AzureContainerApp",
 		},
 	}
 
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
-		acas := AzureContainerApps{}
-		err := acas.Unmarshal([]byte(c.rawYaml), config{})
-		require.Len(t, acas, c.expectedLenght)
+		apps := SourceApps{}
+		apps.Unmarshal("foobar/baz.yaml", []byte(c.rawYaml), config.Config{})
+		require.Len(t, apps, c.expectedLenght)
 		if c.expectedError != "" {
-			require.Error(t, err)
-			require.Contains(t, err.Error(), c.expectedError)
+			require.ErrorContains(t, apps.Error(), c.expectedError)
 		} else {
-			require.NoError(t, err)
+			require.NoError(t, apps.Error())
 		}
-		require.Equal(t, c.expectedResult, acas)
+
+		appsWithoutErrors := SourceApps{}
+		for name, app := range apps {
+			if app.Error() != nil {
+				continue
+			}
+			appsWithoutErrors[name] = app
+
+		}
+		require.Equal(t, c.expectedResult, appsWithoutErrors)
 	}
 }
