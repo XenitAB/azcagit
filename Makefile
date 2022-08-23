@@ -2,7 +2,13 @@ SHELL := /bin/bash
 .ONESHELL:
 
 TAG = $$(git rev-parse --short HEAD)
-IMG ?= ghcr.io/xenitab/node-ttl:$(TAG)
+IMG ?= ghcr.io/xenitab/aca-gitops-engine:$(TAG)
+TEST_ENV_FILE = .tmp/env
+
+ifneq (,$(wildcard $(TEST_ENV_FILE)))
+    include $(TEST_ENV_FILE)
+    export
+endif
 
 all: fmt vet lint
 
@@ -29,12 +35,12 @@ terraform-up:
 
 run:
 	go run ./src \
-		--resource-group-name "rg-aca-tenant" \
-		--subscription-id "2a6936a5-fc30-492a-ab19-ec59068b5b96" \
-		--managed-environment-id "/subscriptions/2a6936a5-fc30-492a-ab19-ec59068b5b96/resourceGroups/rg-aca-platform/providers/Microsoft.App/managedEnvironments/me-container-apps" \
+		--resource-group-name $${RG_NAME} \
+		--subscription-id $${SUB_ID} \
+		--managed-environment-id $${ME_ID} \
 		--location westeurope \
 		--reconcile-interval "10s" \
 		--checkout-path "/tmp/foo" \
-		--git-url "https://github.com/simongottschlag/aca-test-yaml.git" \
+		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
 		--git-yaml-path "yaml/"
