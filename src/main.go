@@ -24,16 +24,9 @@ func main() {
 	}
 
 	log := logr.FromContextOrDiscard(ctx)
-
-	cfg := config.Config{
-		ResourceGroupName:    "rg-aca-tenant",
-		SubscriptionID:       "2a6936a5-fc30-492a-ab19-ec59068b5b96",
-		ManagedEnvironmentID: "/subscriptions/2a6936a5-fc30-492a-ab19-ec59068b5b96/resourceGroups/rg-aca-platform/providers/Microsoft.App/managedEnvironments/me-container-apps",
-		Location:             "west europe",
-		ReconcileInterval:    "10s",
-		CheckoutPath:         "/tmp/foo",
-		GitUrl:               "https://github.com/simongottschlag/aca-test-yaml.git",
-		GitBranch:            "main",
+	cfg, err := config.NewConfig(os.Args[1:])
+	if err != nil {
+		log.Error(err, "unable to load config")
 	}
 
 	err = run(ctx, cfg)
