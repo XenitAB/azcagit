@@ -7,7 +7,7 @@ RUN go mod download
 COPY src/ src/
 RUN CGO_ENABLED=1 go build -o aca-gitops-engine src/main.go
 
-FROM alpine:3.15.0
+FROM alpine:3.15
 LABEL org.opencontainers.image.source="https://github.com/XenitAB/aca-gitops-engine"
 # hadolint ignore=DL3017,DL3018
 RUN apk upgrade --no-cache && \

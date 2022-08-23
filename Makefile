@@ -55,7 +55,7 @@ docker-build:
 	docker build . -t $(IMG)
 
 docker-run: docker-build
-	docker run -it --rm -e AZURE_TENANT_ID=$${TENANT_ID} -e AZURE_CLIENT_ID=$${CLIENT_ID} -e AZURE_CLIENT_SECRET=$${CLIENT_SECRET} aca-gitops-engine:latest \
+	docker run -it --rm -e AZURE_TENANT_ID=$${TENANT_ID} -e AZURE_CLIENT_ID=$${CLIENT_ID} -e AZURE_CLIENT_SECRET=$${CLIENT_SECRET} $(IMG) \
 		--resource-group-name $${RG_NAME} \
 		--subscription-id $${SUB_ID} \
 		--managed-environment-id $${ME_ID} \
