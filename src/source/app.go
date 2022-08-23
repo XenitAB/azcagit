@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	AzureContainerAppVersion = "app.xenit.io/v1alpha1"
+	AzureContainerAppVersion = "aca.xenit.io/v1alpha1"
 	AzureContainerAppKind    = "AzureContainerApp"
 )
 
@@ -106,7 +106,7 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 		newapp.Specification.Tags = make(map[string]*string)
 	}
 
-	newapp.Specification.Tags["app.xenit.io"] = toPtr("true")
+	newapp.Specification.Tags["aca.xenit.io"] = toPtr("true")
 
 	*app = newapp
 	return nil

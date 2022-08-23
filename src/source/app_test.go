@@ -18,7 +18,7 @@ func TestSourceApp(t *testing.T) {
 		{
 			testDescription: "plain working",
 			rawYaml: `
-kind: SourceApp
+kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
@@ -35,23 +35,23 @@ metadata:
   name: foo
 `,
 			expectedResult: SourceApp{},
-			expectedError:  "kind should be SourceApp",
+			expectedError:  "kind should be AzureContainerApp",
 		},
 		{
 			testDescription: "invalid apiVersion",
 			rawYaml: `
-kind: SourceApp
+kind: AzureContainerApp
 apiVersion: foobar
 metadata:
   name: foo
 `,
 			expectedResult: SourceApp{},
-			expectedError:  "apiVersion for SourceApp should be aca.xenit.io/v1alpha1",
+			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha1",
 		},
 		{
 			testDescription: "containerapp location",
 			rawYaml: `
-kind: SourceApp
+kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
@@ -59,7 +59,7 @@ spec:
   location: foobar
 `,
 			expectedResult: SourceApp{
-				Kind:       "SourceApp",
+				Kind:       "AzureContainerApp",
 				APIVersion: "aca.xenit.io/v1alpha1",
 				Metadata: map[string]string{
 					"name": "foo",
@@ -76,7 +76,7 @@ spec:
 		{
 			testDescription: "containerapp invalid property",
 			rawYaml: `
-kind: SourceApp
+kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
@@ -89,7 +89,7 @@ spec:
 		{
 			testDescription: "containerapp with multiple properties",
 			rawYaml: `
-kind: SourceApp
+kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
@@ -110,7 +110,7 @@ spec:
         maxReplicas: 1
 `,
 			expectedResult: SourceApp{
-				Kind:       "SourceApp",
+				Kind:       "AzureContainerApp",
 				APIVersion: "aca.xenit.io/v1alpha1",
 				Metadata: map[string]string{
 					"name": "foo",
@@ -173,7 +173,7 @@ func TestSourceApps(t *testing.T) {
 		{
 			testDescription: "plain working, single document",
 			rawYaml: `
-kind: SourceApp
+kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: foo
@@ -182,7 +182,7 @@ spec:
 `,
 			expectedResult: SourceApps{
 				"foo": {
-					Kind:       "SourceApp",
+					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Metadata: map[string]string{
 						"name": "foo",
@@ -201,14 +201,14 @@ spec:
 		{
 			testDescription: "plain working, two documents",
 			rawYaml: `
-kind: SourceApp
+kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: foo
 spec:
   location: foobar
 ---
-kind: SourceApp
+kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: bar
@@ -217,7 +217,7 @@ spec:
 `,
 			expectedResult: SourceApps{
 				"foo": {
-					Kind:       "SourceApp",
+					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Metadata: map[string]string{
 						"name": "foo",
@@ -230,7 +230,7 @@ spec:
 					},
 				},
 				"bar": {
-					Kind:       "SourceApp",
+					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Metadata: map[string]string{
 						"name": "bar",
@@ -249,7 +249,7 @@ spec:
 		{
 			testDescription: "one valid, one invalid",
 			rawYaml: `
-kind: SourceApp
+kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: foo
@@ -265,7 +265,7 @@ spec:
 `,
 			expectedResult: SourceApps{
 				"foo": {
-					Kind:       "SourceApp",
+					Kind:       "AzureContainerApp",
 					APIVersion: "aca.xenit.io/v1alpha1",
 					Metadata: map[string]string{
 						"name": "foo",
@@ -279,7 +279,7 @@ spec:
 				},
 			},
 			expectedLenght: 1,
-			expectedError:  "kind should be SourceApp",
+			expectedError:  "kind should be AzureContainerApp",
 		},
 	}
 
