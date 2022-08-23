@@ -44,6 +44,11 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
+	_, err = sourceClient.Get(ctx)
+	if err != nil {
+		return fmt.Errorf("unable to get source: %w", err)
+	}
+
 	remoteClient, err := remote.NewAzureRemote(cfg)
 	if err != nil {
 		return err
