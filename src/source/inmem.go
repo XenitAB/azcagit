@@ -3,7 +3,7 @@ package source
 import (
 	"context"
 
-	"github.com/xenitab/aca-gitops-engine/src/config"
+	"github.com/xenitab/azcagit/src/config"
 )
 
 type InMemSource struct {

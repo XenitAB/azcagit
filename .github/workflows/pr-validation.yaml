@@ -3,7 +3,7 @@ name: PR Validation
 on: pull_request
 
 env:
-  NAME: "aca-gitops-engine"
+  NAME: "azcagit"
 
 jobs:
   lint:

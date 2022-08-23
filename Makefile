@@ -2,7 +2,7 @@ SHELL := /bin/bash
 .ONESHELL:
 
 TAG = $$(git rev-parse --short HEAD)
-IMG ?= ghcr.io/xenitab/aca-gitops-engine:$(TAG)
+IMG ?= ghcr.io/xenitab/azcagit:$(TAG)
 TEST_ENV_FILE = .tmp/env
 
 ifneq (,$(wildcard $(TEST_ENV_FILE)))
@@ -23,7 +23,7 @@ vet:
 
 .PHONY: build
 build:
-	go build -o bin/aca-gitops-engine ./src/main.go
+	go build -o bin/azcagit ./src/main.go
 
 .PHONY: test
 test: fmt vet

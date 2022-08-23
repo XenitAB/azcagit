@@ -9,7 +9,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
 	"github.com/hashicorp/go-multierror"
-	"github.com/xenitab/aca-gitops-engine/src/config"
+	"github.com/xenitab/azcagit/src/config"
 	"sigs.k8s.io/yaml"
 )
 

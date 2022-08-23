@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/xenitab/aca-gitops-engine/src/cache"
-	"github.com/xenitab/aca-gitops-engine/src/config"
-	"github.com/xenitab/aca-gitops-engine/src/logger"
-	"github.com/xenitab/aca-gitops-engine/src/reconcile"
-	"github.com/xenitab/aca-gitops-engine/src/remote"
-	"github.com/xenitab/aca-gitops-engine/src/source"
+	"github.com/xenitab/azcagit/src/cache"
+	"github.com/xenitab/azcagit/src/config"
+	"github.com/xenitab/azcagit/src/logger"
+	"github.com/xenitab/azcagit/src/reconcile"
+	"github.com/xenitab/azcagit/src/remote"
+	"github.com/xenitab/azcagit/src/source"
 )
 
 func main() {

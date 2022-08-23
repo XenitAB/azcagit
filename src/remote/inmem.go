@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
-	"github.com/xenitab/aca-gitops-engine/src/config"
+	"github.com/xenitab/azcagit/src/config"
 )
 
 type inMemRemoteActions int

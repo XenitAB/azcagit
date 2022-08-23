@@ -20,7 +20,7 @@ func NewConfig(args []string) (Config, error) {
 	cfg := Config{}
 
 	parser, err := arg.NewParser(arg.Config{
-		Program:   "aca-gitops-engine",
+		Program:   "azcagit",
 		IgnoreEnv: false,
 	}, &cfg)
 	if err != nil {

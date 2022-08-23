@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	"github.com/xenitab/aca-gitops-engine/src/cache"
-	"github.com/xenitab/aca-gitops-engine/src/remote"
-	"github.com/xenitab/aca-gitops-engine/src/source"
+	"github.com/xenitab/azcagit/src/cache"
+	"github.com/xenitab/azcagit/src/remote"
+	"github.com/xenitab/azcagit/src/source"
 )
 
 type Reconciler struct {

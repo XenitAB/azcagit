@@ -1,4 +1,4 @@
-module github.com/xenitab/aca-gitops-engine
+module github.com/xenitab/azcagit
 
 go 1.19
 

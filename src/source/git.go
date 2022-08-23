@@ -9,7 +9,7 @@ import (
 	"github.com/fluxcd/source-controller/pkg/git/libgit2"
 	"github.com/fluxcd/source-controller/pkg/git/strategy"
 	"github.com/go-logr/logr"
-	"github.com/xenitab/aca-gitops-engine/src/config"
+	"github.com/xenitab/azcagit/src/config"
 )
 
 type GitSource struct {
