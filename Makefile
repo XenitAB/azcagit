@@ -21,12 +21,18 @@ fmt:
 vet:
 	go vet ./...
 
+.PHONY: build
+build:
+	go build -o bin/aca-gitops-engine ./src/main.go
+
 .PHONY: test
 test: fmt vet
 	go test --cover ./...
 
-docker-build:
-	docker build -t ${IMG} .
+cover:
+	mkdir -p .tmp
+	go test -timeout 5m -coverpkg=./src/... -coverprofile=.tmp/coverage.out ./src/...
+	go tool cover -html=.tmp/coverage.out
 
 terraform-up:
 	cd test/terraform
