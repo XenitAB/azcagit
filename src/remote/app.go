@@ -15,7 +15,7 @@ type RemoteApps map[string]RemoteApp
 
 func (apps *RemoteApps) GetSortedNames() []string {
 	names := []string{}
-	for name, _ := range *apps {
+	for name := range *apps {
 		names = append(names, name)
 	}
 	sort.Strings(names)

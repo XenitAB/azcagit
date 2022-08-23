@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	AzureContainerAppVersion = "aca.xenit.io/v1alpha1"
+	AzureContainerAppVersion = "app.xenit.io/v1alpha1"
 	AzureContainerAppKind    = "AzureContainerApp"
 )
 
@@ -24,12 +24,12 @@ type SourceApp struct {
 	Specification *armappcontainers.ContainerApp `json:"spec,omitempty" yaml:"spec,omitempty"`
 }
 
-func (aca *SourceApp) Name() string {
-	if aca.Metadata == nil {
+func (app *SourceApp) Name() string {
+	if app.Metadata == nil {
 		return ""
 	}
 
-	name, ok := aca.Metadata["name"]
+	name, ok := app.Metadata["name"]
 	if !ok {
 		return ""
 	}
@@ -37,32 +37,32 @@ func (aca *SourceApp) Name() string {
 	return name
 }
 
-func (aca *SourceApp) ValidateFields() error {
+func (app *SourceApp) ValidateFields() error {
 	var errs []string
-	if aca.Kind != "" && aca.Kind != AzureContainerAppKind {
+	if app.Kind != "" && app.Kind != AzureContainerAppKind {
 		errs = append(errs, "kind should be "+AzureContainerAppKind)
 	}
 	requiredVersion := AzureContainerAppVersion
-	if aca.APIVersion != "" && aca.APIVersion != requiredVersion {
-		errs = append(errs, "apiVersion for "+aca.Kind+" should be "+requiredVersion)
+	if app.APIVersion != "" && app.APIVersion != requiredVersion {
+		errs = append(errs, "apiVersion for "+app.Kind+" should be "+requiredVersion)
 	}
 
-	if aca.Specification == nil {
+	if app.Specification == nil {
 		errs = append(errs, "spec is missing")
 	}
 
-	if aca.Metadata == nil {
+	if app.Metadata == nil {
 		errs = append(errs, "metadata is missing")
 	}
 
-	if aca.Metadata != nil {
-		_, ok := aca.Metadata["name"]
+	if app.Metadata != nil {
+		_, ok := app.Metadata["name"]
 		if !ok {
 			errs = append(errs, "name missing from metadata")
 		}
 	}
 
-	if aca.Specification != nil && aca.Specification.Properties != nil && aca.Specification.Properties.ManagedEnvironmentID != nil {
+	if app.Specification != nil && app.Specification.Properties != nil && app.Specification.Properties.ManagedEnvironmentID != nil {
 		errs = append(errs, "managedEnvironmentID can't be set through json")
 	}
 
@@ -73,89 +73,89 @@ func (aca *SourceApp) ValidateFields() error {
 	return fmt.Errorf(strings.Join(errs, "\n"))
 }
 
-func (aca *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
+func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 	j, err := yaml.YAMLToJSON(y)
 	if err != nil {
 		return err
 	}
 	dec := json.NewDecoder(bytes.NewReader(j))
 	dec.DisallowUnknownFields()
-	var newAca SourceApp
-	err = dec.Decode(&newAca)
+	var newapp SourceApp
+	err = dec.Decode(&newapp)
 	if err != nil {
 		return err
 	}
 
-	err = newAca.ValidateFields()
+	err = newapp.ValidateFields()
 	if err != nil {
 		return err
 	}
 
 	if cfg.ManagedEnvironmentID != "" {
-		if newAca.Specification == nil {
-			newAca.Specification = &armappcontainers.ContainerApp{}
+		if newapp.Specification == nil {
+			newapp.Specification = &armappcontainers.ContainerApp{}
 		}
 
-		if newAca.Specification.Properties == nil {
-			newAca.Specification.Properties = &armappcontainers.ContainerAppProperties{}
+		if newapp.Specification.Properties == nil {
+			newapp.Specification.Properties = &armappcontainers.ContainerAppProperties{}
 		}
-		newAca.Specification.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
+		newapp.Specification.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
 	}
 
-	if newAca.Specification.Tags == nil {
-		newAca.Specification.Tags = make(map[string]*string)
+	if newapp.Specification.Tags == nil {
+		newapp.Specification.Tags = make(map[string]*string)
 	}
 
-	newAca.Specification.Tags["aca.xenit.io"] = toPtr("true")
+	newapp.Specification.Tags["app.xenit.io"] = toPtr("true")
 
-	*aca = newAca
+	*app = newapp
 	return nil
 }
 
 type SourceApps map[string]SourceApp
 
-func (acas *SourceApps) Unmarshal(y []byte, cfg config.Config) error {
-	if acas == nil {
-		acas = toPtr(make(SourceApps))
+func (apps *SourceApps) Unmarshal(y []byte, cfg config.Config) error {
+	if apps == nil {
+		apps = toPtr(make(SourceApps))
 	}
 	parts := strings.Split(string(y), "---")
 	for _, part := range parts {
-		var aca SourceApp
-		err := aca.Unmarshal([]byte(part), cfg)
+		var app SourceApp
+		err := app.Unmarshal([]byte(part), cfg)
 		if err != nil {
 			return err
 		}
-		_, ok := (*acas)[aca.Name()]
+		_, ok := (*apps)[app.Name()]
 		if ok {
-			return fmt.Errorf("multiple instances of %q", aca.Name())
+			return fmt.Errorf("multiple instances of %q", app.Name())
 		}
-		(*acas)[aca.Name()] = aca
+		(*apps)[app.Name()] = app
 	}
 	return nil
 }
 
-func (acas *SourceApps) GetSortedNames() []string {
+func (apps *SourceApps) GetSortedNames() []string {
 	names := []string{}
-	for name, _ := range *acas {
+	for name := range *apps {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 	return names
 }
 
-func (acas *SourceApps) Get(name string) (SourceApp, bool) {
-	aca, ok := (*acas)[name]
-	return aca, ok
+func (apps *SourceApps) Get(name string) (SourceApp, bool) {
+	app, ok := (*apps)[name]
+	return app, ok
 }
 
 func getAzureContainerAppsFromFiles(yamlFiles *map[string][]byte, cfg config.Config) (*SourceApps, error) {
-	acas := SourceApps{}
+	apps := SourceApps{}
 	for path := range *yamlFiles {
 		content := (*yamlFiles)[path]
-		err := acas.Unmarshal(content, cfg)
+		err := apps.Unmarshal(content, cfg)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return &acas, nil
+	return &apps, nil
 }
