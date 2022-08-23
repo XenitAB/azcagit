@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
@@ -131,6 +132,20 @@ func (acas *SourceApps) Unmarshal(y []byte, cfg config.Config) error {
 		(*acas)[aca.Name()] = aca
 	}
 	return nil
+}
+
+func (acas *SourceApps) GetSortedNames() []string {
+	names := []string{}
+	for name, _ := range *acas {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func (acas *SourceApps) Get(name string) (SourceApp, bool) {
+	aca, ok := (*acas)[name]
+	return aca, ok
 }
 
 func getAzureContainerAppsFromFiles(yamlFiles *map[string][]byte, cfg config.Config) (*SourceApps, error) {

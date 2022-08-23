@@ -26,18 +26,27 @@ func NewReconciler(sourceClient source.Source, remoteClient remote.Remote, cache
 func (r *Reconciler) Run(ctx context.Context) error {
 	sourceApps, err := r.sourceClient.Get(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
+		return fmt.Errorf("failed to get sourceApps: %w", err)
 	}
 
-	remoteApps, err := r.remoteClient.List(ctx)
+	if sourceApps == nil {
+		return fmt.Errorf("sourceApps is nil")
+	}
+
+	remoteApps, err := r.remoteClient.Get(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get remoteApps: %w", err)
 	}
 
-	for name, rmtApp := range *remoteApps {
+	if remoteApps == nil {
+		return fmt.Errorf("remoteApps is nil")
+	}
+
+	for _, name := range remoteApps.GetSortedNames() {
+		remoteApp := (*remoteApps)[name]
 		_, ok := (*sourceApps)[name]
 		if !ok {
-			if !rmtApp.Managed() {
+			if !remoteApp.Managed {
 				continue
 			}
 			fmt.Printf("starting remote app deletion: %s\n", name)
@@ -50,19 +59,20 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		}
 	}
 
-	for name, sourceApp := range *sourceApps {
+	for _, name := range sourceApps.GetSortedNames() {
+		sourceApp := (*sourceApps)[name]
 		remoteApp, ok := (*remoteApps)[name]
-		if !r.cache.NeedsUpdate(name, remoteApp.App(), sourceApp.Specification) {
+		if !r.cache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification) {
 			fmt.Printf("Skipping update: %s\n", name)
 			continue
 		}
 		if ok {
-			if !remoteApp.Managed() {
+			if !remoteApp.Managed {
 				return fmt.Errorf("trying to update a non-managed app: %s", name)
 			}
 
 			fmt.Printf("starting update: %s\n", name)
-			err := r.remoteClient.CreateOrUpdate(ctx, name, *sourceApp.Specification)
+			err := r.remoteClient.Set(ctx, name, *sourceApp.Specification)
 			if err != nil {
 				fmt.Printf("failed update: %s\n", name)
 				return err
@@ -72,7 +82,7 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		}
 
 		fmt.Printf("starting creation: %s\n", name)
-		err := r.remoteClient.CreateOrUpdate(ctx, name, *sourceApp.Specification)
+		err := r.remoteClient.Set(ctx, name, *sourceApp.Specification)
 		if err != nil {
 			fmt.Printf("failed creation: %s\n", name)
 			return err
@@ -80,17 +90,18 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		fmt.Printf("finished creation: %s\n", name)
 	}
 
-	newRemoteApps, err := r.remoteClient.List(ctx)
+	newRemoteApps, err := r.remoteClient.Get(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get new remoteApps: %w", err)
 	}
 
-	for name, sourceApp := range *sourceApps {
+	for _, name := range sourceApps.GetSortedNames() {
+		sourceApp := (*sourceApps)[name]
 		remoteApp, ok := (*newRemoteApps)[name]
 		if !ok {
-			return fmt.Errorf("unable to locate %s after create or update", name)
+			return fmt.Errorf("unable to locate %s after set", name)
 		}
-		r.cache.Set(name, remoteApp.App(), sourceApp.Specification)
+		r.cache.Set(name, remoteApp.App, sourceApp.Specification)
 	}
 
 	return nil

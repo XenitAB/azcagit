@@ -9,8 +9,8 @@ import (
 )
 
 type CacheEntry struct {
-	modified  time.Time
-	localHash string
+	modified      time.Time
+	sourceAppHash string
 }
 
 type Cache map[string]CacheEntry
@@ -20,64 +20,64 @@ func NewCache() *Cache {
 	return &c
 }
 
-func (c *Cache) Set(name string, live, local *armappcontainers.ContainerApp) {
-	if live == nil {
+func (c *Cache) Set(name string, remoteApp, sourceApp *armappcontainers.ContainerApp) {
+	if remoteApp == nil {
 		return
 	}
-	if live.SystemData == nil {
+	if remoteApp.SystemData == nil {
 		return
 	}
 
-	timestamp := live.SystemData.LastModifiedAt
+	timestamp := remoteApp.SystemData.LastModifiedAt
 	if timestamp == nil {
-		if live.SystemData.CreatedAt == nil {
+		if remoteApp.SystemData.CreatedAt == nil {
 			return
 		}
-		timestamp = live.SystemData.CreatedAt
+		timestamp = remoteApp.SystemData.CreatedAt
 	}
 
-	b, err := local.MarshalJSON()
+	b, err := sourceApp.MarshalJSON()
 	if err != nil {
 		return
 	}
 	hash := fmt.Sprintf("%x", md5.Sum(b))
 
 	(*c)[name] = CacheEntry{
-		modified:  *timestamp,
-		localHash: hash,
+		modified:      *timestamp,
+		sourceAppHash: hash,
 	}
 }
 
-func (c *Cache) NeedsUpdate(name string, live, local *armappcontainers.ContainerApp) bool {
+func (c *Cache) NeedsUpdate(name string, remoteApp, sourceApp *armappcontainers.ContainerApp) bool {
 	entry, ok := (*c)[name]
 	if !ok {
 		return true
 	}
 
-	if live == nil {
+	if remoteApp == nil {
 		return true
 	}
-	if live.SystemData == nil {
+	if remoteApp.SystemData == nil {
 		return true
 	}
 
-	timestamp := live.SystemData.LastModifiedAt
+	timestamp := remoteApp.SystemData.LastModifiedAt
 	if timestamp == nil {
-		if live.SystemData.CreatedAt == nil {
+		if remoteApp.SystemData.CreatedAt == nil {
 			return true
 		}
-		timestamp = live.SystemData.CreatedAt
+		timestamp = remoteApp.SystemData.CreatedAt
 	}
 
 	if entry.modified != *timestamp {
 		return true
 	}
 
-	b, err := local.MarshalJSON()
+	b, err := sourceApp.MarshalJSON()
 	if err != nil {
 		return true
 	}
 
 	hash := fmt.Sprintf("%x", md5.Sum(b))
-	return entry.localHash != hash
+	return entry.sourceAppHash != hash
 }

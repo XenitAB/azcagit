@@ -45,7 +45,7 @@ func NewAzureRemote(cfg config.Config) (*AzureRemote, error) {
 	}, nil
 }
 
-func (r *AzureRemote) List(ctx context.Context) (*RemoteApps, error) {
+func (r *AzureRemote) Get(ctx context.Context) (*RemoteApps, error) {
 	apps := make(RemoteApps)
 	pager := r.client.NewListByResourceGroupPager(r.resourceGroup, nil)
 	for pager.More() {
@@ -72,7 +72,7 @@ func (r *AzureRemote) List(ctx context.Context) (*RemoteApps, error) {
 	return &apps, nil
 }
 
-func (r *AzureRemote) CreateOrUpdate(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
+func (r *AzureRemote) Set(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
 	res, err := r.client.BeginCreateOrUpdate(ctx, r.resourceGroup, name, app, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create: %w", err)

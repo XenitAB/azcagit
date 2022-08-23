@@ -1,18 +1,28 @@
 package remote
 
-import "github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
+import (
+	"sort"
+
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
+)
 
 type RemoteApp struct {
-	app     *armappcontainers.ContainerApp
-	managed bool
-}
-
-func (r *RemoteApp) Managed() bool {
-	return r.managed
-}
-
-func (r *RemoteApp) App() *armappcontainers.ContainerApp {
-	return r.app
+	App     *armappcontainers.ContainerApp
+	Managed bool
 }
 
 type RemoteApps map[string]RemoteApp
+
+func (apps *RemoteApps) GetSortedNames() []string {
+	names := []string{}
+	for name, _ := range *apps {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
+}
+
+func (apps *RemoteApps) Get(name string) (RemoteApp, bool) {
+	app, ok := (*apps)[name]
+	return app, ok
+}
