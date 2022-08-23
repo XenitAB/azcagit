@@ -25,15 +25,39 @@ func NewReconciler(sourceClient source.Source, remoteClient remote.Remote, cache
 }
 
 func (r *Reconciler) Run(ctx context.Context) error {
+	sourceApps, remoteApps, err := r.get(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = r.deleteApps(ctx, sourceApps, remoteApps)
+	if err != nil {
+		return err
+	}
+
+	err = r.createOrUpdateApps(ctx, sourceApps, remoteApps)
+	if err != nil {
+		return err
+	}
+
+	err = r.updateCache(ctx, sourceApps)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Reconciler) get(ctx context.Context) (*source.SourceApps, *remote.RemoteApps, error) {
 	log := logr.FromContextOrDiscard(ctx)
 
 	sourceApps, err := r.sourceClient.Get(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get sourceApps: %w", err)
+		return nil, nil, fmt.Errorf("failed to get sourceApps: %w", err)
 	}
 
 	if sourceApps == nil {
-		return fmt.Errorf("sourceApps is nil")
+		return nil, nil, fmt.Errorf("sourceApps is nil")
 	}
 
 	if sourceApps.Error() != nil {
@@ -42,12 +66,18 @@ func (r *Reconciler) Run(ctx context.Context) error {
 
 	remoteApps, err := r.remoteClient.Get(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get remoteApps: %w", err)
+		return nil, nil, fmt.Errorf("failed to get remoteApps: %w", err)
 	}
 
 	if remoteApps == nil {
-		return fmt.Errorf("remoteApps is nil")
+		return nil, nil, fmt.Errorf("remoteApps is nil")
 	}
+
+	return sourceApps, remoteApps, nil
+}
+
+func (r *Reconciler) deleteApps(ctx context.Context, sourceApps *source.SourceApps, remoteApps *remote.RemoteApps) error {
+	log := logr.FromContextOrDiscard(ctx)
 
 	for _, name := range remoteApps.GetSortedNames() {
 		if sourceApps.Error() != nil {
@@ -67,6 +97,12 @@ func (r *Reconciler) Run(ctx context.Context) error {
 			log.Info("deleted remoteApp", "app", name)
 		}
 	}
+
+	return nil
+}
+
+func (r *Reconciler) createOrUpdateApps(ctx context.Context, sourceApps *source.SourceApps, remoteApps *remote.RemoteApps) error {
+	log := logr.FromContextOrDiscard(ctx)
 
 	for _, name := range sourceApps.GetSortedNames() {
 		sourceApp, _ := sourceApps.Get(name)
@@ -96,6 +132,10 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		log.Info("created remoteApp", "app", name, "reason", updateReason)
 	}
 
+	return nil
+}
+
+func (r *Reconciler) updateCache(ctx context.Context, sourceApps *source.SourceApps) error {
 	newRemoteApps, err := r.remoteClient.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get new remoteApps: %w", err)
