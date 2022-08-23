@@ -13,7 +13,7 @@ func listYamlFromPath(path string) (*map[string][]byte, error) {
 
 func listYamlFromFS(fsys fs.FS) (*map[string][]byte, error) {
 	files := make(map[string][]byte)
-	fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
+	err := fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
 		switch {
 		case err != nil:
 			return err
@@ -32,6 +32,9 @@ func listYamlFromFS(fsys fs.FS) (*map[string][]byte, error) {
 
 		return nil
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	return &files, nil
 }
