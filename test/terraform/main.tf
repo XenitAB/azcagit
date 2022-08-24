@@ -1,7 +1,16 @@
 terraform {
   required_providers {
+    azuread = {
+      version = "2.19.1"
+      source  = "hashicorp/azuread"
+    }
+    azurerm = {
+      version = "3.8.0"
+      source  = "hashicorp/azurerm"
+    }
     azapi = {
-      source = "Azure/azapi"
+      version = "0.3.0"
+      source  = "Azure/azapi"
     }
   }
 }
@@ -12,6 +21,8 @@ provider "azapi" {
 provider "azurerm" {
   features {}
 }
+
+data "azurerm_client_config" "current" {}
 
 resource "azurerm_resource_group" "platform" {
   name     = "rg-aca-platform"
@@ -148,77 +159,4 @@ resource "azurerm_container_registry" "this" {
 resource "azurerm_resource_group" "tenant" {
   name     = "rg-aca-tenant"
   location = "west europe"
-}
-
-resource "azapi_resource" "container_app_hello_world" {
-  type                      = "Microsoft.App/containerapps@2022-03-01"
-  name                      = "hello-world"
-  parent_id                 = azurerm_resource_group.tenant.id
-  location                  = azurerm_resource_group.tenant.location
-  schema_validation_enabled = false
-
-  body = jsonencode({
-    properties = {
-      managedEnvironmentId = azapi_resource.managed_environment.id
-      configuration = {
-        secrets = [
-          {
-            name  = "acr"
-            value = azurerm_container_registry.this.admin_password
-          }
-        ]
-        registries          = []
-        activeRevisionsMode = "Single"
-        ingress = {
-          external   = true
-          targetPort = 80
-        }
-        dapr = {
-          appId   = "hello-world",
-          enabled = true
-        }
-        registries = [
-          {
-            # identity          = "string"
-            passwordSecretRef = "acr"
-            server            = azurerm_container_registry.this.login_server
-            username          = azurerm_container_registry.this.admin_username
-          }
-        ]
-      }
-      template = {
-        containers = [
-          {
-            name    = "simple-hello-world-container"
-            image   = "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"
-            command = []
-            resources = {
-              cpu    = ".25"
-              memory = ".5Gi"
-            }
-          }
-        ]
-        scale = {
-          minReplicas = 2
-          maxReplicas = 2
-          rules = [
-            # {
-            #   name = "test-trigger"
-            #   custom = {
-            #     type = "cron"
-            #     metadata = {
-            #       timezone        = "Europe/Stockholm" # The acceptable values would be a value from the IANA Time Zone Database.
-            #       start           = "30 * * * *"       # Every hour on the 30th minute
-            #       end             = "45 * * * *"       # Every hour on the 45th minute
-            #       desiredReplicas = "1"
-            #     }
-            #   }
-            # }
-          ]
-        }
-      }
-    }
-  })
-
-  response_export_values = ["properties"]
 }
