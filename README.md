@@ -19,7 +19,7 @@ Platform is used for what we call "platform services", in this case the virtual 
 
 Tenant is used only to synchronize the Container Apps manifests. The Container Apps that are created by `azcagit` will reside here.
 
-The manifests are in the same format as Kubernetes Manifests, but with a hard coupling to the [Azure Container Apps specification](https://docs.microsoft.com/en-us/azure/templates/microsoft.app/containerapps?pivots=deployment-language-arm-template).
+The manifests are in the same format as Kubernetes manifests ([Kubernetes Resource Model aka KRM](https://cloud.google.com/blog/topics/developers-practitioners/build-platform-krm-part-2-how-kubernetes-resource-model-works)), but with a hard coupling to the [Azure Container Apps specification](https://docs.microsoft.com/en-us/azure/templates/microsoft.app/containerapps?pivots=deployment-language-arm-template).
 
 An example manifest:
 
