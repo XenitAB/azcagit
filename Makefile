@@ -10,7 +10,7 @@ ifneq (,$(wildcard $(TEST_ENV_FILE)))
     export
 endif
 
-all: fmt vet lint
+all: fmt vet lint test
 
 lint:
 	golangci-lint run ./...
