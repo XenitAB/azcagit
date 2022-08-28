@@ -25,17 +25,22 @@ func NewReconciler(sourceClient source.Source, remoteClient remote.Remote, cache
 }
 
 func (r *Reconciler) Run(ctx context.Context) error {
-	sourceApps, remoteApps, err := r.get(ctx)
+	sourceApps, err := r.getSourceApps(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = r.deleteApps(ctx, sourceApps, remoteApps)
+	remoteApps, err := r.getRemoteApps(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = r.createOrUpdateApps(ctx, sourceApps, remoteApps)
+	err = r.deleteAppsIfNeeded(ctx, sourceApps, remoteApps)
+	if err != nil {
+		return err
+	}
+
+	err = r.createOrUpdateAppsIfNeeded(ctx, sourceApps, remoteApps)
 	if err != nil {
 		return err
 	}
@@ -48,35 +53,37 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	return nil
 }
 
-func (r *Reconciler) get(ctx context.Context) (*source.SourceApps, *remote.RemoteApps, error) {
-	log := logr.FromContextOrDiscard(ctx)
-
+func (r *Reconciler) getSourceApps(ctx context.Context) (*source.SourceApps, error) {
 	sourceApps, err := r.sourceClient.Get(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get sourceApps: %w", err)
+		return nil, fmt.Errorf("failed to get sourceApps: %w", err)
 	}
 
 	if sourceApps == nil {
-		return nil, nil, fmt.Errorf("sourceApps is nil")
+		return nil, fmt.Errorf("sourceApps is nil")
 	}
 
 	if sourceApps.Error() != nil {
-		log.Error(sourceApps.Error(), "sourceApps contains errors")
+		return nil, fmt.Errorf("sourceApps contains errors, stopping reconciliation: %w", sourceApps.Error())
 	}
 
+	return sourceApps, nil
+}
+
+func (r *Reconciler) getRemoteApps(ctx context.Context) (*remote.RemoteApps, error) {
 	remoteApps, err := r.remoteClient.Get(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get remoteApps: %w", err)
+		return nil, fmt.Errorf("failed to get remoteApps: %w", err)
 	}
 
 	if remoteApps == nil {
-		return nil, nil, fmt.Errorf("remoteApps is nil")
+		return nil, fmt.Errorf("remoteApps is nil")
 	}
 
-	return sourceApps, remoteApps, nil
+	return remoteApps, nil
 }
 
-func (r *Reconciler) deleteApps(ctx context.Context, sourceApps *source.SourceApps, remoteApps *remote.RemoteApps) error {
+func (r *Reconciler) deleteAppsIfNeeded(ctx context.Context, sourceApps *source.SourceApps, remoteApps *remote.RemoteApps) error {
 	log := logr.FromContextOrDiscard(ctx)
 
 	for _, name := range remoteApps.GetSortedNames() {
@@ -101,7 +108,7 @@ func (r *Reconciler) deleteApps(ctx context.Context, sourceApps *source.SourceAp
 	return nil
 }
 
-func (r *Reconciler) createOrUpdateApps(ctx context.Context, sourceApps *source.SourceApps, remoteApps *remote.RemoteApps) error {
+func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps *source.SourceApps, remoteApps *remote.RemoteApps) error {
 	log := logr.FromContextOrDiscard(ctx)
 
 	for _, name := range sourceApps.GetSortedNames() {

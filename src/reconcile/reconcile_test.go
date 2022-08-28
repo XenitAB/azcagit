@@ -261,6 +261,45 @@ func TestReconciler(t *testing.T) {
 		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsUpdate)
 	}()
 
+	// verify that if any sourceApp contains parsing error, reconciliation stops
+	// sourceClient.Get() returns one SourceApp with error
+	// first remoteClient.Get() returns two RemoteApps without error
+	// second remoteClient.Get() returns one RemoteApps without error
+	func() {
+		defer resetClients()
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo1": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo1",
+				},
+				Specification: &armappcontainers.ContainerApp{},
+				Err:           fmt.Errorf("foobar"),
+			},
+		}, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{
+			"foo1": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+			"foo2": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{
+			"foo1": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "sourceApps contains errors, stopping reconciliation")
+		actions := remoteClient.Actions()
+		require.Len(t, actions, 0)
+	}()
+
 	// test cache
 	// sourceClient.Get() returns one SourceApp without error
 	// first remoteClient.Get() returns one RemoteApp without error
