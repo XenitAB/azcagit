@@ -93,7 +93,9 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo",
 				},
-				Specification: &armappcontainers.ContainerApp{},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
 			},
 		}, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
@@ -118,7 +120,9 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo",
 				},
-				Specification: &armappcontainers.ContainerApp{},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
 			},
 		}, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
@@ -148,7 +152,9 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
-				Specification: &armappcontainers.ContainerApp{},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
 			},
 			"foo2": source.SourceApp{
 				Kind:       "AzureContainerApp",
@@ -156,7 +162,9 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo2",
 				},
-				Specification: &armappcontainers.ContainerApp{},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
 			},
 		}, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
@@ -188,7 +196,9 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
-				Specification: &armappcontainers.ContainerApp{},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
 			},
 			"foo2": source.SourceApp{
 				Kind:       "AzureContainerApp",
@@ -196,7 +206,9 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo2",
 				},
-				Specification: &armappcontainers.ContainerApp{},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
 			},
 		}, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
@@ -232,7 +244,9 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
-				Specification: &armappcontainers.ContainerApp{},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
 			},
 		}, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{
@@ -274,8 +288,10 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
-				Specification: &armappcontainers.ContainerApp{},
-				Err:           fmt.Errorf("foobar"),
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
+				Err: fmt.Errorf("foobar"),
 			},
 		}, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{
@@ -314,8 +330,10 @@ func TestReconciler(t *testing.T) {
 			Metadata: map[string]string{
 				"name": "foo1",
 			},
-			Specification: &armappcontainers.ContainerApp{
-				Name: toPtr("foo1"),
+			Specification: &source.SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{
+					Name: toPtr("foo1"),
+				},
 			},
 		}
 		sourceApp1Updated := source.SourceApp{
@@ -324,10 +342,12 @@ func TestReconciler(t *testing.T) {
 			Metadata: map[string]string{
 				"name": "foo1",
 			},
-			Specification: &armappcontainers.ContainerApp{
-				Name: toPtr("foo1"),
-				Tags: map[string]*string{
-					"foo": toPtr("bar"),
+			Specification: &source.SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{
+					Name: toPtr("foo1"),
+					Tags: map[string]*string{
+						"foo": toPtr("bar"),
+					},
 				},
 			},
 		}
@@ -470,7 +490,9 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
-				Specification: &armappcontainers.ContainerApp{},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
 			},
 		}, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{
@@ -497,7 +519,9 @@ func TestReconciler(t *testing.T) {
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
-				Specification: &armappcontainers.ContainerApp{},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
 			},
 		}, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)

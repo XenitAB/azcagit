@@ -56,7 +56,8 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
 spec:
-  location: foobar
+  app:
+    location: foobar
 `,
 			expectedResult: SourceApp{
 				Kind:       "AzureContainerApp",
@@ -64,10 +65,12 @@ spec:
 				Metadata: map[string]string{
 					"name": "foo",
 				},
-				Specification: &armappcontainers.ContainerApp{
-					Location: toPtr("foobar"),
-					Tags: map[string]*string{
-						"aca.xenit.io": toPtr("true"),
+				Specification: &SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{
+						Location: toPtr("foobar"),
+						Tags: map[string]*string{
+							"aca.xenit.io": toPtr("true"),
+						},
 					},
 				},
 			},
@@ -81,7 +84,8 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
 spec:
-  foobar: baz
+  app:
+    foobar: baz
 `,
 			expectedResult: SourceApp{},
 			expectedError:  "json: unknown field \"foobar\"",
@@ -94,20 +98,21 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foo
 spec:
-  location: foobar
-  properties:
-    configuration:
-      activeRevisionsMode: Single
-    template:
-      containers:
-      - name: simple-hello-world-container
-        image: mcr.microsoft.com/azuredocs/containerapps-helloworld:latest
-        resources:
-          cpu: 0.25
-          memory: .5Gi
-      scale:
-        minReplicas: 1
-        maxReplicas: 1
+  app:
+    location: foobar
+    properties:
+      configuration:
+        activeRevisionsMode: Single
+      template:
+        containers:
+        - name: simple-hello-world-container
+          image: mcr.microsoft.com/azuredocs/containerapps-helloworld:latest
+          resources:
+            cpu: 0.25
+            memory: .5Gi
+        scale:
+          minReplicas: 1
+          maxReplicas: 1
 `,
 			expectedResult: SourceApp{
 				Kind:       "AzureContainerApp",
@@ -115,30 +120,32 @@ spec:
 				Metadata: map[string]string{
 					"name": "foo",
 				},
-				Specification: &armappcontainers.ContainerApp{
-					Location: toPtr("foobar"),
-					Tags: map[string]*string{
-						"aca.xenit.io": toPtr("true"),
-					},
-					Identity: nil,
-					Properties: &armappcontainers.ContainerAppProperties{
-						Configuration: &armappcontainers.Configuration{
-							ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
+				Specification: &SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{
+						Location: toPtr("foobar"),
+						Tags: map[string]*string{
+							"aca.xenit.io": toPtr("true"),
 						},
-						Template: &armappcontainers.Template{
-							Containers: []*armappcontainers.Container{
-								{
-									Name:  toPtr("simple-hello-world-container"),
-									Image: toPtr("mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"),
-									Resources: &armappcontainers.ContainerResources{
-										CPU:    toPtr(float64(0.25)),
-										Memory: toPtr(".5Gi"),
+						Identity: nil,
+						Properties: &armappcontainers.ContainerAppProperties{
+							Configuration: &armappcontainers.Configuration{
+								ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
+							},
+							Template: &armappcontainers.Template{
+								Containers: []*armappcontainers.Container{
+									{
+										Name:  toPtr("simple-hello-world-container"),
+										Image: toPtr("mcr.microsoft.com/azuredocs/containerapps-helloworld:latest"),
+										Resources: &armappcontainers.ContainerResources{
+											CPU:    toPtr(float64(0.25)),
+											Memory: toPtr(".5Gi"),
+										},
 									},
 								},
-							},
-							Scale: &armappcontainers.Scale{
-								MaxReplicas: toPtr(int32(1)),
-								MinReplicas: toPtr(int32(1)),
+								Scale: &armappcontainers.Scale{
+									MaxReplicas: toPtr(int32(1)),
+									MinReplicas: toPtr(int32(1)),
+								},
 							},
 						},
 					},
@@ -178,7 +185,8 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: foo
 spec:
-  location: foobar
+  app:
+    location: foobar
 `,
 			expectedResult: SourceApps{
 				"foo": {
@@ -187,10 +195,12 @@ spec:
 					Metadata: map[string]string{
 						"name": "foo",
 					},
-					Specification: &armappcontainers.ContainerApp{
-						Location: toPtr("foobar"),
-						Tags: map[string]*string{
-							"aca.xenit.io": toPtr("true"),
+					Specification: &SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{
+							Location: toPtr("foobar"),
+							Tags: map[string]*string{
+								"aca.xenit.io": toPtr("true"),
+							},
 						},
 					},
 				},
@@ -206,14 +216,16 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: foo
 spec:
-  location: foobar
+  app:
+    location: foobar
 ---
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: bar
 spec:
-  location: foobar
+  app:
+    location: foobar
 `,
 			expectedResult: SourceApps{
 				"foo": {
@@ -222,10 +234,12 @@ spec:
 					Metadata: map[string]string{
 						"name": "foo",
 					},
-					Specification: &armappcontainers.ContainerApp{
-						Location: toPtr("foobar"),
-						Tags: map[string]*string{
-							"aca.xenit.io": toPtr("true"),
+					Specification: &SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{
+							Location: toPtr("foobar"),
+							Tags: map[string]*string{
+								"aca.xenit.io": toPtr("true"),
+							},
 						},
 					},
 				},
@@ -235,10 +249,12 @@ spec:
 					Metadata: map[string]string{
 						"name": "bar",
 					},
-					Specification: &armappcontainers.ContainerApp{
-						Location: toPtr("foobar"),
-						Tags: map[string]*string{
-							"aca.xenit.io": toPtr("true"),
+					Specification: &SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{
+							Location: toPtr("foobar"),
+							Tags: map[string]*string{
+								"aca.xenit.io": toPtr("true"),
+							},
 						},
 					},
 				},
@@ -254,14 +270,16 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: foo
 spec:
-  location: foobar
+  app:
+    location: foobar
 ---
 kind: foobar
 apiVersion: aca.xenit.io/v1alpha1
 metadata:
  name: bar
 spec:
-  location: foobar
+  app:
+    location: foobar
 `,
 			expectedResult: SourceApps{
 				"foo": {
@@ -270,10 +288,12 @@ spec:
 					Metadata: map[string]string{
 						"name": "foo",
 					},
-					Specification: &armappcontainers.ContainerApp{
-						Location: toPtr("foobar"),
-						Tags: map[string]*string{
-							"aca.xenit.io": toPtr("true"),
+					Specification: &SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{
+							Location: toPtr("foobar"),
+							Tags: map[string]*string{
+								"aca.xenit.io": toPtr("true"),
+							},
 						},
 					},
 				},
