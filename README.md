@@ -29,20 +29,21 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foobar
 spec:
-  location: west europe
-  properties:
-    configuration:
-      activeRevisionsMode: Single
-    template:
-      containers:
-        - name: simple-hello-world-container
-          image: mcr.microsoft.com/azuredocs/containerapps-helloworld:latest
-          resources:
-            cpu: 0.25
-            memory: .5Gi
-      scale:
-        minReplicas: 1
-        maxReplicas: 1
+  app:
+    location: west europe
+    properties:
+      configuration:
+        activeRevisionsMode: Single
+      template:
+        containers:
+          - name: simple-hello-world-container
+            image: mcr.microsoft.com/azuredocs/containerapps-helloworld:latest
+            resources:
+              cpu: 0.25
+              memory: .5Gi
+        scale:
+          minReplicas: 1
+          maxReplicas: 1
 ```
 
 YAML-files can contain one or more documents (with `---` as a document separator). As of right now, all files in the git repository path (configured with `--git-path` when launching `azcagit`) needs to pass validation for any deletion to occur (deletion will be disabled if any manifests contains validation errors).
