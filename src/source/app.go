@@ -23,11 +23,11 @@ type SourceApp struct {
 	APIVersion    string                         `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
 	Metadata      map[string]string              `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 	Specification *armappcontainers.ContainerApp `json:"spec,omitempty" yaml:"spec,omitempty"`
-	err           error
+	Err           error
 }
 
 func (app *SourceApp) Error() error {
-	return app.err
+	return app.Err
 }
 
 func (app *SourceApp) Name() string {
@@ -129,13 +129,13 @@ func (apps *SourceApps) Unmarshal(path string, y []byte, cfg config.Config) {
 		var app SourceApp
 		err := app.Unmarshal([]byte(part), cfg)
 		if err != nil {
-			app.err = fmt.Errorf("unable to unmarshal SourceApp from %s (document %d): %w", path, i, err)
+			app.Err = fmt.Errorf("unable to unmarshal SourceApp from %s (document %d): %w", path, i, err)
 			(*apps)[fmt.Sprintf("%s-%d", path, i)] = app
 			continue
 		}
 		_, ok := (*apps)[app.Name()]
 		if ok {
-			app.err = fmt.Errorf("unable to add %s (document %d) with name %s as name is a duplicate", path, i, app.Name())
+			app.Err = fmt.Errorf("unable to add %s (document %d) with name %s as name is a duplicate", path, i, app.Name())
 			(*apps)[fmt.Sprintf("%s-%d-%s", path, i, app.Name())] = app
 			continue
 		}

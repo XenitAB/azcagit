@@ -50,7 +50,7 @@ YAML-files can contain one or more documents (with `---` as a document separator
 ## Things TODO in the future
 
 - [ ] Append secrets to Container Apps from KeyVault
-- [ ] Better error handling of validation failures (should deletion be stopped?)
+- [x] ~~Better error handling of validation failures (should deletion be stopped?)~~ _stop reconciliation on any parsing error_
 - [ ] Push git commit status (like [Flux notification-controller](https://fluxcd.io/docs/components/notification/provider/#git-commit-status))
 - [ ] Health checks
 - [ ] Metrics
