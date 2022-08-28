@@ -114,7 +114,7 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 	for _, name := range sourceApps.GetSortedNames() {
 		sourceApp, _ := sourceApps.Get(name)
 		remoteApp, ok := remoteApps.Get(name)
-		needsUpdate, updateReason := r.cache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification)
+		needsUpdate, updateReason := r.cache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification.App)
 		if !needsUpdate {
 			log.Info("skipping update, no changes", "app", name)
 			continue
@@ -124,7 +124,7 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 				return fmt.Errorf("trying to update a non-managed app: %s", name)
 			}
 
-			err := r.remoteClient.Update(ctx, name, *sourceApp.Specification)
+			err := r.remoteClient.Update(ctx, name, *sourceApp.Specification.App)
 			if err != nil {
 				return fmt.Errorf("failed to update %s: %w", name, err)
 			}
@@ -132,7 +132,7 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 			continue
 		}
 
-		err := r.remoteClient.Create(ctx, name, *sourceApp.Specification)
+		err := r.remoteClient.Create(ctx, name, *sourceApp.Specification.App)
 		if err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
@@ -154,7 +154,7 @@ func (r *Reconciler) updateCache(ctx context.Context, sourceApps *source.SourceA
 		if !ok {
 			return fmt.Errorf("unable to locate %s after create or update", name)
 		}
-		r.cache.Set(name, remoteApp.App, sourceApp.Specification)
+		r.cache.Set(name, remoteApp.App, sourceApp.Specification.App)
 	}
 
 	return nil

@@ -18,11 +18,15 @@ const (
 	AzureContainerAppKind    = "AzureContainerApp"
 )
 
+type SourceAppSpecification struct {
+	App *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
+}
+
 type SourceApp struct {
-	Kind          string                         `json:"kind,omitempty" yaml:"kind,omitempty"`
-	APIVersion    string                         `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
-	Metadata      map[string]string              `json:"metadata,omitempty" yaml:"metadata,omitempty"`
-	Specification *armappcontainers.ContainerApp `json:"spec,omitempty" yaml:"spec,omitempty"`
+	Kind          string                  `json:"kind,omitempty" yaml:"kind,omitempty"`
+	APIVersion    string                  `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
+	Metadata      map[string]string       `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Specification *SourceAppSpecification `json:"spec,omitempty" yaml:"spec,omitempty"`
 	Err           error
 }
 
@@ -44,39 +48,39 @@ func (app *SourceApp) Name() string {
 }
 
 func (app *SourceApp) ValidateFields() error {
-	var errs []string
+	var result *multierror.Error
 	if app.Kind != "" && app.Kind != AzureContainerAppKind {
-		errs = append(errs, "kind should be "+AzureContainerAppKind)
+		result = multierror.Append(fmt.Errorf("kind should be %s", AzureContainerAppKind), result)
 	}
 	requiredVersion := AzureContainerAppVersion
 	if app.APIVersion != "" && app.APIVersion != requiredVersion {
-		errs = append(errs, "apiVersion for "+app.Kind+" should be "+requiredVersion)
+		result = multierror.Append(fmt.Errorf("apiVersion for %s should be %s", app.Kind, requiredVersion), result)
 	}
 
 	if app.Specification == nil {
-		errs = append(errs, "spec is missing")
+		result = multierror.Append(fmt.Errorf("spec is missing"), result)
+	}
+
+	if app.Specification != nil && app.Specification.App == nil {
+		result = multierror.Append(fmt.Errorf("app is missing"), result)
 	}
 
 	if app.Metadata == nil {
-		errs = append(errs, "metadata is missing")
+		result = multierror.Append(fmt.Errorf("metadata is missing"), result)
 	}
 
 	if app.Metadata != nil {
 		_, ok := app.Metadata["name"]
 		if !ok {
-			errs = append(errs, "name missing from metadata")
+			result = multierror.Append(fmt.Errorf("name missing from metadata"), result)
 		}
 	}
 
-	if app.Specification != nil && app.Specification.Properties != nil && app.Specification.Properties.ManagedEnvironmentID != nil {
-		errs = append(errs, "managedEnvironmentID can't be set through json")
+	if app.Specification != nil && app.Specification.App != nil && app.Specification.App.Properties != nil && app.Specification.App.Properties.ManagedEnvironmentID != nil {
+		result = multierror.Append(fmt.Errorf("managedEnvironmentID can't be set through json"), result)
 	}
 
-	if len(errs) == 0 {
-		return nil
-	}
-
-	return fmt.Errorf(strings.Join(errs, "\n"))
+	return result.ErrorOrNil()
 }
 
 func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
@@ -98,21 +102,17 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 	}
 
 	if cfg.ManagedEnvironmentID != "" {
-		if newapp.Specification == nil {
-			newapp.Specification = &armappcontainers.ContainerApp{}
+		if newapp.Specification.App.Properties == nil {
+			newapp.Specification.App.Properties = &armappcontainers.ContainerAppProperties{}
 		}
-
-		if newapp.Specification.Properties == nil {
-			newapp.Specification.Properties = &armappcontainers.ContainerAppProperties{}
-		}
-		newapp.Specification.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
+		newapp.Specification.App.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
 	}
 
-	if newapp.Specification.Tags == nil {
-		newapp.Specification.Tags = make(map[string]*string)
+	if newapp.Specification.App.Tags == nil {
+		newapp.Specification.App.Tags = make(map[string]*string)
 	}
 
-	newapp.Specification.Tags["aca.xenit.io"] = toPtr("true")
+	newapp.Specification.App.Tags["aca.xenit.io"] = toPtr("true")
 
 	*app = newapp
 	return nil
