@@ -108,8 +108,6 @@ resource "azapi_resource" "dapr_blob" {
     properties = {
       componentType = "state.azure.blobstorage"
       version       = "v1"
-      ignoreErrors  = false
-      initTimeout   = "string"
       metadata = [
         {
           name      = "accountName"
@@ -144,9 +142,38 @@ resource "azapi_resource" "dapr_blob" {
   response_export_values = ["properties"]
 }
 
-# output "dapr_blob" {
-#   value = jsondecode(azapi_resource.dapr_blob.output).properties
-# }
+resource "azapi_resource" "dapr_sb" {
+  type      = "Microsoft.App/managedEnvironments/daprComponents@2022-03-01"
+  name      = "sb"
+  parent_id = azapi_resource.managed_environment.id
+  #   location                  = azurerm_resource_group.platform.location
+  schema_validation_enabled = false
+
+  body = jsonencode({
+    properties = {
+      componentType = "pubsub.azure.servicebus"
+      version       = "v1"
+      metadata = [
+        {
+          name      = "connectionString"
+          secretRef = "sb-root-connectionstring"
+        }
+      ]
+      secrets = [
+        {
+          name  = "sb-root-connectionstring"
+          value = azurerm_servicebus_namespace.this.default_primary_connection_string
+        }
+      ]
+      scopes = [
+        azapi_resource.container_app_azcagit.name
+      ]
+    }
+  })
+
+  response_export_values = ["properties"]
+}
+
 
 resource "azurerm_container_registry" "this" {
   name                = "acrcontainerapps"
@@ -154,6 +181,19 @@ resource "azurerm_container_registry" "this" {
   location            = azurerm_resource_group.platform.location
   sku                 = "Standard"
   admin_enabled       = true
+}
+
+resource "azurerm_servicebus_namespace" "this" {
+  name                = "sbcontainerapps"
+  location            = azurerm_resource_group.platform.location
+  resource_group_name = azurerm_resource_group.platform.name
+  sku                 = "Standard"
+}
+
+resource "azurerm_servicebus_queue" "this" {
+  name                = "azcagit_trigger"
+  namespace_id        = azurerm_servicebus_namespace.this.id
+  enable_partitioning = true
 }
 
 resource "azurerm_resource_group" "tenant" {

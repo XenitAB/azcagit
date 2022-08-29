@@ -46,6 +46,12 @@ resource "azapi_resource" "container_app_azcagit" {
       managedEnvironmentId = azapi_resource.managed_environment.id
       configuration = {
         activeRevisionsMode = "Single"
+        dapr = {
+          appId       = "azcagit"
+          appPort     = 3500
+          appProtocol = "http"
+          enabled     = true
+        }
         secrets = [
           {
             name  = "git-url"
@@ -69,7 +75,7 @@ resource "azapi_resource" "container_app_azcagit" {
         containers = [
           {
             name  = "azcagit"
-            image = "ghcr.io/xenitab/azcagit:v0.0.1"
+            image = "ghcr.io/xenitab/azcagit:v0.0.2"
             args = [
               "--resource-group-name", azurerm_resource_group.tenant.name,
               "--subscription-id", data.azurerm_client_config.current.subscription_id,

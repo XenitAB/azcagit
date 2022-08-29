@@ -14,6 +14,8 @@ import (
 	"github.com/xenitab/azcagit/src/reconcile"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/source"
+	"github.com/xenitab/azcagit/src/trigger"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -61,8 +63,19 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
+	trigger, err := trigger.NewDaprSubTrigger(cfg)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return trigger.Start()
+	})
 
 	tickerInterval, err := time.ParseDuration(cfg.ReconcileInterval)
 	if err != nil {
@@ -71,12 +84,20 @@ func run(ctx context.Context, cfg config.Config) error {
 
 	ticker := time.NewTicker(tickerInterval)
 
+OUTER:
 	for {
 		select {
 		case <-ctx.Done():
 			log.Info("context done, shutting down")
-			return nil
+			break OUTER
 		case <-ticker.C:
+			err := reconciler.Run(ctx)
+			if err != nil {
+				log.Error(err, "reconcile error")
+			}
+			ticker.Reset(tickerInterval)
+		case triggeredBy := <-trigger.WaitForTrigger():
+			log.Info("reconcile manually triggered", "triggeredBy", triggeredBy)
 			err := reconciler.Run(ctx)
 			if err != nil {
 				log.Error(err, "reconcile error")
@@ -84,4 +105,10 @@ func run(ctx context.Context, cfg config.Config) error {
 			ticker.Reset(tickerInterval)
 		}
 	}
+
+	g.Go(func() error {
+		return trigger.Stop()
+	})
+
+	return g.Wait()
 }
