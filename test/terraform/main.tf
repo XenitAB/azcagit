@@ -23,6 +23,7 @@ provider "azurerm" {
 }
 
 data "azurerm_client_config" "current" {}
+data "azuread_client_config" "current" {}
 
 resource "azurerm_resource_group" "platform" {
   name     = "rg-aca-platform"
@@ -49,20 +50,6 @@ resource "azurerm_subnet" "this" {
   resource_group_name  = azurerm_resource_group.platform.name
   virtual_network_name = azurerm_virtual_network.this.name
   address_prefixes     = ["10.0.0.0/20"]
-}
-
-resource "azurerm_storage_account" "this" {
-  name                     = "sacontainerapps"
-  resource_group_name      = azurerm_resource_group.platform.name
-  location                 = azurerm_resource_group.platform.location
-  account_tier             = "Standard"
-  account_replication_type = "ZRS"
-}
-
-resource "azurerm_storage_container" "this" {
-  name                  = "state"
-  storage_account_name  = azurerm_storage_account.this.name
-  container_access_type = "private"
 }
 
 resource "azapi_resource" "managed_environment" {
@@ -93,107 +80,12 @@ resource "azapi_resource" "managed_environment" {
   response_export_values = ["properties"]
 }
 
-# output "managed_environment" {
-#   value = jsondecode(azapi_resource.managed_environment.output).properties
-# }
-
-resource "azapi_resource" "dapr_blob" {
-  type      = "Microsoft.App/managedEnvironments/daprComponents@2022-03-01"
-  name      = "blob"
-  parent_id = azapi_resource.managed_environment.id
-  #   location                  = azurerm_resource_group.platform.location
-  schema_validation_enabled = false
-
-  body = jsonencode({
-    properties = {
-      componentType = "state.azure.blobstorage"
-      version       = "v1"
-      metadata = [
-        {
-          name      = "accountName"
-          secretRef = "account-name"
-        },
-        {
-          name      = "accountKey"
-          secretRef = "account-key"
-        },
-        {
-          name      = "containerName"
-          secretRef = "container-name"
-        }
-      ]
-      secrets = [
-        {
-          name  = "account-name"
-          value = azurerm_storage_account.this.name
-        },
-        {
-          name  = "account-key"
-          value = azurerm_storage_account.this.primary_access_key
-        },
-        {
-          name  = "container-name"
-          value = azurerm_storage_container.this.name
-        }
-      ]
-    }
-  })
-
-  response_export_values = ["properties"]
-}
-
-resource "azapi_resource" "dapr_sb" {
-  type      = "Microsoft.App/managedEnvironments/daprComponents@2022-03-01"
-  name      = "sb"
-  parent_id = azapi_resource.managed_environment.id
-  #   location                  = azurerm_resource_group.platform.location
-  schema_validation_enabled = false
-
-  body = jsonencode({
-    properties = {
-      componentType = "pubsub.azure.servicebus"
-      version       = "v1"
-      metadata = [
-        {
-          name      = "connectionString"
-          secretRef = "sb-root-connectionstring"
-        }
-      ]
-      secrets = [
-        {
-          name  = "sb-root-connectionstring"
-          value = azurerm_servicebus_namespace.this.default_primary_connection_string
-        }
-      ]
-      scopes = [
-        azapi_resource.container_app_azcagit.name
-      ]
-    }
-  })
-
-  response_export_values = ["properties"]
-}
-
-
 resource "azurerm_container_registry" "this" {
   name                = "acrcontainerapps"
   resource_group_name = azurerm_resource_group.platform.name
   location            = azurerm_resource_group.platform.location
   sku                 = "Standard"
   admin_enabled       = true
-}
-
-resource "azurerm_servicebus_namespace" "this" {
-  name                = "sbcontainerapps"
-  location            = azurerm_resource_group.platform.location
-  resource_group_name = azurerm_resource_group.platform.name
-  sku                 = "Standard"
-}
-
-resource "azurerm_servicebus_queue" "this" {
-  name                = "azcagit_trigger"
-  namespace_id        = azurerm_servicebus_namespace.this.id
-  enable_partitioning = true
 }
 
 resource "azurerm_resource_group" "tenant" {
