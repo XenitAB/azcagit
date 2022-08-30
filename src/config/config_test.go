@@ -38,3 +38,10 @@ func TestNewConfig(t *testing.T) {
 		DaprTopic:            "azcagit_trigger",
 	}, cfg)
 }
+
+func TestRedactedConfig(t *testing.T) {
+	cfg := Config{
+		GitUrl: "https://foo:bar@foobar.io/abc.git",
+	}
+	require.Equal(t, "https://foo:redacted@foobar.io/abc.git", cfg.Redacted().GitUrl)
+}

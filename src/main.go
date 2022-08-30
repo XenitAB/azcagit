@@ -29,7 +29,10 @@ func main() {
 	cfg, err := config.NewConfig(os.Args[1:])
 	if err != nil {
 		log.Error(err, "unable to load config")
+		os.Exit(1)
 	}
+
+	log.Info("configuration loaded", "config", cfg.Redacted())
 
 	err = run(ctx, cfg)
 	if err != nil {
