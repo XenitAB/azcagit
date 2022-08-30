@@ -27,16 +27,27 @@ func (cfg *Config) Redacted() Config {
 	}
 
 	redactedCfg := *cfg
-
-	gitUrl, err := url.Parse(redactedCfg.GitUrl)
-	if err != nil {
-		return Config{}
-	}
-
-	gitUrl.User = url.UserPassword(gitUrl.User.Username(), "redacted")
-	redactedCfg.GitUrl = gitUrl.String()
+	redactedCfg.GitUrl = redactUrl(redactedCfg.GitUrl)
 
 	return redactedCfg
+}
+
+func redactUrl(u string) string {
+	parsed, err := url.Parse(u)
+	if err != nil {
+		return ""
+	}
+
+	_, ok := parsed.User.Password()
+	if ok {
+		parsed.User = url.UserPassword(parsed.User.Username(), "redacted")
+	}
+
+	if !ok && parsed.User.Username() != "" {
+		parsed.User = url.User("redacted")
+	}
+
+	return parsed.String()
 }
 
 func NewConfig(args []string) (Config, error) {
