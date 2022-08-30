@@ -63,7 +63,7 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
-	trigger, err := trigger.NewDaprSubTrigger(cfg)
+	trig, err := trigger.NewDaprSubTrigger(cfg)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	g, ctx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		return trigger.Start()
+		return trig.Start()
 	})
 
 	tickerInterval, err := time.ParseDuration(cfg.ReconcileInterval)
@@ -84,6 +84,15 @@ func run(ctx context.Context, cfg config.Config) error {
 
 	ticker := time.NewTicker(tickerInterval)
 
+	reconcile := func(triggeredBy trigger.TriggeredBy) {
+		log.Info("reconcile triggered", "triggeredBy", triggeredBy)
+		err := reconciler.Run(ctx)
+		if err != nil {
+			log.Error(err, "reconcile error")
+		}
+		ticker.Reset(tickerInterval)
+	}
+
 OUTER:
 	for {
 		select {
@@ -91,23 +100,14 @@ OUTER:
 			log.Info("context done, shutting down")
 			break OUTER
 		case <-ticker.C:
-			err := reconciler.Run(ctx)
-			if err != nil {
-				log.Error(err, "reconcile error")
-			}
-			ticker.Reset(tickerInterval)
-		case triggeredBy := <-trigger.WaitForTrigger():
-			log.Info("reconcile manually triggered", "triggeredBy", triggeredBy)
-			err := reconciler.Run(ctx)
-			if err != nil {
-				log.Error(err, "reconcile error")
-			}
-			ticker.Reset(tickerInterval)
+			reconcile(trigger.TriggeredByTicker)
+		case triggeredBy := <-trig.WaitForTrigger():
+			reconcile(triggeredBy)
 		}
 	}
 
 	g.Go(func() error {
-		return trigger.Stop()
+		return trig.Stop()
 	})
 
 	return g.Wait()
