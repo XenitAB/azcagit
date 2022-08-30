@@ -6,6 +6,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
+	"github.com/dapr/go-sdk/service/common"
 )
 
 type serviceBusClient struct {
@@ -24,7 +25,7 @@ func newServiceBusClient(cfg config) (*serviceBusClient, error) {
 		return nil, err
 	}
 
-	sender, err := client.NewSender(cfg.QueueOrTopic, &azservicebus.NewSenderOptions{})
+	sender, err := client.NewSender(cfg.Queue, &azservicebus.NewSenderOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -41,8 +42,13 @@ func (c *serviceBusClient) Trigger(ctx context.Context) error {
 	}{
 		Trigger: true,
 	}
+	event := &common.TopicEvent{
+		PubsubName: "test_name",
+		ID:         "test_id",
+		Data:       triggerData,
+	}
 
-	b, err := json.Marshal(triggerData)
+	b, err := json.Marshal(event)
 	if err != nil {
 		return err
 	}
