@@ -33,8 +33,8 @@ func TestNewConfig(t *testing.T) {
 		CheckoutPath:         "/tmp/foo",
 		GitUrl:               "https://github.com/foo/bar.git",
 		GitBranch:            "main",
-		DaprAppPort:          3501,
-		DaprPubsubName:       "sb",
+		DaprAppPort:          8080,
+		DaprPubsubName:       "azcagit-trigger",
 		DaprTopic:            "azcagit_trigger",
 	}, cfg)
 }
