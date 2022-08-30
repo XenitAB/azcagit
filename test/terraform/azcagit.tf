@@ -82,7 +82,7 @@ resource "azapi_resource" "container_app_azcagit" {
               "--subscription-id", data.azurerm_client_config.current.subscription_id,
               "--managed-environment-id", azapi_resource.managed_environment.id,
               "--location", azurerm_resource_group.tenant.location,
-              "--reconcile-interval", "30s",
+              "--reconcile-interval", "5m",
               "--checkout-path", "/tmp/gitops",
               "--git-branch", var.git_config.branch,
               "--git-yaml-path", var.git_config.path
