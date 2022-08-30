@@ -21,7 +21,7 @@ var _ Trigger = (*DaprSubTrigger)(nil)
 var TriggeredByDaprSub TriggeredBy = "DaprSub"
 
 func NewDaprSubTrigger(cfg config.Config) (*DaprSubTrigger, error) {
-	service := daprd.NewService(fmt.Sprintf(":%d", cfg.DaprHttpPort))
+	service := daprd.NewService(fmt.Sprintf(":%d", cfg.DaprAppPort))
 	triggerCh := make(chan TriggeredBy)
 	trigger := &DaprSubTrigger{
 		service,

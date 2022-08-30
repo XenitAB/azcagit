@@ -23,7 +23,7 @@ func TestDaprSubTrigger(t *testing.T) {
 	defer cancel()
 	g, ctx := errgroup.WithContext(ctx)
 	cfg := config.Config{
-		DaprHttpPort:   3500,
+		DaprAppPort:    3501,
 		DaprPubsubName: "sb",
 		DaprTopic:      "azcagit_trigger",
 	}
@@ -35,7 +35,7 @@ func TestDaprSubTrigger(t *testing.T) {
 	})
 
 	for start := time.Now(); time.Since(start) < 5*time.Second; {
-		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", cfg.DaprHttpPort))
+		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", cfg.DaprAppPort))
 		if err == nil {
 			conn.Close()
 			break
@@ -59,7 +59,7 @@ func TestDaprSubTrigger(t *testing.T) {
 		b, err := json.Marshal(event)
 		require.NoError(t, err)
 		t.Logf("Event: %v", string(b))
-		req, err := http.NewRequestWithContext(ctxClient, http.MethodPost, "http://localhost:3500/trigger", bytes.NewBuffer(b))
+		req, err := http.NewRequestWithContext(ctxClient, http.MethodPost, "http://localhost:3501/trigger", bytes.NewBuffer(b))
 		require.NoError(t, err)
 		req.Header.Add("Content-Type", "application/json")
 

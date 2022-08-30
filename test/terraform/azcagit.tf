@@ -48,7 +48,7 @@ resource "azapi_resource" "container_app_azcagit" {
         activeRevisionsMode = "Single"
         dapr = {
           appId       = "azcagit"
-          appPort     = 3500
+          appPort     = 3501
           appProtocol = "http"
           enabled     = true
         }
@@ -74,8 +74,9 @@ resource "azapi_resource" "container_app_azcagit" {
       template = {
         containers = [
           {
-            name  = "azcagit"
-            image = "ghcr.io/xenitab/azcagit:v0.0.2"
+            name = "azcagit"
+            #image = "ghcr.io/xenitab/azcagit:v0.0.2"
+            image = "ghcr.io/xenitab/azcagit:ce5e4ba"
             args = [
               "--resource-group-name", azurerm_resource_group.tenant.name,
               "--subscription-id", data.azurerm_client_config.current.subscription_id,

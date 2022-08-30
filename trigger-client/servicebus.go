@@ -43,8 +43,8 @@ func (c *serviceBusClient) Trigger(ctx context.Context) error {
 		Trigger: true,
 	}
 	event := &common.TopicEvent{
-		PubsubName: "test_name",
-		ID:         "test_id",
+		PubsubName: "azcagit_trigger",
+		ID:         "azcagit_trigger",
 		Data:       triggerData,
 	}
 
