@@ -76,7 +76,7 @@ resource "azapi_resource" "container_app_azcagit" {
           {
             name = "azcagit"
             #image = "ghcr.io/xenitab/azcagit:v0.0.2"
-            image = "ghcr.io/xenitab/azcagit:73674ed"
+            image = "ghcr.io/xenitab/azcagit:ca2448f"
             args = [
               "--resource-group-name", azurerm_resource_group.tenant.name,
               "--subscription-id", data.azurerm_client_config.current.subscription_id,
@@ -84,7 +84,6 @@ resource "azapi_resource" "container_app_azcagit" {
               "--location", azurerm_resource_group.tenant.location,
               "--reconcile-interval", "30s",
               "--checkout-path", "/tmp/gitops",
-              "--git-url", local.git_full_url,
               "--git-branch", var.git_config.branch,
               "--git-yaml-path", var.git_config.path
             ]
