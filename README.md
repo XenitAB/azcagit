@@ -55,12 +55,25 @@ YAML-files can contain one or more documents (with `---` as a document separator
 - [ ] Push git commit status (like [Flux notification-controller](https://fluxcd.io/docs/components/notification/provider/#git-commit-status))
 - [ ] Health checks
 - [ ] Metrics
+- [x] Manually trigger reconcile
 
 ## Usage
 
 `azcagit` will connect to a git repository (over https) and syncronize it on an interval. If changes are identified, it will push them to Azure. It can create, update and delete Azure Container Apps.
 
 The easiest way to test it is using the terraform code which you can find in `test/terraform`. You may have to update a few names to get it working.
+
+### Manually trigger reconcile
+
+If you have used the example terraform, there will be a service bus created with a topic and subscription. `azcagit` has subscribed to in through Darp and when it receives a message on it, it will trigger a reconcile.
+
+You can use `azcagit-trigger-client` to trigger it:
+
+```go
+go run ./trigger-client -n example.servicebus.windows.net -t azcagit_trigger
+```
+
+Please note that this requires you to be authenticated with either the Azure CLI and have access to publish to this topic with your current user, or use environment varaibles with a service principal that has access.
 
 ## Local development
 
@@ -115,6 +128,8 @@ git_config = {
   username = ""
   secret   = ""
 }
+
+azcagit_version = "vX.Y.Z"
 ```
 
 Make sure url doesn't contain `https://`, it will be appended by terraform. If you want to use a private repository, add username and secret (PAT). Path is where you want `azcagit` to start traversing the directory tree.

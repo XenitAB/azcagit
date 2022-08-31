@@ -9,3 +9,8 @@ variable "git_config" {
   })
   sensitive = true
 }
+
+variable "azcagit_version" {
+  description = "The version of azcagit to use"
+  type        = string
+}
