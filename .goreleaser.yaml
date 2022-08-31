@@ -1,7 +1,6 @@
 project_name: azcagit-trigger-client
 builds:
-- main: ./trigger-client/main.go
-  dir: .
+- main: ./trigger-client/
   binary: azcagit-trigger-client
   env:
   - CGO_ENABLED=0
