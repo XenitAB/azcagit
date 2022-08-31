@@ -9,4 +9,3 @@ type Trigger interface {
 type TriggeredBy string
 
 var TriggeredByTicker TriggeredBy = "Ticker"
-var TriggeredByInitialization TriggeredBy = "Initialization"
