@@ -40,7 +40,7 @@ terraform-up:
 	terraform apply -auto-approve -var-file="../../.tmp/lab.tfvars"
 
 run:
-	AZURE_TENANT_ID=$${TENANT_ID} AZURE_CLIENT_ID=$${CLIENT_ID} AZURE_CLIENT_SECRET=$${CLIENT_SECRET} go run ./src \
+	go run ./src \
 		--resource-group-name $${RG_NAME} \
 		--subscription-id $${SUB_ID} \
 		--managed-environment-id $${ME_ID} \

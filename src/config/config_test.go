@@ -33,5 +33,26 @@ func TestNewConfig(t *testing.T) {
 		CheckoutPath:         "/tmp/foo",
 		GitUrl:               "https://github.com/foo/bar.git",
 		GitBranch:            "main",
+		DaprAppPort:          8080,
+		DaprPubsubName:       "azcagit-trigger",
+		DaprTopic:            "azcagit_trigger",
 	}, cfg)
+}
+
+func TestRedactedConfig(t *testing.T) {
+	cfgWithUserAndPass := Config{
+		GitUrl: "https://foo:bar@foobar.io/abc.git",
+	}
+	require.Equal(t, "https://foo:redacted@foobar.io/abc.git", cfgWithUserAndPass.Redacted().GitUrl)
+
+	cfg := Config{
+		GitUrl: "https://foobar.io/abc.git",
+	}
+	require.Equal(t, "https://foobar.io/abc.git", cfg.Redacted().GitUrl)
+}
+
+func TestRedactUrl(t *testing.T) {
+	require.Equal(t, "https://foobar.io/abc.git", redactUrl("https://foobar.io/abc.git"))
+	require.Equal(t, "https://foo:redacted@foobar.io/abc.git", redactUrl("https://foo:bar@foobar.io/abc.git"))
+	require.Equal(t, "https://redacted@foobar.io/abc.git", redactUrl("https://foo@foobar.io/abc.git"))
 }

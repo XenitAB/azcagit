@@ -14,6 +14,8 @@ import (
 	"github.com/xenitab/azcagit/src/reconcile"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/source"
+	"github.com/xenitab/azcagit/src/trigger"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -27,7 +29,10 @@ func main() {
 	cfg, err := config.NewConfig(os.Args[1:])
 	if err != nil {
 		log.Error(err, "unable to load config")
+		os.Exit(1)
 	}
+
+	log.Info("configuration loaded", "config", cfg.Redacted())
 
 	err = run(ctx, cfg)
 	if err != nil {
@@ -61,27 +66,52 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
+	trig, err := trigger.NewDaprSubTrigger(cfg)
+	if err != nil {
+		return err
+	}
+
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		return trig.Start()
+	})
 
 	tickerInterval, err := time.ParseDuration(cfg.ReconcileInterval)
 	if err != nil {
 		return err
 	}
 
-	ticker := time.NewTicker(tickerInterval)
+	ticker := time.NewTicker(1 * time.Second)
 
+	reconcile := func(triggeredBy trigger.TriggeredBy) {
+		log.Info("reconcile triggered", "triggeredBy", triggeredBy)
+		err := reconciler.Run(ctx)
+		if err != nil {
+			log.Error(err, "reconcile error")
+		}
+		ticker.Reset(tickerInterval)
+	}
+
+OUTER:
 	for {
 		select {
 		case <-ctx.Done():
 			log.Info("context done, shutting down")
-			return nil
+			break OUTER
 		case <-ticker.C:
-			err := reconciler.Run(ctx)
-			if err != nil {
-				log.Error(err, "reconcile error")
-			}
-			ticker.Reset(tickerInterval)
+			reconcile(trigger.TriggeredByTicker)
+		case triggeredBy := <-trig.WaitForTrigger():
+			reconcile(triggeredBy)
 		}
 	}
+
+	g.Go(func() error {
+		return trig.Stop()
+	})
+
+	return g.Wait()
 }

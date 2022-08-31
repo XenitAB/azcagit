@@ -46,6 +46,12 @@ resource "azapi_resource" "container_app_azcagit" {
       managedEnvironmentId = azapi_resource.managed_environment.id
       configuration = {
         activeRevisionsMode = "Single"
+        dapr = {
+          appId       = "azcagit"
+          appPort     = 8080
+          appProtocol = "http"
+          enabled     = true
+        }
         secrets = [
           {
             name  = "git-url"
@@ -69,15 +75,14 @@ resource "azapi_resource" "container_app_azcagit" {
         containers = [
           {
             name  = "azcagit"
-            image = "ghcr.io/xenitab/azcagit:v0.0.1"
+            image = "ghcr.io/xenitab/azcagit:${var.azcagit_version}"
             args = [
               "--resource-group-name", azurerm_resource_group.tenant.name,
               "--subscription-id", data.azurerm_client_config.current.subscription_id,
               "--managed-environment-id", azapi_resource.managed_environment.id,
               "--location", azurerm_resource_group.tenant.location,
-              "--reconcile-interval", "30s",
+              "--reconcile-interval", "5m",
               "--checkout-path", "/tmp/gitops",
-              "--git-url", local.git_full_url,
               "--git-branch", var.git_config.branch,
               "--git-yaml-path", var.git_config.path
             ]

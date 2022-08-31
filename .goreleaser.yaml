@@ -1,0 +1,22 @@
+project_name: azcagit-trigger-client
+builds:
+- main: ./trigger-client/main.go
+  binary: azcagit-trigger-client
+  env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  - windows
+  - darwin
+  goarch:
+  - amd64
+  - arm
+  - arm64
+archives:
+- name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+  format: binary
+  wrap_in_directory: false
+checksum:
+  name_template: 'checksums.txt'
+changelog:
+  sort: asc
