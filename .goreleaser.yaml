@@ -1,6 +1,7 @@
 project_name: azcagit-trigger-client
 builds:
 - main: ./trigger-client/main.go
+  dir: .
   binary: azcagit-trigger-client
   env:
   - CGO_ENABLED=0
@@ -19,4 +20,4 @@ archives:
 checksum:
   name_template: 'checksums.txt'
 changelog:
-  sort: asc
+  skip: true
