@@ -76,7 +76,7 @@ resource "azapi_resource" "container_app_azcagit" {
           {
             name = "azcagit"
             #image = "ghcr.io/xenitab/azcagit:v0.0.2"
-            image = "ghcr.io/xenitab/azcagit:ca2448f"
+            image = "ghcr.io/xenitab/azcagit:46e00c2"
             args = [
               "--resource-group-name", azurerm_resource_group.tenant.name,
               "--subscription-id", data.azurerm_client_config.current.subscription_id,

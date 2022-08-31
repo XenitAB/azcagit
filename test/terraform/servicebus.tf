@@ -57,7 +57,7 @@ resource "azapi_resource" "dapr_azcagit_trigger" {
         }
       ]
       scopes = [
-        azapi_resource.container_app_azcagit.name
+        "azcagit"
       ]
     }
   })

@@ -85,7 +85,7 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
-	ticker := time.NewTicker(tickerInterval)
+	ticker := time.NewTicker(1 * time.Second)
 
 	reconcile := func(triggeredBy trigger.TriggeredBy) {
 		log.Info("reconcile triggered", "triggeredBy", triggeredBy)

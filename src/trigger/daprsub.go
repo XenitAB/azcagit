@@ -58,7 +58,6 @@ func (t *DaprSubTrigger) Stop() error {
 }
 
 func (t *DaprSubTrigger) triggerHandler(ctx context.Context, e *common.TopicEvent) (bool, error) {
-	fmt.Printf("Data: %v\n", e.Data)
 	triggerData := struct {
 		Trigger *bool `json:"trigger"`
 	}{}
