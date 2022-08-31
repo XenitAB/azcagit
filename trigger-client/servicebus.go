@@ -25,7 +25,7 @@ func newServiceBusClient(cfg config) (*serviceBusClient, error) {
 		return nil, err
 	}
 
-	sender, err := client.NewSender(cfg.Queue, &azservicebus.NewSenderOptions{})
+	sender, err := client.NewSender(cfg.Topic, &azservicebus.NewSenderOptions{})
 	if err != nil {
 		return nil, err
 	}

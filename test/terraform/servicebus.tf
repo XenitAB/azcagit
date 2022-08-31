@@ -21,10 +21,17 @@ resource "azurerm_role_assignment" "azcagit_trigger" {
   principal_id         = azuread_group.azcagit_trigger.object_id
 }
 
-resource "azurerm_servicebus_queue" "azcagit_trigger" {
-  name                = "azcagit_trigger"
-  namespace_id        = azurerm_servicebus_namespace.azcagit_trigger.id
+resource "azurerm_servicebus_topic" "azcagit_trigger" {
+  name         = "azcagit_trigger"
+  namespace_id = azurerm_servicebus_namespace.azcagit_trigger.id
+
   enable_partitioning = true
+}
+
+resource "azurerm_servicebus_subscription" "azcagit_trigger" {
+  name               = "azcagit_trigger"
+  topic_id           = azurerm_servicebus_topic.azcagit_trigger.id
+  max_delivery_count = 1
 }
 
 resource "azapi_resource" "dapr_azcagit_trigger" {
