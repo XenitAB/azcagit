@@ -40,10 +40,12 @@ terraform-up:
 	terraform apply -auto-approve -var-file="../../.tmp/lab.tfvars"
 
 run:
+	# AZURE_TENANT_ID=$${TENANT_ID} AZURE_CLIENT_ID=$${CLIENT_ID} AZURE_CLIENT_SECRET=$${CLIENT_SECRET} \
 	go run ./src \
 		--resource-group-name $${RG_NAME} \
 		--subscription-id $${SUB_ID} \
 		--managed-environment-id $${ME_ID} \
+		--key-vault-name $${KV_NAME} \
 		--location westeurope \
 		--reconcile-interval "10s" \
 		--checkout-path "/tmp/foo" \
@@ -59,6 +61,7 @@ docker-run: docker-build
 		--resource-group-name $${RG_NAME} \
 		--subscription-id $${SUB_ID} \
 		--managed-environment-id $${ME_ID} \
+		--key-vault-name $${KV_NAME} \
 		--location westeurope \
 		--reconcile-interval "10s" \
 		--checkout-path "/tmp/foo" \
