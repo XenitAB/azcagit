@@ -35,7 +35,7 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		return err
 	}
 
-	err = r.populateSourceAppSecrets(ctx, sourceApps)
+	err = r.populateSourceAppsSecrets(ctx, sourceApps)
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func (r *Reconciler) updateCache(ctx context.Context, sourceApps *source.SourceA
 	return nil
 }
 
-func (r *Reconciler) populateSourceAppSecrets(ctx context.Context, sourceApps *source.SourceApps) error {
+func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *source.SourceApps) error {
 	secretItems, err := r.secretClient.ListItems(ctx)
 	if err != nil {
 		return err

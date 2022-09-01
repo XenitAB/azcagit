@@ -571,5 +571,45 @@ func TestReconciler(t *testing.T) {
 		require.Equal(t, remote.InMemRemoteActionsCreate, actions[0].Action)
 		require.Equal(t, "ze-app-secret", *actions[0].App.Properties.Configuration.Secrets[0].Name)
 		require.Equal(t, "foobar", *actions[0].App.Properties.Configuration.Secrets[0].Value)
+		cacheValue, ok := secretCache.Get("ze-remote-secret")
+		require.True(t, ok)
+		require.Equal(t, "foobar", cacheValue)
+	}()
+
+	// test remote secret failure
+	// sourceClient.Get() returns one SourceApp without error
+	// first remoteClient.Get() returns empty RemoteApps without error
+	// second remoteClient.Get() returns one RemoteApp without error
+	func() {
+		defer resetClients()
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+					Secrets: []source.RemoteSecretSpecification{
+						{
+							AppSecretName:    toPtr("ze-app-secret"),
+							RemoteSecretName: toPtr("ze-remote-secret-failure"),
+						},
+					},
+				},
+			},
+		}, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{
+			"foo": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "secret not found \"ze-remote-secret-failure\"")
+		actions := remoteClient.Actions()
+		require.Len(t, actions, 0)
 	}()
 }
