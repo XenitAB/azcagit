@@ -77,7 +77,11 @@ func (app *SourceApp) ValidateFields() error {
 	}
 
 	if app.Specification != nil && app.Specification.App != nil && app.Specification.App.Properties != nil && app.Specification.App.Properties.ManagedEnvironmentID != nil {
-		result = multierror.Append(fmt.Errorf("managedEnvironmentID can't be set through json"), result)
+		result = multierror.Append(fmt.Errorf("managedEnvironmentID is disabled and set through azcagit"), result)
+	}
+
+	if app.Specification != nil && app.Specification.App != nil && app.Specification.App.Location != nil {
+		result = multierror.Append(fmt.Errorf("location is disabled and set through azcagit"), result)
 	}
 
 	return result.ErrorOrNil()
@@ -101,12 +105,19 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 		return err
 	}
 
-	if cfg.ManagedEnvironmentID != "" {
-		if newapp.Specification.App.Properties == nil {
-			newapp.Specification.App.Properties = &armappcontainers.ContainerAppProperties{}
-		}
-		newapp.Specification.App.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
+	if cfg.ManagedEnvironmentID == "" {
+		return fmt.Errorf("cfg.ManagedEnvironmentID is not set")
 	}
+
+	if newapp.Specification.App.Properties == nil {
+		newapp.Specification.App.Properties = &armappcontainers.ContainerAppProperties{}
+	}
+	newapp.Specification.App.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
+
+	if cfg.Location == "" {
+		return fmt.Errorf("cfg.Location is not set")
+	}
+	newapp.Specification.App.Location = &cfg.Location
 
 	if newapp.Specification.App.Tags == nil {
 		newapp.Specification.App.Tags = make(map[string]*string)

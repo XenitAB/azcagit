@@ -4,7 +4,6 @@ metadata:
   name: foo4
 spec:
   app:
-    location: west europe
     properties:
       configuration:
         activeRevisionsMode: Single

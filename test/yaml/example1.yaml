@@ -4,7 +4,6 @@ metadata:
   name: foo1
 spec:
   app:
-    location: west europe
     properties:
       configuration:
         activeRevisionsMode: Single
@@ -25,7 +24,6 @@ metadata:
   name: foo2
 spec:
   app:
-    location: west europe
     properties:
       configuration:
         activeRevisionsMode: Single
