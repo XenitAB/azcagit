@@ -547,7 +547,7 @@ func TestReconciler(t *testing.T) {
 				},
 				Specification: &source.SourceAppSpecification{
 					App: &armappcontainers.ContainerApp{},
-					Secrets: []source.RemoteSecretSpecification{
+					RemoteSecrets: []source.RemoteSecretSpecification{
 						{
 							AppSecretName:    toPtr("ze-app-secret"),
 							RemoteSecretName: toPtr("ze-remote-secret"),
@@ -591,7 +591,7 @@ func TestReconciler(t *testing.T) {
 				},
 				Specification: &source.SourceAppSpecification{
 					App: &armappcontainers.ContainerApp{},
-					Secrets: []source.RemoteSecretSpecification{
+					RemoteSecrets: []source.RemoteSecretSpecification{
 						{
 							AppSecretName:    toPtr("ze-app-secret"),
 							RemoteSecretName: toPtr("ze-remote-secret-failure"),

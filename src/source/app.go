@@ -34,8 +34,8 @@ func (r *RemoteSecretSpecification) Valid() bool {
 }
 
 type SourceAppSpecification struct {
-	App     *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
-	Secrets []RemoteSecretSpecification    `json:"remoteSecrets,omitempty" yaml:"remoteSecrets,omitempty"`
+	App           *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
+	RemoteSecrets []RemoteSecretSpecification    `json:"remoteSecrets,omitempty" yaml:"remoteSecrets,omitempty"`
 }
 
 type SourceApp struct {
@@ -100,12 +100,12 @@ func (app *SourceApp) SetSecret(name string, value string) error {
 
 func (app *SourceApp) GetRemoteSecrets() []RemoteSecretSpecification {
 	secretsMap := make(map[string]struct{})
-	if app == nil || app.Specification == nil || app.Specification.Secrets == nil || len(app.Specification.Secrets) == 0 {
+	if app == nil || app.Specification == nil || app.Specification.RemoteSecrets == nil || len(app.Specification.RemoteSecrets) == 0 {
 		return []RemoteSecretSpecification{}
 	}
 
 	secrets := []RemoteSecretSpecification{}
-	for _, secret := range app.Specification.Secrets {
+	for _, secret := range app.Specification.RemoteSecrets {
 		if !secret.Valid() {
 			continue
 		}

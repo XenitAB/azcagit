@@ -483,7 +483,7 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 			input: &SourceApps{
 				"foo": {
 					Specification: &SourceAppSpecification{
-						Secrets: []RemoteSecretSpecification{
+						RemoteSecrets: []RemoteSecretSpecification{
 							{
 								AppSecretName:    toPtr("foo"),
 								RemoteSecretName: toPtr("bar"),
@@ -493,7 +493,7 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 				},
 				"bar": {
 					Specification: &SourceAppSpecification{
-						Secrets: []RemoteSecretSpecification{
+						RemoteSecrets: []RemoteSecretSpecification{
 							{
 								AppSecretName:    toPtr("baz"),
 								RemoteSecretName: toPtr("foobar"),
@@ -512,7 +512,7 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 			input: &SourceApps{
 				"foo": {
 					Specification: &SourceAppSpecification{
-						Secrets: []RemoteSecretSpecification{
+						RemoteSecrets: []RemoteSecretSpecification{
 							{
 								AppSecretName:    toPtr("foo"),
 								RemoteSecretName: toPtr("bar"),
@@ -522,7 +522,7 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 				},
 				"bar": {
 					Specification: &SourceAppSpecification{
-						Secrets: []RemoteSecretSpecification{
+						RemoteSecrets: []RemoteSecretSpecification{
 							{
 								AppSecretName:    toPtr("foo"),
 								RemoteSecretName: toPtr("bar"),
