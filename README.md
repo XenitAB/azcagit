@@ -65,6 +65,10 @@ Reconciliation will stop an no changes (add/delete/update) will be made until th
 
 Reconciliation will stop an no changes (add/delete/update) will be made until the secret is added to the KeyVault or it's removed from the manifest.
 
+> What happens if a secret is changed in the KeyVault?
+
+The Container App will be updated at the next reconcile.
+
 > What happens if I add the tag `aca.xenit.io=true` to a Container App in the tenant resource group, without the app being defined in a manifest?
 
 It will be removed at the next reconcile.
