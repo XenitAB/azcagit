@@ -19,7 +19,7 @@ Platform is used for what we call "platform services", in this case the virtual 
 
 Tenant is used only to synchronize the Container Apps manifests. The Container Apps that are created by `azcagit` will reside here.
 
-The manifests are in the same format as Kubernetes manifests ([Kubernetes Resource Model aka KRM](https://cloud.google.com/blog/topics/developers-practitioners/build-platform-krm-part-2-how-kubernetes-resource-model-works)), but with a hard coupling to the [Azure Container Apps specification](https://docs.microsoft.com/en-us/azure/templates/microsoft.app/containerapps?pivots=deployment-language-arm-template).
+The manifests are in the same format as Kubernetes manifests ([Kubernetes Resource Model aka KRM](https://cloud.google.com/blog/topics/developers-practitioners/build-platform-krm-part-2-how-kubernetes-resource-model-works)), but with a hard coupling to the [Azure Container Apps specification](https://docs.microsoft.com/en-us/azure/templates/microsoft.app/containerapps?pivots=deployment-language-arm-template) for `spec.app`.
 
 An example manifest:
 
@@ -29,6 +29,9 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foobar
 spec:
+  remoteSecrets:
+    - appSecretName: connection-string
+      remoteSecretName: mssql-connection-string
   app:
     properties:
       configuration:
@@ -40,6 +43,11 @@ spec:
             resources:
               cpu: 0.25
               memory: .5Gi
+            env:
+              - name: CONNECTION_STRING
+                secretRef: connection-string
+              - name: MEANING_WITH_LIFE
+                value: "forty two"
         scale:
           minReplicas: 1
           maxReplicas: 1
@@ -47,15 +55,47 @@ spec:
 
 YAML-files can contain one or more documents (with `---` as a document separator). As of right now, all files in the git repository path (configured with `--git-path` when launching `azcagit`) needs to pass validation for any deletion to occur (deletion will be disabled if any manifests contains validation errors).
 
+## Frequently Asked Questions
+
+> What happens if a manifest can't be parsed?
+
+Reconciliation will stop an no changes (add/delete/update) will be made until the parse error is fixed.
+
+> What happens if a secret in the KeyVault is defined in a manifest but doesn't exist?
+
+Reconciliation will stop an no changes (add/delete/update) will be made until the secret is added to the KeyVault or it's removed from the manifest.
+
+> What happens if a secret is changed in the KeyVault?
+
+The Container App will be updated at the next reconcile.
+
+> What happens if I add the tag `aca.xenit.io=true` to a Container App in the tenant resource group, without the app being defined in a manifest?
+
+It will be removed at the next reconcile.
+
+> What happens if I remove the tag `aca.xenit.io=true` from a Container App in the tenant resource group, while still having a manifest for it?
+
+It won't be reconciled anymore. Depending on the order, a few apps before will still be reconciled but none after.
+
+> What happens if I add the tag `aca.xenit.io=true` to a Container App in the tenant resource group, while it's also defined in a manifest?
+
+It will be updated based on the manifest.
+
+> What properties, as of now, can't be used even though they are defined in the Azure Container Apps specification?
+
+- `spec.app.properties.managedEnvironmentID`: it's defined by azcagit
+- `spec.app.location`: it's defined by azcagit
+
 ## Things TODO in the future
 
-- [ ] Append secrets to Container Apps from KeyVault
+- [x] Append secrets to Container Apps from KeyVault
 - [x] ~~Better error handling of validation failures (should deletion be stopped?)~~ _stop reconciliation on any parsing error_
 - [ ] Push git commit status (like [Flux notification-controller](https://fluxcd.io/docs/components/notification/provider/#git-commit-status))
 - [ ] Health checks
 - [ ] Metrics
 - [x] Manually trigger reconcile
 - [x] Enforce Location for app
+- [ ] Add Container Registry credentials by default
 
 ## Usage
 
@@ -103,6 +143,7 @@ The following parameters can be used
 RG_NAME=resource_group_name
 SUB_ID=azure_subscription_id
 ME_ID=azure_container_apps_managed_environment_id
+KV_NAME=kvcontainerapps
 GIT_URL_AND_CREDS=git_url_with_optional_credentials
 ```
 

@@ -373,3 +373,173 @@ spec:
 		require.Equal(t, c.expectedResult, appsWithoutErrors)
 	}
 }
+
+func TestSourceAppSetSecret(t *testing.T) {
+	// fails with app is nil
+	{
+		app := SourceApp{}
+		err := app.SetSecret("foo", "bar")
+		require.ErrorContains(t, err, "app is nil")
+	}
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{},
+		}
+		err := app.SetSecret("foo", "bar")
+		require.ErrorContains(t, err, "app is nil")
+	}
+
+	// fails with secret already exists
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{
+					Properties: &armappcontainers.ContainerAppProperties{
+						Configuration: &armappcontainers.Configuration{
+							Secrets: []*armappcontainers.Secret{
+								{
+									Name:  toPtr("foo"),
+									Value: toPtr("bar"),
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		err := app.SetSecret("foo", "bar")
+		require.ErrorContains(t, err, "a secret with name \"foo\" already exists")
+	}
+
+	// working with no secrets
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{},
+			},
+		}
+		err := app.SetSecret("foo", "bar")
+		require.NoError(t, err)
+		require.Len(t, app.Specification.App.Properties.Configuration.Secrets, 1)
+		require.Equal(t, "foo", *app.Specification.App.Properties.Configuration.Secrets[0].Name)
+		require.Equal(t, "bar", *app.Specification.App.Properties.Configuration.Secrets[0].Value)
+	}
+
+	// working with other secrets
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{
+					Properties: &armappcontainers.ContainerAppProperties{
+						Configuration: &armappcontainers.Configuration{
+							Secrets: []*armappcontainers.Secret{
+								{
+									Name:  toPtr("baz"),
+									Value: toPtr("foobar"),
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		err := app.SetSecret("foo", "bar")
+		require.NoError(t, err)
+		require.Len(t, app.Specification.App.Properties.Configuration.Secrets, 2)
+		require.Equal(t, "baz", *app.Specification.App.Properties.Configuration.Secrets[0].Name)
+		require.Equal(t, "foobar", *app.Specification.App.Properties.Configuration.Secrets[0].Value)
+		require.Equal(t, "foo", *app.Specification.App.Properties.Configuration.Secrets[1].Name)
+		require.Equal(t, "bar", *app.Specification.App.Properties.Configuration.Secrets[1].Value)
+	}
+
+	// working with SourceApps
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{},
+			},
+		}
+		apps := make(SourceApps)
+		apps["foo"] = app
+
+		err := apps.SetAppSecret("foo", "bar", "baz")
+		require.NoError(t, err)
+
+		updatedApp, ok := apps["foo"]
+		require.True(t, ok)
+		require.Equal(t, "bar", *updatedApp.Specification.App.Properties.Configuration.Secrets[0].Name)
+		require.Equal(t, "baz", *updatedApp.Specification.App.Properties.Configuration.Secrets[0].Value)
+	}
+}
+
+func TestSourceAppsGetRemoteSecret(t *testing.T) {
+	cases := []struct {
+		testDescription string
+		input           *SourceApps
+		expectedOutput  []string
+	}{
+		{
+			testDescription: "single secret",
+			input: &SourceApps{
+				"foo": {
+					Specification: &SourceAppSpecification{
+						RemoteSecrets: []RemoteSecretSpecification{
+							{
+								AppSecretName:    toPtr("foo"),
+								RemoteSecretName: toPtr("bar"),
+							},
+						},
+					},
+				},
+				"bar": {
+					Specification: &SourceAppSpecification{
+						RemoteSecrets: []RemoteSecretSpecification{
+							{
+								AppSecretName:    toPtr("baz"),
+								RemoteSecretName: toPtr("foobar"),
+							},
+						},
+					},
+				},
+			},
+			expectedOutput: []string{
+				"bar",
+				"foobar",
+			},
+		},
+		{
+			testDescription: "two secrets, same names",
+			input: &SourceApps{
+				"foo": {
+					Specification: &SourceAppSpecification{
+						RemoteSecrets: []RemoteSecretSpecification{
+							{
+								AppSecretName:    toPtr("foo"),
+								RemoteSecretName: toPtr("bar"),
+							},
+						},
+					},
+				},
+				"bar": {
+					Specification: &SourceAppSpecification{
+						RemoteSecrets: []RemoteSecretSpecification{
+							{
+								AppSecretName:    toPtr("foo"),
+								RemoteSecretName: toPtr("bar"),
+							},
+						},
+					},
+				},
+			},
+			expectedOutput: []string{
+				"bar",
+			},
+		},
+	}
+
+	for i, c := range cases {
+		t.Logf("Test #%d: %s", i, c.testDescription)
+		remoteSecrets := c.input.GetUniqueRemoteSecretNames()
+		require.Equal(t, c.expectedOutput, remoteSecrets)
+	}
+}

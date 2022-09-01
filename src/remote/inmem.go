@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
-	"github.com/xenitab/azcagit/src/config"
 )
 
 type inMemRemoteActions int
@@ -18,6 +17,7 @@ const (
 type inMemRemoteAction struct {
 	Name   string
 	Action inMemRemoteActions
+	App    armappcontainers.ContainerApp
 }
 
 type InMemRemote struct {
@@ -42,8 +42,8 @@ type InMemRemote struct {
 
 var _ Remote = (*InMemRemote)(nil)
 
-func NewInMemRemote(cfg config.Config) (*InMemRemote, error) {
-	return &InMemRemote{}, nil
+func NewInMemRemote() *InMemRemote {
+	return &InMemRemote{}
 }
 
 func (r *InMemRemote) Get(ctx context.Context) (*RemoteApps, error) {
@@ -71,7 +71,7 @@ func (r *InMemRemote) ResetGetSecond() {
 }
 
 func (r *InMemRemote) Create(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
-	r.actions = append(r.actions, inMemRemoteAction{Name: name, Action: InMemRemoteActionsCreate})
+	r.actions = append(r.actions, inMemRemoteAction{Name: name, Action: InMemRemoteActionsCreate, App: app})
 	return r.createResponse.err
 }
 
@@ -80,7 +80,7 @@ func (r *InMemRemote) CreateResponse(err error) {
 }
 
 func (r *InMemRemote) Update(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
-	r.actions = append(r.actions, inMemRemoteAction{Name: name, Action: InMemRemoteActionsUpdate})
+	r.actions = append(r.actions, inMemRemoteAction{Name: name, Action: InMemRemoteActionsUpdate, App: app})
 	return r.updateResponse.err
 }
 
@@ -89,7 +89,7 @@ func (r *InMemRemote) UpdateResponse(err error) {
 }
 
 func (r *InMemRemote) Delete(ctx context.Context, name string) error {
-	r.actions = append(r.actions, inMemRemoteAction{Name: name, Action: InMemRemoteActionsDelete})
+	r.actions = append(r.actions, inMemRemoteAction{Name: name, Action: InMemRemoteActionsDelete, App: armappcontainers.ContainerApp{}})
 	return r.deleteResponse.err
 }
 

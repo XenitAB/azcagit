@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/xenitab/azcagit/src/azure"
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
 	"github.com/xenitab/azcagit/src/logger"
 	"github.com/xenitab/azcagit/src/reconcile"
 	"github.com/xenitab/azcagit/src/remote"
+	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
 	"github.com/xenitab/azcagit/src/trigger"
 	"golang.org/x/sync/errgroup"
@@ -54,14 +56,25 @@ func run(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("unable to get source: %w", err)
 	}
 
-	remoteClient, err := remote.NewAzureRemote(cfg)
+	cred, err := azure.NewAzureCredential()
 	if err != nil {
 		return err
 	}
 
-	cache := cache.NewCache()
+	remoteClient, err := remote.NewAzureRemote(cfg, cred)
+	if err != nil {
+		return err
+	}
 
-	reconciler, err := reconcile.NewReconciler(sourceClient, remoteClient, cache)
+	secretClient, err := secret.NewKeyVaultSecret(cfg, cred)
+	if err != nil {
+		return err
+	}
+
+	appCache := cache.NewAppCache()
+	secretCache := cache.NewSecretCache()
+
+	reconciler, err := reconcile.NewReconciler(sourceClient, remoteClient, secretClient, appCache, secretCache)
 	if err != nil {
 		return err
 	}

@@ -80,6 +80,7 @@ resource "azapi_resource" "container_app_azcagit" {
               "--resource-group-name", azurerm_resource_group.tenant.name,
               "--subscription-id", data.azurerm_client_config.current.subscription_id,
               "--managed-environment-id", azapi_resource.managed_environment.id,
+              "--key-vault-name", azurerm_key_vault.tenant_kv.name,
               "--location", azurerm_resource_group.tenant.location,
               "--reconcile-interval", "5m",
               "--checkout-path", "/tmp/gitops",

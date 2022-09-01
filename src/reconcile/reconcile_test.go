@@ -9,21 +9,21 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
 	"github.com/stretchr/testify/require"
 	"github.com/xenitab/azcagit/src/cache"
-	"github.com/xenitab/azcagit/src/config"
 	"github.com/xenitab/azcagit/src/remote"
+	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
 )
 
 func TestReconciler(t *testing.T) {
-	sourceClient, err := source.NewInMemSource(config.Config{})
-	require.NoError(t, err)
-	remoteClient, err := remote.NewInMemRemote(config.Config{})
-	require.NoError(t, err)
-	cache := cache.NewCache()
+	sourceClient := source.NewInMemSource()
+	remoteClient := remote.NewInMemRemote()
+	secretClient := secret.NewInMemSecret()
+	appCache := cache.NewAppCache()
+	secretCache := cache.NewSecretCache()
 
 	ctx := context.Background()
 
-	reconciler, err := NewReconciler(sourceClient, remoteClient, cache)
+	reconciler, err := NewReconciler(sourceClient, remoteClient, secretClient, appCache, secretCache)
 	require.NoError(t, err)
 
 	resetClients := func() {
@@ -35,6 +35,7 @@ func TestReconciler(t *testing.T) {
 		remoteClient.UpdateResponse(nil)
 		remoteClient.DeleteResponse(nil)
 		remoteClient.ResetActions()
+		secretClient.Reset()
 	}
 
 	// everything is nil
@@ -316,7 +317,7 @@ func TestReconciler(t *testing.T) {
 		require.Len(t, actions, 0)
 	}()
 
-	// test cache
+	// test appCache
 	// sourceClient.Get() returns one SourceApp without error
 	// first remoteClient.Get() returns one RemoteApp without error
 	// second remoteClient.Get() returns one RemoteApp without error
@@ -377,7 +378,7 @@ func TestReconciler(t *testing.T) {
 			"foo1": remoteApp1,
 		}, nil)
 
-		// run once and cache
+		// run once and appCache
 		{
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
@@ -396,7 +397,7 @@ func TestReconciler(t *testing.T) {
 			require.Len(t, actions, 0)
 		}
 
-		// verify that update is made if cache is outdated
+		// verify that update is made if appCache is outdated
 		{
 			remoteClient.GetFirstResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
@@ -528,5 +529,87 @@ func TestReconciler(t *testing.T) {
 		remoteClient.CreateResponse(fmt.Errorf("new app foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "new app foobar")
+	}()
+
+	// test remote secret
+	// sourceClient.Get() returns one SourceApp without error
+	// first remoteClient.Get() returns empty RemoteApps without error
+	// second remoteClient.Get() returns one RemoteApp without error
+	func() {
+		defer resetClients()
+		secretClient.Set("ze-remote-secret", "foobar", time.Now())
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+					RemoteSecrets: []source.RemoteSecretSpecification{
+						{
+							AppSecretName:    toPtr("ze-app-secret"),
+							RemoteSecretName: toPtr("ze-remote-secret"),
+						},
+					},
+				},
+			},
+		}, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{
+			"foo": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteClient.Actions()
+		require.Len(t, actions, 1)
+		require.Equal(t, "foo", actions[0].Name)
+		require.Equal(t, remote.InMemRemoteActionsCreate, actions[0].Action)
+		require.Equal(t, "ze-app-secret", *actions[0].App.Properties.Configuration.Secrets[0].Name)
+		require.Equal(t, "foobar", *actions[0].App.Properties.Configuration.Secrets[0].Value)
+		cacheValue, ok := secretCache.Get("ze-remote-secret")
+		require.True(t, ok)
+		require.Equal(t, "foobar", cacheValue)
+	}()
+
+	// test remote secret failure
+	// sourceClient.Get() returns one SourceApp without error
+	// first remoteClient.Get() returns empty RemoteApps without error
+	// second remoteClient.Get() returns one RemoteApp without error
+	func() {
+		defer resetClients()
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+					RemoteSecrets: []source.RemoteSecretSpecification{
+						{
+							AppSecretName:    toPtr("ze-app-secret"),
+							RemoteSecretName: toPtr("ze-remote-secret-failure"),
+						},
+					},
+				},
+			},
+		}, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{
+			"foo": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "secret not found \"ze-remote-secret-failure\"")
+		actions := remoteClient.Actions()
+		require.Len(t, actions, 0)
 	}()
 }

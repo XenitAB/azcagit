@@ -8,19 +8,19 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
 )
 
-type CacheEntry struct {
+type AppCacheEntry struct {
 	modified      time.Time
 	sourceAppHash string
 }
 
-type Cache map[string]CacheEntry
+type AppCache map[string]AppCacheEntry
 
-func NewCache() *Cache {
-	c := make(Cache)
+func NewAppCache() *AppCache {
+	c := make(AppCache)
 	return &c
 }
 
-func (c *Cache) Set(name string, remoteApp, sourceApp *armappcontainers.ContainerApp) {
+func (c *AppCache) Set(name string, remoteApp, sourceApp *armappcontainers.ContainerApp) {
 	if remoteApp == nil {
 		return
 	}
@@ -42,16 +42,16 @@ func (c *Cache) Set(name string, remoteApp, sourceApp *armappcontainers.Containe
 	}
 	hash := fmt.Sprintf("%x", md5.Sum(b))
 
-	(*c)[name] = CacheEntry{
+	(*c)[name] = AppCacheEntry{
 		modified:      *timestamp,
 		sourceAppHash: hash,
 	}
 }
 
-func (c *Cache) NeedsUpdate(name string, remoteApp, sourceApp *armappcontainers.ContainerApp) (bool, string) {
+func (c *AppCache) NeedsUpdate(name string, remoteApp, sourceApp *armappcontainers.ContainerApp) (bool, string) {
 	entry, ok := (*c)[name]
 	if !ok {
-		return true, "not in cache"
+		return true, "not in AppCache"
 	}
 
 	if remoteApp == nil {

@@ -2,8 +2,6 @@ package source
 
 import (
 	"context"
-
-	"github.com/xenitab/azcagit/src/config"
 )
 
 type InMemSource struct {
@@ -15,8 +13,8 @@ type InMemSource struct {
 
 var _ Source = (*InMemSource)(nil)
 
-func NewInMemSource(cfg config.Config) (*InMemSource, error) {
-	return &InMemSource{}, nil
+func NewInMemSource() *InMemSource {
+	return &InMemSource{}
 }
 
 func (s *InMemSource) Get(ctx context.Context) (*SourceApps, error) {
