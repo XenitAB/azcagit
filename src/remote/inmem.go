@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
-	"github.com/xenitab/azcagit/src/config"
 )
 
 type inMemRemoteActions int
@@ -42,8 +41,8 @@ type InMemRemote struct {
 
 var _ Remote = (*InMemRemote)(nil)
 
-func NewInMemRemote(cfg config.Config) (*InMemRemote, error) {
-	return &InMemRemote{}, nil
+func NewInMemRemote() *InMemRemote {
+	return &InMemRemote{}
 }
 
 func (r *InMemRemote) Get(ctx context.Context) (*RemoteApps, error) {

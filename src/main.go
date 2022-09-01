@@ -14,6 +14,7 @@ import (
 	"github.com/xenitab/azcagit/src/logger"
 	"github.com/xenitab/azcagit/src/reconcile"
 	"github.com/xenitab/azcagit/src/remote"
+	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
 	"github.com/xenitab/azcagit/src/trigger"
 	"golang.org/x/sync/errgroup"
@@ -65,9 +66,15 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
-	cache := cache.NewCache()
+	secretClient, err := secret.NewKeyVaultSecret(cfg, cred)
+	if err != nil {
+		return err
+	}
 
-	reconciler, err := reconcile.NewReconciler(sourceClient, remoteClient, cache)
+	appCache := cache.NewAppCache()
+	secretCache := cache.NewSecretCache()
+
+	reconciler, err := reconcile.NewReconciler(sourceClient, remoteClient, secretClient, appCache, secretCache)
 	if err != nil {
 		return err
 	}

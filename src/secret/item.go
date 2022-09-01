@@ -18,3 +18,8 @@ func (i *Item) Name() string {
 }
 
 type Items map[string]Item
+
+func (i *Items) Get(name string) (Item, bool) {
+	item, ok := (*i)[name]
+	return item, ok
+}

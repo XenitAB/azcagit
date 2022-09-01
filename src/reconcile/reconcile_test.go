@@ -9,21 +9,21 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
 	"github.com/stretchr/testify/require"
 	"github.com/xenitab/azcagit/src/cache"
-	"github.com/xenitab/azcagit/src/config"
 	"github.com/xenitab/azcagit/src/remote"
+	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
 )
 
 func TestReconciler(t *testing.T) {
-	sourceClient, err := source.NewInMemSource(config.Config{})
-	require.NoError(t, err)
-	remoteClient, err := remote.NewInMemRemote(config.Config{})
-	require.NoError(t, err)
-	cache := cache.NewCache()
+	sourceClient := source.NewInMemSource()
+	remoteClient := remote.NewInMemRemote()
+	secretClient := secret.NewInMemSecret()
+	appCache := cache.NewAppCache()
+	secretCache := cache.NewSecretCache()
 
 	ctx := context.Background()
 
-	reconciler, err := NewReconciler(sourceClient, remoteClient, cache)
+	reconciler, err := NewReconciler(sourceClient, remoteClient, secretClient, appCache, secretCache)
 	require.NoError(t, err)
 
 	resetClients := func() {
@@ -316,7 +316,7 @@ func TestReconciler(t *testing.T) {
 		require.Len(t, actions, 0)
 	}()
 
-	// test cache
+	// test appCache
 	// sourceClient.Get() returns one SourceApp without error
 	// first remoteClient.Get() returns one RemoteApp without error
 	// second remoteClient.Get() returns one RemoteApp without error
@@ -377,7 +377,7 @@ func TestReconciler(t *testing.T) {
 			"foo1": remoteApp1,
 		}, nil)
 
-		// run once and cache
+		// run once and appCache
 		{
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
@@ -396,7 +396,7 @@ func TestReconciler(t *testing.T) {
 			require.Len(t, actions, 0)
 		}
 
-		// verify that update is made if cache is outdated
+		// verify that update is made if appCache is outdated
 		{
 			remoteClient.GetFirstResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,

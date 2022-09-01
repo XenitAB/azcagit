@@ -18,8 +18,24 @@ const (
 	AzureContainerAppKind    = "AzureContainerApp"
 )
 
+type RemoteSecretSpecification struct {
+	AppSecretName    *string `json:"appSecretName,omitempty" yaml:"appSecretName,omitempty"`
+	RemoteSecretName *string `json:"remoteSecretName,omitempty" yaml:"remoteSecretName,omitempty"`
+}
+
+func (r *RemoteSecretSpecification) Valid() bool {
+	if r.AppSecretName == nil || r.RemoteSecretName == nil {
+		return false
+	}
+	if *r.AppSecretName == "" || *r.RemoteSecretName == "" {
+		return false
+	}
+	return true
+}
+
 type SourceAppSpecification struct {
-	App *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
+	App     *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
+	Secrets []RemoteSecretSpecification    `json:"remoteSecrets,omitempty" yaml:"remoteSecrets,omitempty"`
 }
 
 type SourceApp struct {
@@ -45,6 +61,60 @@ func (app *SourceApp) Name() string {
 	}
 
 	return name
+}
+
+func (app *SourceApp) SetSecret(name string, value string) error {
+	if app == nil || app.Specification == nil || app.Specification.App == nil {
+		return fmt.Errorf("app is nil")
+	}
+
+	if app.Specification.App.Properties == nil {
+		app.Specification.App.Properties = &armappcontainers.ContainerAppProperties{}
+	}
+
+	if app.Specification.App.Properties.Configuration == nil {
+		app.Specification.App.Properties.Configuration = &armappcontainers.Configuration{}
+	}
+
+	if app.Specification.App.Properties.Configuration.Secrets == nil {
+		app.Specification.App.Properties.Configuration.Secrets = []*armappcontainers.Secret{}
+	}
+
+	for _, v := range app.Specification.App.Properties.Configuration.Secrets {
+		if v == nil || v.Name == nil {
+			continue
+		}
+
+		if *v.Name == name {
+			return fmt.Errorf("a secret with name %q already exists", name)
+		}
+	}
+
+	app.Specification.App.Properties.Configuration.Secrets = append(app.Specification.App.Properties.Configuration.Secrets, &armappcontainers.Secret{
+		Name:  &name,
+		Value: &value,
+	})
+
+	return nil
+}
+
+func (app *SourceApp) GetRemoteSecrets() []RemoteSecretSpecification {
+	secretsMap := make(map[string]struct{})
+	if app == nil || app.Specification == nil || app.Specification.Secrets == nil || len(app.Specification.Secrets) == 0 {
+		return []RemoteSecretSpecification{}
+	}
+
+	secrets := []RemoteSecretSpecification{}
+	for _, secret := range app.Specification.Secrets {
+		if !secret.Valid() {
+			continue
+		}
+		secrets = append(secrets, secret)
+		secretsMap[*secret.RemoteSecretName] = struct{}{}
+	}
+
+	return secrets
+
 }
 
 func (app *SourceApp) ValidateFields() error {
@@ -172,6 +242,41 @@ func (apps *SourceApps) Get(name string) (SourceApp, bool) {
 		return SourceApp{}, false
 	}
 	return app, ok
+}
+
+func (apps *SourceApps) SetAppSecret(appName string, secretName string, secretValue string) error {
+	app, ok := (*apps)[appName]
+	if !ok {
+		return fmt.Errorf("no sourceApp with name %q", appName)
+	}
+
+	err := app.SetSecret(secretName, secretValue)
+	if err != nil {
+		return err
+	}
+
+	(*apps)[appName] = app
+
+	return nil
+}
+
+func (apps *SourceApps) GetUniqueRemoteSecretNames() []string {
+	secretsMap := make(map[string]struct{})
+	for _, appName := range apps.GetSortedNames() {
+		app, _ := apps.Get(appName)
+		appSecrets := app.GetRemoteSecrets()
+		for _, remoteSecret := range appSecrets {
+			secretsMap[*remoteSecret.RemoteSecretName] = struct{}{}
+		}
+	}
+
+	secrets := []string{}
+	for secret := range secretsMap {
+		secrets = append(secrets, secret)
+	}
+	sort.Strings(secrets)
+
+	return secrets
 }
 
 func (apps *SourceApps) Error() error {

@@ -7,25 +7,35 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/remote"
+	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
 )
 
 type Reconciler struct {
 	sourceClient source.Source
 	remoteClient remote.Remote
-	cache        *cache.Cache
+	secretClient secret.Secret
+	appCache     *cache.AppCache
+	secretCache  *cache.SecretCache
 }
 
-func NewReconciler(sourceClient source.Source, remoteClient remote.Remote, cache *cache.Cache) (*Reconciler, error) {
+func NewReconciler(sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
 	return &Reconciler{
 		sourceClient,
 		remoteClient,
-		cache,
+		secretClient,
+		appCache,
+		secretCache,
 	}, nil
 }
 
 func (r *Reconciler) Run(ctx context.Context) error {
 	sourceApps, err := r.getSourceApps(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = r.populateSourceAppSecrets(ctx, sourceApps)
 	if err != nil {
 		return err
 	}
@@ -114,7 +124,7 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 	for _, name := range sourceApps.GetSortedNames() {
 		sourceApp, _ := sourceApps.Get(name)
 		remoteApp, ok := remoteApps.Get(name)
-		needsUpdate, updateReason := r.cache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification.App)
+		needsUpdate, updateReason := r.appCache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification.App)
 		if !needsUpdate {
 			log.Info("skipping update, no changes", "app", name)
 			continue
@@ -154,7 +164,50 @@ func (r *Reconciler) updateCache(ctx context.Context, sourceApps *source.SourceA
 		if !ok {
 			return fmt.Errorf("unable to locate %s after create or update", name)
 		}
-		r.cache.Set(name, remoteApp.App, sourceApp.Specification.App)
+		r.appCache.Set(name, remoteApp.App, sourceApp.Specification.App)
+	}
+
+	return nil
+}
+
+func (r *Reconciler) populateSourceAppSecrets(ctx context.Context, sourceApps *source.SourceApps) error {
+	secretItems, err := r.secretClient.ListItems(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, secretName := range sourceApps.GetUniqueRemoteSecretNames() {
+		item, ok := secretItems.Get(secretName)
+		if !ok {
+			return fmt.Errorf("secret not found %q", secretName)
+		}
+
+		if r.secretCache.NeedsUpdate(secretName, item.LastChange()) {
+			secretValue, changedAt, err := r.secretClient.Get(ctx, secretName)
+			if err != nil {
+				return err
+			}
+			r.secretCache.Set(secretName, secretValue, changedAt)
+		}
+	}
+
+	for _, name := range sourceApps.GetSortedNames() {
+		app, _ := sourceApps.Get(name)
+		for i, remoteSecret := range app.GetRemoteSecrets() {
+			if !remoteSecret.Valid() {
+				return fmt.Errorf("secret %d for app %q not valid", i, name)
+			}
+
+			secretValue, ok := r.secretCache.Get(*remoteSecret.RemoteSecretName)
+			if !ok {
+				return fmt.Errorf("unable to get secret %d for app %q from cache", i, name)
+			}
+
+			err = sourceApps.SetAppSecret(name, *remoteSecret.AppSecretName, secretValue)
+			if err != nil {
+				return fmt.Errorf("unable to set secret %q for app %q", *remoteSecret.AppSecretName, name)
+			}
+		}
 	}
 
 	return nil
