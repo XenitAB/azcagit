@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/xenitab/azcagit/src/azure"
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
 	"github.com/xenitab/azcagit/src/logger"
@@ -54,7 +55,12 @@ func run(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("unable to get source: %w", err)
 	}
 
-	remoteClient, err := remote.NewAzureRemote(cfg)
+	cred, err := azure.NewAzureCredential()
+	if err != nil {
+		return err
+	}
+
+	remoteClient, err := remote.NewAzureRemote(cfg, cred)
 	if err != nil {
 		return err
 	}

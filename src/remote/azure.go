@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
-	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
 	"github.com/xenitab/azcagit/src/config"
 )
@@ -18,12 +18,7 @@ type AzureRemote struct {
 
 var _ Remote = (*AzureRemote)(nil)
 
-func NewAzureRemote(cfg config.Config) (*AzureRemote, error) {
-	cred, err := azidentity.NewDefaultAzureCredential(nil)
-	if err != nil {
-		return nil, err
-	}
-
+func NewAzureRemote(cfg config.Config, cred azcore.TokenCredential) (*AzureRemote, error) {
 	client, err := armappcontainers.NewContainerAppsClient(cfg.SubscriptionID, cred, nil)
 	if err != nil {
 		return nil, err
