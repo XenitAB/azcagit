@@ -30,7 +30,6 @@ metadata:
   name: foobar
 spec:
   app:
-    location: west europe
     properties:
       configuration:
         activeRevisionsMode: Single
@@ -56,6 +55,7 @@ YAML-files can contain one or more documents (with `---` as a document separator
 - [ ] Health checks
 - [ ] Metrics
 - [x] Manually trigger reconcile
+- [x] Enforce Location for app
 
 ## Usage
 

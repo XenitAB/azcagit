@@ -49,7 +49,7 @@ metadata:
 			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha1",
 		},
 		{
-			testDescription: "containerapp location",
+			testDescription: "containerapp active revisions mode",
 			rawYaml: `
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
@@ -57,7 +57,9 @@ metadata:
   name: foo
 spec:
   app:
-    location: foobar
+    properties:
+      configuration:
+        activeRevisionsMode: Single
 `,
 			expectedResult: SourceApp{
 				Kind:       "AzureContainerApp",
@@ -67,7 +69,13 @@ spec:
 				},
 				Specification: &SourceAppSpecification{
 					App: &armappcontainers.ContainerApp{
-						Location: toPtr("foobar"),
+						Properties: &armappcontainers.ContainerAppProperties{
+							ManagedEnvironmentID: toPtr("ze-managedEnvironmentID"),
+							Configuration: &armappcontainers.Configuration{
+								ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
+							},
+						},
+						Location: toPtr("ze-location"),
 						Tags: map[string]*string{
 							"aca.xenit.io": toPtr("true"),
 						},
@@ -99,7 +107,6 @@ metadata:
   name: foo
 spec:
   app:
-    location: foobar
     properties:
       configuration:
         activeRevisionsMode: Single
@@ -122,12 +129,13 @@ spec:
 				},
 				Specification: &SourceAppSpecification{
 					App: &armappcontainers.ContainerApp{
-						Location: toPtr("foobar"),
+						Location: toPtr("ze-location"),
 						Tags: map[string]*string{
 							"aca.xenit.io": toPtr("true"),
 						},
 						Identity: nil,
 						Properties: &armappcontainers.ContainerAppProperties{
+							ManagedEnvironmentID: toPtr("ze-managedEnvironmentID"),
 							Configuration: &armappcontainers.Configuration{
 								ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
 							},
@@ -158,7 +166,10 @@ spec:
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		app := SourceApp{}
-		err := app.Unmarshal([]byte(c.rawYaml), config.Config{})
+		err := app.Unmarshal([]byte(c.rawYaml), config.Config{
+			Location:             "ze-location",
+			ManagedEnvironmentID: "ze-managedEnvironmentID",
+		})
 		if c.expectedError != "" {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), c.expectedError)
@@ -186,7 +197,9 @@ metadata:
  name: foo
 spec:
   app:
-    location: foobar
+    properties:
+      configuration:
+        activeRevisionsMode: Single
 `,
 			expectedResult: SourceApps{
 				"foo": {
@@ -197,7 +210,13 @@ spec:
 					},
 					Specification: &SourceAppSpecification{
 						App: &armappcontainers.ContainerApp{
-							Location: toPtr("foobar"),
+							Properties: &armappcontainers.ContainerAppProperties{
+								ManagedEnvironmentID: toPtr("ze-managedEnvironmentID"),
+								Configuration: &armappcontainers.Configuration{
+									ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
+								},
+							},
+							Location: toPtr("ze-location"),
 							Tags: map[string]*string{
 								"aca.xenit.io": toPtr("true"),
 							},
@@ -217,7 +236,9 @@ metadata:
  name: foo
 spec:
   app:
-    location: foobar
+    properties:
+      configuration:
+        activeRevisionsMode: Single
 ---
 kind: AzureContainerApp
 apiVersion: aca.xenit.io/v1alpha1
@@ -225,7 +246,9 @@ metadata:
  name: bar
 spec:
   app:
-    location: foobar
+    properties:
+      configuration:
+        activeRevisionsMode: Single
 `,
 			expectedResult: SourceApps{
 				"foo": {
@@ -236,7 +259,13 @@ spec:
 					},
 					Specification: &SourceAppSpecification{
 						App: &armappcontainers.ContainerApp{
-							Location: toPtr("foobar"),
+							Properties: &armappcontainers.ContainerAppProperties{
+								ManagedEnvironmentID: toPtr("ze-managedEnvironmentID"),
+								Configuration: &armappcontainers.Configuration{
+									ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
+								},
+							},
+							Location: toPtr("ze-location"),
 							Tags: map[string]*string{
 								"aca.xenit.io": toPtr("true"),
 							},
@@ -251,7 +280,13 @@ spec:
 					},
 					Specification: &SourceAppSpecification{
 						App: &armappcontainers.ContainerApp{
-							Location: toPtr("foobar"),
+							Properties: &armappcontainers.ContainerAppProperties{
+								ManagedEnvironmentID: toPtr("ze-managedEnvironmentID"),
+								Configuration: &armappcontainers.Configuration{
+									ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
+								},
+							},
+							Location: toPtr("ze-location"),
 							Tags: map[string]*string{
 								"aca.xenit.io": toPtr("true"),
 							},
@@ -271,7 +306,9 @@ metadata:
  name: foo
 spec:
   app:
-    location: foobar
+    properties:
+      configuration:
+        activeRevisionsMode: Single
 ---
 kind: foobar
 apiVersion: aca.xenit.io/v1alpha1
@@ -279,7 +316,9 @@ metadata:
  name: bar
 spec:
   app:
-    location: foobar
+    properties:
+      configuration:
+        activeRevisionsMode: Single
 `,
 			expectedResult: SourceApps{
 				"foo": {
@@ -290,7 +329,13 @@ spec:
 					},
 					Specification: &SourceAppSpecification{
 						App: &armappcontainers.ContainerApp{
-							Location: toPtr("foobar"),
+							Properties: &armappcontainers.ContainerAppProperties{
+								ManagedEnvironmentID: toPtr("ze-managedEnvironmentID"),
+								Configuration: &armappcontainers.Configuration{
+									ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
+								},
+							},
+							Location: toPtr("ze-location"),
 							Tags: map[string]*string{
 								"aca.xenit.io": toPtr("true"),
 							},
@@ -306,7 +351,10 @@ spec:
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		apps := SourceApps{}
-		apps.Unmarshal("foobar/baz.yaml", []byte(c.rawYaml), config.Config{})
+		apps.Unmarshal("foobar/baz.yaml", []byte(c.rawYaml), config.Config{
+			Location:             "ze-location",
+			ManagedEnvironmentID: "ze-managedEnvironmentID",
+		})
 		require.Len(t, apps, c.expectedLenght)
 		if c.expectedError != "" {
 			require.ErrorContains(t, apps.Error(), c.expectedError)
