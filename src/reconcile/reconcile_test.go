@@ -35,6 +35,7 @@ func TestReconciler(t *testing.T) {
 		remoteClient.UpdateResponse(nil)
 		remoteClient.DeleteResponse(nil)
 		remoteClient.ResetActions()
+		secretClient.Reset()
 	}
 
 	// everything is nil
@@ -528,5 +529,47 @@ func TestReconciler(t *testing.T) {
 		remoteClient.CreateResponse(fmt.Errorf("new app foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "new app foobar")
+	}()
+
+	// test remote secret
+	// sourceClient.Get() returns one SourceApp without error
+	// first remoteClient.Get() returns empty RemoteApps without error
+	// second remoteClient.Get() returns one RemoteApp without error
+	func() {
+		defer resetClients()
+		secretClient.Set("ze-remote-secret", "foobar", time.Now())
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+					Secrets: []source.RemoteSecretSpecification{
+						{
+							AppSecretName:    toPtr("ze-app-secret"),
+							RemoteSecretName: toPtr("ze-remote-secret"),
+						},
+					},
+				},
+			},
+		}, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{
+			"foo": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteClient.Actions()
+		require.Len(t, actions, 1)
+		require.Equal(t, "foo", actions[0].Name)
+		require.Equal(t, remote.InMemRemoteActionsCreate, actions[0].Action)
+		require.Equal(t, "ze-app-secret", *actions[0].App.Properties.Configuration.Secrets[0].Name)
+		require.Equal(t, "foobar", *actions[0].App.Properties.Configuration.Secrets[0].Value)
 	}()
 }
