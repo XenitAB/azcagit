@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
@@ -263,7 +264,29 @@ func (r *Reconciler) populateSourceAppsRegistries(sourceApps *source.SourceApps)
 }
 
 func (r *Reconciler) sendNotification(ctx context.Context, revision string, reconcileErr error) error {
-	return nil
+	if revision == "" {
+		return fmt.Errorf("unable to send notifications when revision is empty")
+	}
+
+	description := "reconcile succeeded"
+	state := notification.NotificationStateSuccess
+	if reconcileErr != nil {
+		description = reconcileErr.Error()
+		state = notification.NotificationStateFailure
+	}
+
+	subscription := r.cfg.SubscriptionID
+	location := strings.ReplaceAll(r.cfg.Location, " ", "")
+	resourceGroup := r.cfg.ResourceGroupName
+	name := strings.ToLower(fmt.Sprintf("%s/%s/%s", subscription, location, resourceGroup))
+	event := notification.NotificationEvent{
+		Revision:    revision,
+		State:       state,
+		Name:        name,
+		Description: description,
+	}
+
+	return r.notificationClient.Send(ctx, event)
 }
 
 func parseContainerRegistryUrl(u string) (string, string, string, error) {
