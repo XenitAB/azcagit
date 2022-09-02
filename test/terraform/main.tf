@@ -80,14 +80,6 @@ resource "azapi_resource" "managed_environment" {
   response_export_values = ["properties"]
 }
 
-resource "azurerm_container_registry" "this" {
-  name                = "acrcontainerapps"
-  resource_group_name = azurerm_resource_group.platform.name
-  location            = azurerm_resource_group.platform.location
-  sku                 = "Standard"
-  admin_enabled       = true
-}
-
 resource "azurerm_resource_group" "tenant" {
   name     = "rg-aca-tenant"
   location = "west europe"

@@ -74,7 +74,7 @@ func run(ctx context.Context, cfg config.Config) error {
 	appCache := cache.NewAppCache()
 	secretCache := cache.NewSecretCache()
 
-	reconciler, err := reconcile.NewReconciler(sourceClient, remoteClient, secretClient, appCache, secretCache)
+	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteClient, secretClient, appCache, secretCache)
 	if err != nil {
 		return err
 	}

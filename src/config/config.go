@@ -11,6 +11,7 @@ type Config struct {
 	SubscriptionID       string `json:"subscription_id" arg:"-s,--subscription-id,env:AZURE_SUBSCRIPTION_ID,required" help:"Azure Subscription ID"`
 	ManagedEnvironmentID string `json:"managed_environment_id" arg:"-m,--managed-environment-id,env:MANAGED_ENVIRONMENT_ID,required" help:"Azure Container Apps Managed Environment ID"`
 	KeyVaultName         string `json:"key_vault_name" arg:"-k,--key-vault-name,env:KEY_VAULT_NAME,required" help:"Azure KeyVault name to extract secrets from"`
+	ContainerRegistryUrl string `json:"container_registry_url" arg:"-r,--container-registry-url,env:CONTAINER_REGISTRY_URL" help:"The URL to the container registry in the format: https://user:pass@fqdn"`
 	Location             string `json:"location" arg:"-l,--location,env:LOCATION,required" help:"Azure Region (location)"`
 	ReconcileInterval    string `json:"reconcile_interval" arg:"-i,--reconcile-interval,env:RECONCILE_INTERVAL" default:"5m" help:"The interval between reconciles"`
 	CheckoutPath         string `json:"checkout_path" arg:"-c,--checkout-path,env:CHECKOUT_PATH,required" help:"The local path where the git repository should be checked out"`
@@ -29,11 +30,16 @@ func (cfg *Config) Redacted() Config {
 
 	redactedCfg := *cfg
 	redactedCfg.GitUrl = redactUrl(redactedCfg.GitUrl)
+	redactedCfg.ContainerRegistryUrl = redactUrl(redactedCfg.ContainerRegistryUrl)
 
 	return redactedCfg
 }
 
 func redactUrl(u string) string {
+	if u == "" {
+		return ""
+	}
+
 	parsed, err := url.Parse(u)
 	if err != nil {
 		return ""

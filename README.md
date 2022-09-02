@@ -55,6 +55,14 @@ spec:
 
 YAML-files can contain one or more documents (with `---` as a document separator). As of right now, all files in the git repository path (configured with `--git-path` when launching `azcagit`) needs to pass validation for any deletion to occur (deletion will be disabled if any manifests contains validation errors).
 
+## Features
+
+- Synchronize git repository (using https only, public and private) to a specific resource group
+- Choose what folder in the git repository to synchronize
+- Trigger manual synchronization using CLI
+- Populate Container Apps secrets from Azure KeyVault
+- Populate Container Apps registries with default registry credential
+
 ## Frequently Asked Questions
 
 > What happens if a manifest can't be parsed?
@@ -95,7 +103,7 @@ It will be updated based on the manifest.
 - [ ] Metrics
 - [x] Manually trigger reconcile
 - [x] Enforce Location for app
-- [ ] Add Container Registry credentials by default
+- [x] Add Container Registry credentials by default
 
 ## Usage
 

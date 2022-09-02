@@ -58,6 +58,10 @@ resource "azapi_resource" "container_app_azcagit" {
             value = local.git_full_url
           },
           {
+            name  = "container-registry-url"
+            value = "https://${azurerm_container_registry.tenant.admin_username}:${azurerm_container_registry.tenant.admin_password}@${azurerm_container_registry.tenant.login_server}"
+          },
+          {
             name  = "azure-tenant-id"
             value = data.azurerm_client_config.current.tenant_id
           },
@@ -91,6 +95,10 @@ resource "azapi_resource" "container_app_azcagit" {
               {
                 name      = "GIT_URL"
                 secretRef = "git-url"
+              },
+              {
+                name      = "CONTAINER_REGISTRY_URL"
+                secretRef = "container-registry-url"
               },
               {
                 name      = "AZURE_TENANT_ID"

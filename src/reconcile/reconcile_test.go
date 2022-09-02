@@ -9,6 +9,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
 	"github.com/stretchr/testify/require"
 	"github.com/xenitab/azcagit/src/cache"
+	"github.com/xenitab/azcagit/src/config"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
@@ -23,7 +24,7 @@ func TestReconciler(t *testing.T) {
 
 	ctx := context.Background()
 
-	reconciler, err := NewReconciler(sourceClient, remoteClient, secretClient, appCache, secretCache)
+	reconciler, err := NewReconciler(config.Config{}, sourceClient, remoteClient, secretClient, appCache, secretCache)
 	require.NoError(t, err)
 
 	resetClients := func() {
@@ -532,9 +533,6 @@ func TestReconciler(t *testing.T) {
 	}()
 
 	// test remote secret
-	// sourceClient.Get() returns one SourceApp without error
-	// first remoteClient.Get() returns empty RemoteApps without error
-	// second remoteClient.Get() returns one RemoteApp without error
 	func() {
 		defer resetClients()
 		secretClient.Set("ze-remote-secret", "foobar", time.Now())
@@ -577,9 +575,6 @@ func TestReconciler(t *testing.T) {
 	}()
 
 	// test remote secret failure
-	// sourceClient.Get() returns one SourceApp without error
-	// first remoteClient.Get() returns empty RemoteApps without error
-	// second remoteClient.Get() returns one RemoteApp without error
 	func() {
 		defer resetClients()
 		sourceClient.GetResponse(&source.SourceApps{
@@ -611,5 +606,48 @@ func TestReconciler(t *testing.T) {
 		require.ErrorContains(t, err, "secret not found \"ze-remote-secret-failure\"")
 		actions := remoteClient.Actions()
 		require.Len(t, actions, 0)
+	}()
+
+	// test populate registry
+	func() {
+		defer resetClients()
+
+		cfg := config.Config{
+			ContainerRegistryUrl: "https://foo:bar@foobar.io",
+		}
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, appCache, secretCache)
+		require.NoError(t, err)
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
+			},
+		}, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{
+			"foo": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		err = reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteClient.Actions()
+		require.Len(t, actions, 1)
+		require.Equal(t, "foo", actions[0].Name)
+		require.Equal(t, remote.InMemRemoteActionsCreate, actions[0].Action)
+		require.Len(t, actions[0].App.Properties.Configuration.Secrets, 1)
+		require.Equal(t, "azcagit-reg-cred", *actions[0].App.Properties.Configuration.Secrets[0].Name)
+		require.Equal(t, "bar", *actions[0].App.Properties.Configuration.Secrets[0].Value)
+		require.Len(t, actions[0].App.Properties.Configuration.Registries, 1)
+		require.Equal(t, "foobar.io", *actions[0].App.Properties.Configuration.Registries[0].Server)
+		require.Equal(t, "foo", *actions[0].App.Properties.Configuration.Registries[0].Username)
+		require.Equal(t, "azcagit-reg-cred", *actions[0].App.Properties.Configuration.Registries[0].PasswordSecretRef)
 	}()
 }
