@@ -17,6 +17,26 @@ type NotificationEvent struct {
 	Description string
 }
 
+func (e *NotificationEvent) Equal(other NotificationEvent) bool {
+	if e.Revision != other.Revision {
+		return false
+	}
+
+	if e.State != other.State {
+		return false
+	}
+
+	if e.Name != other.Name {
+		return false
+	}
+
+	if e.Description != other.Description {
+		return false
+	}
+
+	return true
+}
+
 type NotificationState int
 
 const (

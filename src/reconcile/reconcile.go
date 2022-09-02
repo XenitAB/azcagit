@@ -17,16 +17,18 @@ import (
 )
 
 type Reconciler struct {
-	cfg                config.Config
-	sourceClient       source.Source
-	remoteClient       remote.Remote
-	secretClient       secret.Secret
-	notificationClient notification.Notification
-	appCache           *cache.AppCache
-	secretCache        *cache.SecretCache
+	cfg                       config.Config
+	sourceClient              source.Source
+	remoteClient              remote.Remote
+	secretClient              secret.Secret
+	notificationClient        notification.Notification
+	appCache                  *cache.AppCache
+	secretCache               *cache.SecretCache
+	previousNotificationEvent notification.NotificationEvent
 }
 
 func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, notificationClient notification.Notification, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+	previousNotificationEvent := notification.NotificationEvent{}
 	return &Reconciler{
 		cfg,
 		sourceClient,
@@ -35,6 +37,7 @@ func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient r
 		notificationClient,
 		appCache,
 		secretCache,
+		previousNotificationEvent,
 	}, nil
 }
 
@@ -284,6 +287,10 @@ func (r *Reconciler) sendNotification(ctx context.Context, revision string, reco
 		State:       state,
 		Name:        name,
 		Description: description,
+	}
+
+	if r.previousNotificationEvent.Equal(event) {
+		return nil
 	}
 
 	return r.notificationClient.Send(ctx, event)
