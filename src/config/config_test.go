@@ -44,13 +44,17 @@ func TestNewConfig(t *testing.T) {
 
 func TestRedactedConfig(t *testing.T) {
 	cfgWithUserAndPass := Config{
-		GitUrl: "https://foo:bar@foobar.io/abc.git",
+		ContainerRegistryUrl: "https://usr:pw@foo.bar",
+		GitUrl:               "https://foo:bar@foobar.io/abc.git",
 	}
+	require.Equal(t, "https://usr:redacted@foo.bar", cfgWithUserAndPass.Redacted().ContainerRegistryUrl)
 	require.Equal(t, "https://foo:redacted@foobar.io/abc.git", cfgWithUserAndPass.Redacted().GitUrl)
 
 	cfg := Config{
-		GitUrl: "https://foobar.io/abc.git",
+		ContainerRegistryUrl: "https://foo.bar",
+		GitUrl:               "https://foobar.io/abc.git",
 	}
+	require.Equal(t, "https://foo.bar", cfg.Redacted().ContainerRegistryUrl)
 	require.Equal(t, "https://foobar.io/abc.git", cfg.Redacted().GitUrl)
 }
 

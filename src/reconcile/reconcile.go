@@ -3,15 +3,18 @@ package reconcile
 import (
 	"context"
 	"fmt"
+	"net/url"
 
 	"github.com/go-logr/logr"
 	"github.com/xenitab/azcagit/src/cache"
+	"github.com/xenitab/azcagit/src/config"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
 )
 
 type Reconciler struct {
+	cfg          config.Config
 	sourceClient source.Source
 	remoteClient remote.Remote
 	secretClient secret.Secret
@@ -19,8 +22,9 @@ type Reconciler struct {
 	secretCache  *cache.SecretCache
 }
 
-func NewReconciler(sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
 	return &Reconciler{
+		cfg,
 		sourceClient,
 		remoteClient,
 		secretClient,
@@ -36,6 +40,11 @@ func (r *Reconciler) Run(ctx context.Context) error {
 	}
 
 	err = r.populateSourceAppsSecrets(ctx, sourceApps)
+	if err != nil {
+		return err
+	}
+
+	err = r.populateSourceAppsRegistries(sourceApps)
 	if err != nil {
 		return err
 	}
@@ -211,4 +220,48 @@ func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *
 	}
 
 	return nil
+}
+
+func (r *Reconciler) populateSourceAppsRegistries(sourceApps *source.SourceApps) error {
+	if r.cfg.ContainerRegistryUrl == "" {
+		return nil
+	}
+
+	server, username, password, err := parseContainerRegistryUrl(r.cfg.ContainerRegistryUrl)
+	if err != nil {
+		return fmt.Errorf("unable to parse container registry url: %w", err)
+	}
+
+	for _, name := range sourceApps.GetSortedNames() {
+		err := sourceApps.SetAppRegistry(name, server, username, password)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func parseContainerRegistryUrl(u string) (string, string, string, error) {
+	parsedUrl, err := url.Parse(u)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	server := parsedUrl.Host
+	if server == "" {
+		return "", "", "", fmt.Errorf("parsedUrl.Host is empty")
+	}
+
+	password, _ := parsedUrl.User.Password()
+	if password == "" {
+		return "", "", "", fmt.Errorf("parsedUrl.User.Password() is empty")
+	}
+
+	username := parsedUrl.User.Username()
+	if username == "" {
+		return "", "", "", fmt.Errorf("parsedUrl.User.Password() is empty")
+	}
+
+	return server, username, password, nil
 }

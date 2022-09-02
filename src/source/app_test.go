@@ -472,6 +472,120 @@ func TestSourceAppSetSecret(t *testing.T) {
 	}
 }
 
+func TestSourceAppSetRegistry(t *testing.T) {
+	// fails with app is nil
+	{
+		app := SourceApp{}
+		err := app.SetRegistry("ze-server", "foo", "bar")
+		require.ErrorContains(t, err, "app is nil")
+	}
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{},
+		}
+		err := app.SetRegistry("ze-server", "foo", "bar")
+		require.ErrorContains(t, err, "app is nil")
+	}
+
+	// fails with secret already exists
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{
+					Properties: &armappcontainers.ContainerAppProperties{
+						Configuration: &armappcontainers.Configuration{
+							Registries: []*armappcontainers.RegistryCredentials{
+								{
+									Server:            toPtr("ze-server"),
+									Username:          toPtr(""),
+									PasswordSecretRef: toPtr(""),
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		err := app.SetRegistry("ze-server", "foo", "bar")
+		require.ErrorContains(t, err, "the server \"ze-server\" already exists")
+	}
+
+	// working with no secrets
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{},
+			},
+		}
+		err := app.SetRegistry("ze-server", "foo", "bar")
+		require.NoError(t, err)
+		require.Len(t, app.Specification.App.Properties.Configuration.Secrets, 1)
+		require.Len(t, app.Specification.App.Properties.Configuration.Registries, 1)
+		require.Equal(t, "azcagit-reg-cred", *app.Specification.App.Properties.Configuration.Secrets[0].Name)
+		require.Equal(t, "bar", *app.Specification.App.Properties.Configuration.Secrets[0].Value)
+		require.Equal(t, "azcagit-reg-cred", *app.Specification.App.Properties.Configuration.Registries[0].PasswordSecretRef)
+		require.Equal(t, "ze-server", *app.Specification.App.Properties.Configuration.Registries[0].Server)
+		require.Equal(t, "foo", *app.Specification.App.Properties.Configuration.Registries[0].Username)
+	}
+
+	// working with other secrets
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{
+					Properties: &armappcontainers.ContainerAppProperties{
+						Configuration: &armappcontainers.Configuration{
+							Registries: []*armappcontainers.RegistryCredentials{
+								{
+									Server:            toPtr("ze-other-server"),
+									Username:          toPtr("ze-other-username"),
+									PasswordSecretRef: toPtr("ze-other-password-ref"),
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		err := app.SetRegistry("ze-server", "foo", "bar")
+		require.NoError(t, err)
+		require.Len(t, app.Specification.App.Properties.Configuration.Secrets, 1)
+		require.Len(t, app.Specification.App.Properties.Configuration.Registries, 2)
+		require.Equal(t, "azcagit-reg-cred", *app.Specification.App.Properties.Configuration.Secrets[0].Name)
+		require.Equal(t, "bar", *app.Specification.App.Properties.Configuration.Secrets[0].Value)
+		require.Equal(t, "ze-other-password-ref", *app.Specification.App.Properties.Configuration.Registries[0].PasswordSecretRef)
+		require.Equal(t, "ze-other-server", *app.Specification.App.Properties.Configuration.Registries[0].Server)
+		require.Equal(t, "ze-other-username", *app.Specification.App.Properties.Configuration.Registries[0].Username)
+		require.Equal(t, "azcagit-reg-cred", *app.Specification.App.Properties.Configuration.Registries[1].PasswordSecretRef)
+		require.Equal(t, "ze-server", *app.Specification.App.Properties.Configuration.Registries[1].Server)
+		require.Equal(t, "foo", *app.Specification.App.Properties.Configuration.Registries[1].Username)
+	}
+
+	// working with SourceApps
+	{
+		app := SourceApp{
+			Specification: &SourceAppSpecification{
+				App: &armappcontainers.ContainerApp{},
+			},
+		}
+		apps := make(SourceApps)
+		apps["foo"] = app
+
+		err := apps.SetAppRegistry("foo", "ze-server", "foo", "bar")
+		require.NoError(t, err)
+
+		updatedApp, ok := apps["foo"]
+		require.True(t, ok)
+		require.Len(t, updatedApp.Specification.App.Properties.Configuration.Secrets, 1)
+		require.Len(t, updatedApp.Specification.App.Properties.Configuration.Registries, 1)
+		require.Equal(t, "azcagit-reg-cred", *updatedApp.Specification.App.Properties.Configuration.Secrets[0].Name)
+		require.Equal(t, "bar", *updatedApp.Specification.App.Properties.Configuration.Secrets[0].Value)
+		require.Equal(t, "azcagit-reg-cred", *updatedApp.Specification.App.Properties.Configuration.Registries[0].PasswordSecretRef)
+		require.Equal(t, "ze-server", *updatedApp.Specification.App.Properties.Configuration.Registries[0].Server)
+		require.Equal(t, "foo", *updatedApp.Specification.App.Properties.Configuration.Registries[0].Username)
+	}
+}
+
 func TestSourceAppsGetRemoteSecret(t *testing.T) {
 	cases := []struct {
 		testDescription string

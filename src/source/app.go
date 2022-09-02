@@ -98,6 +98,53 @@ func (app *SourceApp) SetSecret(name string, value string) error {
 	return nil
 }
 
+func (app *SourceApp) SetRegistry(server string, username string, password string) error {
+	if app == nil || app.Specification == nil || app.Specification.App == nil {
+		return fmt.Errorf("app is nil")
+	}
+
+	if app.Specification.App.Properties == nil {
+		app.Specification.App.Properties = &armappcontainers.ContainerAppProperties{}
+	}
+
+	if app.Specification.App.Properties.Configuration == nil {
+		app.Specification.App.Properties.Configuration = &armappcontainers.Configuration{}
+	}
+
+	if app.Specification.App.Properties.Configuration.Registries == nil {
+		app.Specification.App.Properties.Configuration.Registries = []*armappcontainers.RegistryCredentials{}
+	}
+
+	for _, v := range app.Specification.App.Properties.Configuration.Registries {
+		if v == nil || v.Server == nil || v.Username == nil {
+			continue
+		}
+
+		if v.Identity == nil && v.PasswordSecretRef == nil {
+			continue
+		}
+
+		if *v.Server == server {
+			return fmt.Errorf("the server %q already exists", server)
+		}
+	}
+
+	passwordSecretRef := "azcagit-reg-cred"
+	err := app.SetSecret(passwordSecretRef, password)
+	if err != nil {
+		return err
+	}
+
+	app.Specification.App.Properties.Configuration.Registries = append(app.Specification.App.Properties.Configuration.Registries, &armappcontainers.RegistryCredentials{
+		Server:            &server,
+		PasswordSecretRef: &passwordSecretRef,
+		Username:          &username,
+		Identity:          nil,
+	})
+
+	return nil
+}
+
 func (app *SourceApp) GetRemoteSecrets() []RemoteSecretSpecification {
 	secretsMap := make(map[string]struct{})
 	if app == nil || app.Specification == nil || app.Specification.RemoteSecrets == nil || len(app.Specification.RemoteSecrets) == 0 {
@@ -251,6 +298,22 @@ func (apps *SourceApps) SetAppSecret(appName string, secretName string, secretVa
 	}
 
 	err := app.SetSecret(secretName, secretValue)
+	if err != nil {
+		return err
+	}
+
+	(*apps)[appName] = app
+
+	return nil
+}
+
+func (apps *SourceApps) SetAppRegistry(appName string, server string, username string, password string) error {
+	app, ok := (*apps)[appName]
+	if !ok {
+		return fmt.Errorf("no sourceApp with name %q", appName)
+	}
+
+	err := app.SetRegistry(server, username, password)
 	if err != nil {
 		return err
 	}
