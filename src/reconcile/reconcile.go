@@ -39,10 +39,12 @@ func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient r
 
 func (r *Reconciler) Run(ctx context.Context) error {
 	var result *multierror.Error
+
 	revision, reconcileErr := r.run(ctx)
 	if reconcileErr != nil {
 		result = multierror.Append(reconcileErr, result)
 	}
+
 	err := r.sendNotification(ctx, revision, reconcileErr)
 	if err != nil {
 		result = multierror.Append(err, result)
