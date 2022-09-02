@@ -6,6 +6,7 @@ import (
 	"net/url"
 
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-multierror"
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
 	"github.com/xenitab/azcagit/src/notification"
@@ -37,68 +38,73 @@ func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient r
 }
 
 func (r *Reconciler) Run(ctx context.Context) error {
-	err := r.run(ctx)
+	var result *multierror.Error
+	revision, reconcileErr := r.run(ctx)
+	if reconcileErr != nil {
+		result = multierror.Append(reconcileErr, result)
+	}
+	err := r.sendNotification(ctx, revision, reconcileErr)
 	if err != nil {
-		return err
+		result = multierror.Append(err, result)
 	}
 
-	return nil
+	return result.ErrorOrNil()
 }
 
-func (r *Reconciler) run(ctx context.Context) error {
-	sourceApps, err := r.getSourceApps(ctx)
+func (r *Reconciler) run(ctx context.Context) (string, error) {
+	sourceApps, revision, err := r.getSourceApps(ctx)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	err = r.populateSourceAppsSecrets(ctx, sourceApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	err = r.populateSourceAppsRegistries(sourceApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	remoteApps, err := r.getRemoteApps(ctx)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	err = r.deleteAppsIfNeeded(ctx, sourceApps, remoteApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	err = r.createOrUpdateAppsIfNeeded(ctx, sourceApps, remoteApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	err = r.updateCache(ctx, sourceApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
-	return nil
+	return revision, nil
 }
 
-func (r *Reconciler) getSourceApps(ctx context.Context) (*source.SourceApps, error) {
-	sourceApps, err := r.sourceClient.Get(ctx)
+func (r *Reconciler) getSourceApps(ctx context.Context) (*source.SourceApps, string, error) {
+	sourceApps, revision, err := r.sourceClient.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get sourceApps: %w", err)
+		return nil, revision, fmt.Errorf("failed to get sourceApps: %w", err)
 	}
 
 	if sourceApps == nil {
-		return nil, fmt.Errorf("sourceApps is nil")
+		return nil, revision, fmt.Errorf("sourceApps is nil")
 	}
 
 	if sourceApps.Error() != nil {
-		return nil, fmt.Errorf("sourceApps contains errors, stopping reconciliation: %w", sourceApps.Error())
+		return nil, revision, fmt.Errorf("sourceApps contains errors, stopping reconciliation: %w", sourceApps.Error())
 	}
 
-	return sourceApps, nil
+	return sourceApps, revision, nil
 }
 
 func (r *Reconciler) getRemoteApps(ctx context.Context) (*remote.RemoteApps, error) {
@@ -251,6 +257,10 @@ func (r *Reconciler) populateSourceAppsRegistries(sourceApps *source.SourceApps)
 		}
 	}
 
+	return nil
+}
+
+func (r *Reconciler) sendNotification(ctx context.Context, revision string, reconcileErr error) error {
 	return nil
 }
 
