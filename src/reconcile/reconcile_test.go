@@ -41,6 +41,9 @@ func TestReconciler(t *testing.T) {
 		remoteClient.DeleteResponse(nil)
 		remoteClient.ResetActions()
 		secretClient.Reset()
+		notificationClient.SendResponse(nil)
+		notificationClient.ResetNotifications()
+		reconciler.previousNotificationEvent = notification.NotificationEvent{}
 	}
 
 	// everything is nil
@@ -653,5 +656,120 @@ func TestReconciler(t *testing.T) {
 		require.Equal(t, "foobar.io", *actions[0].App.Properties.Configuration.Registries[0].Server)
 		require.Equal(t, "foo", *actions[0].App.Properties.Configuration.Registries[0].Username)
 		require.Equal(t, "azcagit-reg-cred", *actions[0].App.Properties.Configuration.Registries[0].PasswordSecretRef)
+	}()
+
+	// test notification success event
+	func() {
+		defer resetClients()
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{
+			"foo": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteClient.Actions()
+		require.Len(t, actions, 1)
+		require.Equal(t, actions[0].Name, "foo")
+		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		notifications := notificationClient.GetNotifications()
+		require.Len(t, notifications, 1)
+		require.Equal(t, notification.NotificationStateSuccess, notifications[0].State)
+		require.Equal(t, defaultFakeRevision, notifications[0].Revision)
+	}()
+
+	// test notification failure event
+	func() {
+		defer resetClients()
+		sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("fake unable to parse"))
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "fake unable to parse")
+		notifications := notificationClient.GetNotifications()
+		require.Len(t, notifications, 1)
+		require.Equal(t, notification.NotificationStateFailure, notifications[0].State)
+	}()
+
+	// test two notifications
+	func() {
+		defer resetClients()
+		{
+			sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("ze-failure-one"))
+			err := reconciler.Run(ctx)
+			require.ErrorContains(t, err, "ze-failure-one")
+		}
+		{
+			sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("ze-failure-two"))
+			err := reconciler.Run(ctx)
+			require.ErrorContains(t, err, "ze-failure-two")
+		}
+
+		notifications := notificationClient.GetNotifications()
+		require.Len(t, notifications, 2)
+		require.Equal(t, notification.NotificationStateFailure, notifications[0].State)
+		require.Contains(t, notifications[0].Description, "ze-failure-one")
+		require.Equal(t, notification.NotificationStateFailure, notifications[1].State)
+		require.Contains(t, notifications[1].Description, "ze-failure-two")
+	}()
+
+	// test notification deduplication
+	func() {
+		defer resetClients()
+		{
+			sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("ze-failure"))
+			err := reconciler.Run(ctx)
+			require.ErrorContains(t, err, "ze-failure")
+		}
+		{
+			sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("ze-failure"))
+			err := reconciler.Run(ctx)
+			require.ErrorContains(t, err, "ze-failure")
+		}
+
+		notifications := notificationClient.GetNotifications()
+		require.Len(t, notifications, 1)
+		require.Equal(t, notification.NotificationStateFailure, notifications[0].State)
+		require.Contains(t, notifications[0].Description, "ze-failure")
+	}()
+
+	// test notification error
+	func() {
+		defer resetClients()
+
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{
+			"foo": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		notificationClient.SendResponse(fmt.Errorf("fake notification error"))
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "fake notification error")
 	}()
 }

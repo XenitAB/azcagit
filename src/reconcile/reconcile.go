@@ -293,6 +293,8 @@ func (r *Reconciler) sendNotification(ctx context.Context, revision string, reco
 		return nil
 	}
 
+	r.previousNotificationEvent = event
+
 	return r.notificationClient.Send(ctx, event)
 }
 
