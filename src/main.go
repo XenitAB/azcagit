@@ -72,7 +72,7 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
-	notificationClient, err := notification.NewNotificationClient(cfg.GitUrl)
+	notificationClient, err := notification.NewNotificationClient(cfg)
 	if err != nil {
 		return err
 	}

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+
+	"github.com/xenitab/azcagit/src/config"
 )
 
 type Notification interface {
@@ -52,8 +54,12 @@ const (
 	NotificationProviderUnknown
 )
 
-func NewNotificationClient(gitUrl string) (Notification, error) {
-	parsedGitUrl, err := url.Parse(gitUrl)
+func NewNotificationClient(cfg config.Config) (Notification, error) {
+	if !cfg.NotificationsEnabled {
+		return NewDiscardNotification(), nil
+	}
+
+	parsedGitUrl, err := url.Parse(cfg.GitUrl)
 	if err != nil {
 		return nil, err
 	}

@@ -44,18 +44,6 @@ func parseGitAddress(s string) (string, string, error) {
 	return host, id, nil
 }
 
-func parseRevision(rev string) (string, error) {
-	comp := strings.Split(rev, "/")
-	if len(comp) < 2 {
-		return "", fmt.Errorf("Revision string format incorrect: %v", rev)
-	}
-	sha := comp[len(comp)-1]
-	if sha == "" {
-		return "", fmt.Errorf("Commit Sha cannot be empty: %v", rev)
-	}
-	return sha, nil
-}
-
 func isCommitStatus(meta map[string]string, status string) bool {
 	if val, ok := meta["commit_status"]; ok && val == status {
 		return true

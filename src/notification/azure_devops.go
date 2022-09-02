@@ -64,10 +64,6 @@ func NewAzureDevOpsNotification(address string, token string) (*AzureDevOpsNotif
 }
 
 func (a *AzureDevOpsNotification) Send(ctx context.Context, event NotificationEvent) error {
-	rev, err := parseRevision(event.Revision)
-	if err != nil {
-		return err
-	}
 	state, err := toAzureDevOpsState(event.State)
 	if err != nil {
 		return err
@@ -77,7 +73,7 @@ func (a *AzureDevOpsNotification) Send(ctx context.Context, event NotificationEv
 	createArgs := git.CreateCommitStatusArgs{
 		Project:      &a.Project,
 		RepositoryId: &a.Repo,
-		CommitId:     &rev,
+		CommitId:     &event.Revision,
 		GitCommitStatusToCreate: &git.GitStatus{
 			Description: &event.Description,
 			State:       &state,
@@ -90,7 +86,7 @@ func (a *AzureDevOpsNotification) Send(ctx context.Context, event NotificationEv
 	getArgs := git.GetStatusesArgs{
 		Project:      &a.Project,
 		RepositoryId: &a.Repo,
-		CommitId:     &rev,
+		CommitId:     &event.Revision,
 	}
 	statuses, err := a.Client.GetStatuses(ctx, getArgs)
 	if err != nil {

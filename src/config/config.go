@@ -21,6 +21,7 @@ type Config struct {
 	DaprAppPort          int    `json:"dapr_app_port" arg:"--dapr-app-port,env:DAPR_APP_PORT" default:"8080" help:"The port Dapr service should listen to"`
 	DaprPubsubName       string `json:"dapr_pubsub_name" arg:"--dapr-pubsub-name,env:DAPR_PUBSUB_NAME" default:"azcagit-trigger" help:"The PubSub name for the trigger"`
 	DaprTopic            string `json:"dapr_topic" arg:"--dapr-topic-name,env:DAPR_TOPIC_NAME" default:"azcagit_trigger" help:"The PubSub topic name for the trigger"`
+	NotificationsEnabled bool   `json:"notifications_enabled" arg:"--notifications-enabled,env:NOTIFICATIONS_ENABLED" default:"false" help:"Sets if Notifications should be sent to the git provider, should be disabled if no token is provided in git url"`
 }
 
 func (cfg *Config) Redacted() Config {

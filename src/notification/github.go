@@ -59,10 +59,6 @@ func NewGitHubNotification(address string, token string) (*GitHubNotification, e
 }
 
 func (g *GitHubNotification) Send(ctx context.Context, event NotificationEvent) error {
-	rev, err := parseRevision(event.Revision)
-	if err != nil {
-		return err
-	}
 	state, err := toGitHubState(event.State)
 	if err != nil {
 		return err
@@ -75,7 +71,7 @@ func (g *GitHubNotification) Send(ctx context.Context, event NotificationEvent) 
 	}
 
 	opts := &github.ListOptions{PerPage: 50}
-	statuses, _, err := g.Client.Repositories.ListStatuses(ctx, g.Owner, g.Repo, rev, opts)
+	statuses, _, err := g.Client.Repositories.ListStatuses(ctx, g.Owner, g.Repo, event.Revision, opts)
 	if err != nil {
 		return fmt.Errorf("could not list commit statuses: %v", err)
 	}
@@ -83,7 +79,7 @@ func (g *GitHubNotification) Send(ctx context.Context, event NotificationEvent) 
 		return nil
 	}
 
-	_, _, err = g.Client.Repositories.CreateStatus(ctx, g.Owner, g.Repo, rev, status)
+	_, _, err = g.Client.Repositories.CreateStatus(ctx, g.Owner, g.Repo, event.Revision, status)
 	if err != nil {
 		return fmt.Errorf("could not create commit status: %v", err)
 	}

@@ -51,7 +51,8 @@ run:
 		--checkout-path "/tmp/foo" \
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
-		--git-yaml-path "yaml/"
+		--git-yaml-path "yaml/" \
+		--notifications-enabled
 
 docker-build:
 	docker build . -t $(IMG)
