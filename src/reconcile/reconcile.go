@@ -8,32 +8,44 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
+	"github.com/xenitab/azcagit/src/notification"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
 )
 
 type Reconciler struct {
-	cfg          config.Config
-	sourceClient source.Source
-	remoteClient remote.Remote
-	secretClient secret.Secret
-	appCache     *cache.AppCache
-	secretCache  *cache.SecretCache
+	cfg                config.Config
+	sourceClient       source.Source
+	remoteClient       remote.Remote
+	secretClient       secret.Secret
+	notificationClient notification.Notification
+	appCache           *cache.AppCache
+	secretCache        *cache.SecretCache
 }
 
-func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, notificationClient notification.Notification, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
 	return &Reconciler{
 		cfg,
 		sourceClient,
 		remoteClient,
 		secretClient,
+		notificationClient,
 		appCache,
 		secretCache,
 	}, nil
 }
 
 func (r *Reconciler) Run(ctx context.Context) error {
+	err := r.run(ctx)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Reconciler) run(ctx context.Context) error {
 	sourceApps, err := r.getSourceApps(ctx)
 	if err != nil {
 		return err
