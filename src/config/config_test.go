@@ -21,6 +21,8 @@ func TestNewConfig(t *testing.T) {
 		"westeurope",
 		"--git-url",
 		"https://github.com/foo/bar.git",
+		"--dapr-topic-name",
+		"ze-topic",
 	}
 	cfg, err := NewConfig(args[1:])
 	require.NoError(t, err)
@@ -36,23 +38,23 @@ func TestNewConfig(t *testing.T) {
 		GitBranch:            "main",
 		DaprAppPort:          8080,
 		DaprPubsubName:       "azcagit-trigger",
-		DaprTopic:            "azcagit_trigger",
+		DaprTopic:            "ze-topic",
 	}, cfg)
 }
 
 func TestRedactedConfig(t *testing.T) {
 	cfgWithUserAndPass := Config{
-		ContainerRegistryUrl: "https://usr:pw@foo.bar",
-		GitUrl:               "https://foo:bar@foobar.io/abc.git",
+		ContainerRegistryPassword: "secret",
+		GitUrl:                    "https://foo:bar@foobar.io/abc.git",
 	}
-	require.Equal(t, "https://usr:redacted@foo.bar", cfgWithUserAndPass.Redacted().ContainerRegistryUrl)
+	require.Equal(t, "redacted", cfgWithUserAndPass.Redacted().ContainerRegistryPassword)
 	require.Equal(t, "https://foo:redacted@foobar.io/abc.git", cfgWithUserAndPass.Redacted().GitUrl)
 
 	cfg := Config{
-		ContainerRegistryUrl: "https://foo.bar",
-		GitUrl:               "https://foobar.io/abc.git",
+		ContainerRegistryPassword: "",
+		GitUrl:                    "https://foobar.io/abc.git",
 	}
-	require.Equal(t, "https://foo.bar", cfg.Redacted().ContainerRegistryUrl)
+	require.Equal(t, "", cfg.Redacted().ContainerRegistryPassword)
 	require.Equal(t, "https://foobar.io/abc.git", cfg.Redacted().GitUrl)
 }
 

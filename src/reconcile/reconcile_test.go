@@ -620,7 +620,9 @@ func TestReconciler(t *testing.T) {
 		defer resetClients()
 
 		cfg := config.Config{
-			ContainerRegistryUrl: "https://foo:bar@foobar.io",
+			ContainerRegistryServer:   "foobar.io",
+			ContainerRegistryUsername: "foo",
+			ContainerRegistryPassword: "bar",
 		}
 		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, appCache, secretCache)
 		require.NoError(t, err)
