@@ -15,8 +15,6 @@
 package notification
 
 import (
-	"crypto/sha1"
-	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -42,21 +40,4 @@ func parseGitAddress(s string) (string, string, error) {
 	id = strings.TrimSuffix(id, ".git")
 	host := fmt.Sprintf("%s://%s", scheme, u.Host)
 	return host, id, nil
-}
-
-func isCommitStatus(meta map[string]string, status string) bool {
-	if val, ok := meta["commit_status"]; ok && val == status {
-		return true
-	}
-	return false
-}
-
-func sha1String(str string) string {
-	bs := []byte(str)
-	return fmt.Sprintf("%x", sha1.Sum(bs))
-}
-
-func basicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
