@@ -87,9 +87,9 @@ resource "azapi_resource" "container_app_azcagit" {
               "--key-vault-name", azurerm_key_vault.tenant_kv.name,
               "--location", azurerm_resource_group.tenant.location,
               "--reconcile-interval", "5m",
-              "--checkout-path", "/tmp/gitops",
               "--git-branch", var.git_config.branch,
-              "--git-yaml-path", var.git_config.path
+              "--git-yaml-path", var.git_config.path,
+              "--notifications-enabled"
             ]
             env = [
               {

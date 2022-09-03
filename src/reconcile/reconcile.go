@@ -4,89 +4,113 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/go-logr/logr"
+	"github.com/hashicorp/go-multierror"
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
+	"github.com/xenitab/azcagit/src/notification"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
 )
 
 type Reconciler struct {
-	cfg          config.Config
-	sourceClient source.Source
-	remoteClient remote.Remote
-	secretClient secret.Secret
-	appCache     *cache.AppCache
-	secretCache  *cache.SecretCache
+	cfg                       config.Config
+	sourceClient              source.Source
+	remoteClient              remote.Remote
+	secretClient              secret.Secret
+	notificationClient        notification.Notification
+	appCache                  *cache.AppCache
+	secretCache               *cache.SecretCache
+	previousNotificationEvent notification.NotificationEvent
 }
 
-func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, notificationClient notification.Notification, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+	previousNotificationEvent := notification.NotificationEvent{}
 	return &Reconciler{
 		cfg,
 		sourceClient,
 		remoteClient,
 		secretClient,
+		notificationClient,
 		appCache,
 		secretCache,
+		previousNotificationEvent,
 	}, nil
 }
 
 func (r *Reconciler) Run(ctx context.Context) error {
-	sourceApps, err := r.getSourceApps(ctx)
+	var result *multierror.Error
+
+	revision, reconcileErr := r.run(ctx)
+	if reconcileErr != nil {
+		result = multierror.Append(reconcileErr, result)
+	}
+
+	err := r.sendNotification(ctx, revision, reconcileErr)
 	if err != nil {
-		return err
+		result = multierror.Append(err, result)
+	}
+
+	return result.ErrorOrNil()
+}
+
+func (r *Reconciler) run(ctx context.Context) (string, error) {
+	sourceApps, revision, err := r.getSourceApps(ctx)
+	if err != nil {
+		return revision, err
 	}
 
 	err = r.populateSourceAppsSecrets(ctx, sourceApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	err = r.populateSourceAppsRegistries(sourceApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	remoteApps, err := r.getRemoteApps(ctx)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	err = r.deleteAppsIfNeeded(ctx, sourceApps, remoteApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	err = r.createOrUpdateAppsIfNeeded(ctx, sourceApps, remoteApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
 	err = r.updateCache(ctx, sourceApps)
 	if err != nil {
-		return err
+		return revision, err
 	}
 
-	return nil
+	return revision, nil
 }
 
-func (r *Reconciler) getSourceApps(ctx context.Context) (*source.SourceApps, error) {
-	sourceApps, err := r.sourceClient.Get(ctx)
+func (r *Reconciler) getSourceApps(ctx context.Context) (*source.SourceApps, string, error) {
+	sourceApps, revision, err := r.sourceClient.Get(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get sourceApps: %w", err)
+		return nil, revision, fmt.Errorf("failed to get sourceApps: %w", err)
 	}
 
 	if sourceApps == nil {
-		return nil, fmt.Errorf("sourceApps is nil")
+		return nil, revision, fmt.Errorf("sourceApps is nil")
 	}
 
 	if sourceApps.Error() != nil {
-		return nil, fmt.Errorf("sourceApps contains errors, stopping reconciliation: %w", sourceApps.Error())
+		return nil, revision, fmt.Errorf("sourceApps contains errors, stopping reconciliation: %w", sourceApps.Error())
 	}
 
-	return sourceApps, nil
+	return sourceApps, revision, nil
 }
 
 func (r *Reconciler) getRemoteApps(ctx context.Context) (*remote.RemoteApps, error) {
@@ -238,6 +262,50 @@ func (r *Reconciler) populateSourceAppsRegistries(sourceApps *source.SourceApps)
 			return err
 		}
 	}
+
+	return nil
+}
+
+func (r *Reconciler) sendNotification(ctx context.Context, revision string, reconcileErr error) error {
+	log := logr.FromContextOrDiscard(ctx)
+	log.V(1).Info("sendNotification invoked", "revision", revision, "reconcileErr", reconcileErr)
+
+	if revision == "" {
+		log.V(1).Error(fmt.Errorf("revision empty"), "unable to send notification when revision is empty")
+		return fmt.Errorf("unable to send notifications when revision is empty")
+	}
+
+	description := "reconcile succeeded"
+	state := notification.NotificationStateSuccess
+	if reconcileErr != nil {
+		description = reconcileErr.Error()
+		state = notification.NotificationStateFailure
+	}
+
+	location := strings.ReplaceAll(r.cfg.Location, " ", "")
+	resourceGroup := r.cfg.ResourceGroupName
+	name := strings.ToLower(fmt.Sprintf("%s/%s", location, resourceGroup))
+	event := notification.NotificationEvent{
+		Revision:    revision,
+		State:       state,
+		Name:        name,
+		Description: description,
+	}
+
+	if r.previousNotificationEvent.Equal(event) {
+		log.V(1).Info("skipping notification, events are equal", "current_event", event, "previous_event", r.previousNotificationEvent)
+		return nil
+	}
+
+	r.previousNotificationEvent = event
+
+	err := r.notificationClient.Send(ctx, event)
+	if err != nil {
+		log.V(1).Error(err, "unable to send event, received error", "event", event)
+		return err
+	}
+
+	log.V(1).Info("event sent", "event", event)
 
 	return nil
 }

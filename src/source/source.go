@@ -5,5 +5,5 @@ import (
 )
 
 type Source interface {
-	Get(ctx context.Context) (*SourceApps, error)
+	Get(ctx context.Context) (*SourceApps, string, error)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
 	"github.com/xenitab/azcagit/src/logger"
+	"github.com/xenitab/azcagit/src/notification"
 	"github.com/xenitab/azcagit/src/reconcile"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/secret"
@@ -21,7 +22,7 @@ import (
 )
 
 func main() {
-	ctx, err := logger.NewLoggerContext(context.Background())
+	ctx, err := logger.NewLoggerContext(context.Background(), isDebugEnabled(os.Args))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "setting up logger returned an error: %v\n", err)
 		os.Exit(1)
@@ -51,7 +52,7 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
-	_, err = sourceClient.Get(ctx)
+	_, _, err = sourceClient.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to get source: %w", err)
 	}
@@ -71,10 +72,15 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
+	notificationClient, err := notification.NewNotificationClient(cfg)
+	if err != nil {
+		return err
+	}
+
 	appCache := cache.NewAppCache()
 	secretCache := cache.NewSecretCache()
 
-	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteClient, secretClient, appCache, secretCache)
+	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, appCache, secretCache)
 	if err != nil {
 		return err
 	}
@@ -127,4 +133,13 @@ OUTER:
 	})
 
 	return g.Wait()
+}
+
+func isDebugEnabled(args []string) bool {
+	for _, v := range args {
+		if v == "--debug" {
+			return true
+		}
+	}
+	return false
 }

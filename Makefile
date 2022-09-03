@@ -42,29 +42,30 @@ terraform-up:
 run:
 	# AZURE_TENANT_ID=$${TENANT_ID} AZURE_CLIENT_ID=$${CLIENT_ID} AZURE_CLIENT_SECRET=$${CLIENT_SECRET} \
 	go run ./src \
+		--debug \
 		--resource-group-name $${RG_NAME} \
 		--subscription-id $${SUB_ID} \
 		--managed-environment-id $${ME_ID} \
 		--key-vault-name $${KV_NAME} \
 		--location westeurope \
 		--reconcile-interval "10s" \
-		--checkout-path "/tmp/foo" \
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
-		--git-yaml-path "yaml/"
+		--git-yaml-path "yaml/" \
+		--notifications-enabled
 
 docker-build:
 	docker build . -t $(IMG)
 
 docker-run: docker-build
 	docker run -it --rm -e AZURE_TENANT_ID=$${TENANT_ID} -e AZURE_CLIENT_ID=$${CLIENT_ID} -e AZURE_CLIENT_SECRET=$${CLIENT_SECRET} $(IMG) \
+		--debug \
 		--resource-group-name $${RG_NAME} \
 		--subscription-id $${SUB_ID} \
 		--managed-environment-id $${ME_ID} \
 		--key-vault-name $${KV_NAME} \
 		--location westeurope \
 		--reconcile-interval "10s" \
-		--checkout-path "/tmp/foo" \
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
 		--git-yaml-path "yaml/"
