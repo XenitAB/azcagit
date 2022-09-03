@@ -80,13 +80,6 @@ resource "azurerm_servicebus_topic" "azcagit_trigger" {
 
   enable_partitioning = true
 }
-
-resource "azurerm_servicebus_subscription" "azcagit_trigger" {
-  name               = "sbs-${local.eln}-trigger"
-  topic_id           = azurerm_servicebus_topic.azcagit_trigger.id
-  max_delivery_count = 1
-}
-
 resource "azapi_resource" "dapr_azcagit_trigger" {
   type                      = "Microsoft.App/managedEnvironments/daprComponents@2022-03-01"
   name                      = "azcagit-trigger"

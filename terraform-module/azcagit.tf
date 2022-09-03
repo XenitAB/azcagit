@@ -88,7 +88,7 @@ resource "azapi_resource" "container_app_azcagit" {
               "--container-registry-server", azurerm_container_registry.tenant.login_server,
               "--container-registry-username", azurerm_container_registry.tenant.admin_username,
               "--location", azurerm_resource_group.tenant.location,
-              "--dapr-topic-name", azurerm_servicebus_subscription.azcagit_trigger.name,
+              "--dapr-topic-name", azurerm_servicebus_topic.azcagit_trigger.name,
               "--reconcile-interval", "5m",
               "--git-branch", var.git_config.branch,
               "--git-yaml-path", var.git_config.path,
