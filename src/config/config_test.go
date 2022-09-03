@@ -19,8 +19,6 @@ func TestNewConfig(t *testing.T) {
 		"ze-keyvault",
 		"--location",
 		"westeurope",
-		"--checkout-path",
-		"/tmp/foo",
 		"--git-url",
 		"https://github.com/foo/bar.git",
 	}
@@ -33,7 +31,7 @@ func TestNewConfig(t *testing.T) {
 		KeyVaultName:         "ze-keyvault",
 		Location:             "westeurope",
 		ReconcileInterval:    "5m",
-		CheckoutPath:         "/tmp/foo",
+		CheckoutPath:         "/tmp",
 		GitUrl:               "https://github.com/foo/bar.git",
 		GitBranch:            "main",
 		DaprAppPort:          8080,

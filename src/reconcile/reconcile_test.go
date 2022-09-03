@@ -725,6 +725,63 @@ func TestReconciler(t *testing.T) {
 		require.Contains(t, notifications[1].Description, "ze-failure-two")
 	}()
 
+	// test notification with different revisions
+	func() {
+		defer resetClients()
+		{
+			sourceClient.GetResponse(&source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha1",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+				},
+			}, "first-revision", nil)
+			remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+			remoteClient.GetSecondResponse(&remote.RemoteApps{
+				"foo": remote.RemoteApp{
+					App:     &armappcontainers.ContainerApp{},
+					Managed: true,
+				},
+			}, nil)
+			err := reconciler.Run(ctx)
+			require.NoError(t, err)
+
+		}
+		{
+			sourceClient.GetResponse(&source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha1",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+				},
+			}, "second-revision", nil)
+			remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+			remoteClient.GetSecondResponse(&remote.RemoteApps{
+				"foo": remote.RemoteApp{
+					App:     &armappcontainers.ContainerApp{},
+					Managed: true,
+				},
+			}, nil)
+			err := reconciler.Run(ctx)
+			require.NoError(t, err)
+		}
+
+		notifications := notificationClient.GetNotifications()
+		require.Len(t, notifications, 2)
+		require.Equal(t, "first-revision", notifications[0].Revision)
+		require.Equal(t, "second-revision", notifications[1].Revision)
+	}()
+
 	// test notification deduplication
 	func() {
 		defer resetClients()

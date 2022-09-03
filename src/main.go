@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	ctx, err := logger.NewLoggerContext(context.Background())
+	ctx, err := logger.NewLoggerContext(context.Background(), isDebugEnabled(os.Args))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "setting up logger returned an error: %v\n", err)
 		os.Exit(1)
@@ -133,4 +133,13 @@ OUTER:
 	})
 
 	return g.Wait()
+}
+
+func isDebugEnabled(args []string) bool {
+	for _, v := range args {
+		if v == "--debug" {
+			return true
+		}
+	}
+	return false
 }

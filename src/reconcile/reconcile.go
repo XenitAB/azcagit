@@ -267,7 +267,11 @@ func (r *Reconciler) populateSourceAppsRegistries(sourceApps *source.SourceApps)
 }
 
 func (r *Reconciler) sendNotification(ctx context.Context, revision string, reconcileErr error) error {
+	log := logr.FromContextOrDiscard(ctx)
+	log.V(1).Info("sendNotification invoked", "revision", revision, "reconcileErr", reconcileErr)
+
 	if revision == "" {
+		log.V(1).Error(fmt.Errorf("revision empty"), "unable to send notification when revision is empty")
 		return fmt.Errorf("unable to send notifications when revision is empty")
 	}
 
@@ -289,12 +293,21 @@ func (r *Reconciler) sendNotification(ctx context.Context, revision string, reco
 	}
 
 	if r.previousNotificationEvent.Equal(event) {
+		log.V(1).Info("skipping notification, events are equal", "current_event", event, "previous_event", r.previousNotificationEvent)
 		return nil
 	}
 
 	r.previousNotificationEvent = event
 
-	return r.notificationClient.Send(ctx, event)
+	err := r.notificationClient.Send(ctx, event)
+	if err != nil {
+		log.V(1).Error(err, "unable to send event, received error", "event", event)
+		return err
+	}
+
+	log.V(1).Info("event sent", "event", event)
+
+	return nil
 }
 
 func parseContainerRegistryUrl(u string) (string, string, string, error) {
