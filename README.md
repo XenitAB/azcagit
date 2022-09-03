@@ -62,6 +62,7 @@ YAML-files can contain one or more documents (with `---` as a document separator
 - Trigger manual synchronization using CLI
 - Populate Container Apps secrets from Azure KeyVault
 - Populate Container Apps registries with default registry credential
+- Send notifications to the git commits
 
 ## Frequently Asked Questions
 
@@ -94,11 +95,29 @@ It will be updated based on the manifest.
 - `spec.app.properties.managedEnvironmentID`: it's defined by azcagit
 - `spec.app.location`: it's defined by azcagit
 
+> What git providers are supported?
+
+Most likely those supported by libgit2 / git2go, but with that said has only Azure DevOps (Azure Repositories) and GitHub been tested. If you need it with on-prem/enterprise variants of them or another git provider doesn't work as expected, create an issue or PR.
+
+> Are private git repositories supported?
+
+Yes, as long as you provide credentials in `--git-url` like `https://username:token@provider.io/repo`.
+
+> I'm using a public repository without credentials but `azcagit` throws an error that it needs credentials, isn't it supported to use public repositories without credentials?
+
+It is supported to use public repositories without credentials, but if you have enabled notifications (`--notifications-enabled`) then credentials are required to be able to push the git status to the commit.
+
+> How does a notification look?
+
+In GitHub, a successful notification looks like this:
+
+![example-notification](docs/example-notification.png "Example of a notification in GitHub")
+
 ## Things TODO in the future
 
 - [x] Append secrets to Container Apps from KeyVault
 - [x] ~~Better error handling of validation failures (should deletion be stopped?)~~ _stop reconciliation on any parsing error_
-- [ ] Push git commit status (like [Flux notification-controller](https://fluxcd.io/docs/components/notification/provider/#git-commit-status))
+- [x] Push git commit status (like [Flux notification-controller](https://fluxcd.io/docs/components/notification/provider/#git-commit-status))
 - [ ] Health checks
 - [ ] Metrics
 - [x] Manually trigger reconcile
