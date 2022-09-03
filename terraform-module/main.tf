@@ -19,16 +19,5 @@ provider "azurerm" {
   features {}
 }
 
-provider "azuread" {}
-
-module "azcagit" {
-  source = "../../terraform-module"
-
-  environment     = "dev"
-  location_short  = "we"
-  location        = "West Europe"
-  unique_suffix   = ""
-  name            = "azcagit"
-  git_config      = var.git_config
-  azcagit_version = var.azcagit_version
-}
+data "azurerm_client_config" "current" {}
+data "azuread_client_config" "current" {}

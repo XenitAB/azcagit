@@ -2,7 +2,8 @@
 # Manual edits may be lost in future updates.
 
 provider "registry.terraform.io/azure/azapi" {
-  version = "0.3.0"
+  version     = "0.3.0"
+  constraints = "0.3.0"
   hashes = [
     "h1:KGHPwnrVw1R7UZjCJUwD2ncSR59Evj/woOXq6kMokI0=",
     "zh:2d6e75d48f649498982aa0405161f18715ce61f651e3bfb798d5eca19241e450",
@@ -40,7 +41,8 @@ provider "registry.terraform.io/hashicorp/azuread" {
 }
 
 provider "registry.terraform.io/hashicorp/azurerm" {
-  version = "3.8.0"
+  version     = "3.8.0"
+  constraints = "3.8.0"
   hashes = [
     "h1:kdFE71y9lqNuXLyDOHwDisuXVHUQG/8V5LwZQCrksJU=",
     "zh:0872bb80b196ff0bdeb54e644ce48888333a84c05fc78f2f2e6bae0f30cb2011",

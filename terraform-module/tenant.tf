@@ -1,5 +1,18 @@
+resource "azurerm_resource_group" "tenant" {
+  name     = "rg-${local.eln}-tenant"
+  location = var.location
+}
+
+resource "azurerm_container_registry" "tenant" {
+  name                = "cr${replace(local.eln, "-", "")}${var.unique_suffix}"
+  resource_group_name = azurerm_resource_group.tenant.name
+  location            = azurerm_resource_group.tenant.location
+  sku                 = "Standard"
+  admin_enabled       = true
+}
+
 resource "azurerm_key_vault" "tenant_kv" {
-  name                     = "kvtenantcontainerapps"
+  name                     = "kv${replace(local.eln, "-", "")}${var.unique_suffix}"
   location                 = azurerm_resource_group.tenant.location
   resource_group_name      = azurerm_resource_group.tenant.name
   tenant_id                = data.azurerm_client_config.current.tenant_id
@@ -34,11 +47,4 @@ resource "azurerm_key_vault_access_policy" "tenant_current" {
     "Restore",
     "Set"
   ]
-}
-
-resource "azurerm_key_vault_secret" "example_mssql_secret" {
-  depends_on   = [azurerm_key_vault_access_policy.tenant_current]
-  name         = "mssql-connection-string"
-  value        = "foobar"
-  key_vault_id = azurerm_key_vault.tenant_kv.id
 }

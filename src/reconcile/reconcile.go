@@ -3,7 +3,6 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -247,17 +246,16 @@ func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *
 }
 
 func (r *Reconciler) populateSourceAppsRegistries(sourceApps *source.SourceApps) error {
-	if r.cfg.ContainerRegistryUrl == "" {
+	if r.cfg.ContainerRegistryServer == "" && r.cfg.ContainerRegistryUsername == "" && r.cfg.ContainerRegistryPassword == "" {
 		return nil
 	}
 
-	server, username, password, err := parseContainerRegistryUrl(r.cfg.ContainerRegistryUrl)
-	if err != nil {
-		return fmt.Errorf("unable to parse container registry url: %w", err)
+	if r.cfg.ContainerRegistryServer != "" && (r.cfg.ContainerRegistryUsername == "" || r.cfg.ContainerRegistryPassword == "") {
+		return fmt.Errorf("all of container registry server, username and password needs to be set")
 	}
 
 	for _, name := range sourceApps.GetSortedNames() {
-		err := sourceApps.SetAppRegistry(name, server, username, password)
+		err := sourceApps.SetAppRegistry(name, r.cfg.ContainerRegistryServer, r.cfg.ContainerRegistryUsername, r.cfg.ContainerRegistryPassword)
 		if err != nil {
 			return err
 		}
@@ -308,28 +306,4 @@ func (r *Reconciler) sendNotification(ctx context.Context, revision string, reco
 	log.V(1).Info("event sent", "event", event)
 
 	return nil
-}
-
-func parseContainerRegistryUrl(u string) (string, string, string, error) {
-	parsedUrl, err := url.Parse(u)
-	if err != nil {
-		return "", "", "", err
-	}
-
-	server := parsedUrl.Host
-	if server == "" {
-		return "", "", "", fmt.Errorf("parsedUrl.Host is empty")
-	}
-
-	password, _ := parsedUrl.User.Password()
-	if password == "" {
-		return "", "", "", fmt.Errorf("parsedUrl.User.Password() is empty")
-	}
-
-	username := parsedUrl.User.Username()
-	if username == "" {
-		return "", "", "", fmt.Errorf("parsedUrl.User.Password() is empty")
-	}
-
-	return server, username, password, nil
 }

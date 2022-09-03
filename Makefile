@@ -48,6 +48,7 @@ run:
 		--managed-environment-id $${ME_ID} \
 		--key-vault-name $${KV_NAME} \
 		--location westeurope \
+		--dapr-topic-name $${DAPR_TOPIC} \
 		--reconcile-interval "10s" \
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
@@ -65,6 +66,7 @@ docker-run: docker-build
 		--managed-environment-id $${ME_ID} \
 		--key-vault-name $${KV_NAME} \
 		--location westeurope \
+		--dapr-topic-name $${DAPR_TOPIC} \
 		--reconcile-interval "10s" \
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
