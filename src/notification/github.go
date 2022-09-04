@@ -63,11 +63,10 @@ func (g *GitHubNotification) Send(ctx context.Context, event NotificationEvent) 
 	if err != nil {
 		return err
 	}
-
 	status := &github.RepoStatus{
 		State:       &state,
 		Context:     &event.Name,
-		Description: &event.Description,
+		Description: toGitHubDescription(event.Description),
 	}
 
 	opts := &github.ListOptions{PerPage: 50}
@@ -85,6 +84,15 @@ func (g *GitHubNotification) Send(ctx context.Context, event NotificationEvent) 
 	}
 
 	return nil
+}
+
+func toGitHubDescription(description string) *string {
+	if len(description) <= 140 {
+		return &description
+	}
+
+	strippedDescription := description[0:140]
+	return &strippedDescription
 }
 
 func toGitHubState(state NotificationState) (string, error) {
