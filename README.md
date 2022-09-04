@@ -2,7 +2,7 @@
 
 Welcome to `azcagit` (_/ɑːsk/ /eɪ/ /ɡɪt/ - ask a git_)!
 
-It is a MVP of using [GitOps](https://opengitops.dev/#principles) with [Azure Container Apps](https://azure.microsoft.com/en-us/services/container-apps/#overview). You could call it an Azure Container App GitOps Engine.
+It's [GitOps](https://opengitops.dev/#principles) for [Azure Container Apps](https://azure.microsoft.com/en-us/services/container-apps/#overview). You can call it a GitOps Engine for Azure Container Apps.
 
 > Please note: This is an early version and will have lots of breaking changes in the future.
 
@@ -112,6 +112,12 @@ It is supported to use public repositories without credentials, but if you have 
 In GitHub, a successful notification looks like this:
 
 ![example-notification](docs/example-notification.png "Example of a notification in GitHub")
+
+> Is multi region supported?
+
+It sure is! You can find an example for the setup using terraform [here](test/terraform-multi-region/main.tf). We've also recorded a short video showing it in action:
+
+[![Watch the video](https://img.youtube.com/vi/9SwfSIfa6I0/maxresdefault.jpg)](https://youtu.be/9SwfSIfa6I0)
 
 ## Things TODO in the future
 
