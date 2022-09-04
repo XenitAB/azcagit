@@ -10,12 +10,15 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers v1.0.0
 	github.com/alexflint/go-arg v1.4.3
 	github.com/dapr/go-sdk v1.5.0
+	github.com/fluxcd/pkg/gittestserver v0.7.0
 	github.com/fluxcd/source-controller v0.28.0
 	github.com/go-logr/logr v1.2.3
 	github.com/go-logr/zapr v1.2.3
 	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/libgit2/git2go/v33 v33.0.9
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
+	github.com/onsi/gomega v1.20.0
 	github.com/stretchr/testify v1.8.0
 	github.com/whilp/git-urls v1.0.0
 	go.uber.org/zap v1.23.0
@@ -36,11 +39,13 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/cloudflare/circl v1.2.0 // indirect
+	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/dapr/dapr v1.8.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
+	github.com/fluxcd/gitkit v0.6.0 // indirect
 	github.com/fluxcd/pkg/gitutil v0.2.0 // indirect
 	github.com/fluxcd/pkg/runtime v0.17.0 // indirect
 	github.com/fluxcd/pkg/ssh v0.6.0 // indirect
@@ -52,6 +57,7 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.20.0 // indirect
 	github.com/go-openapi/swag v0.22.1 // indirect
+	github.com/gofrs/uuid v4.2.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v4 v4.4.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
@@ -69,7 +75,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
-	github.com/libgit2/git2go/v33 v33.0.9 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
