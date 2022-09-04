@@ -39,6 +39,11 @@ terraform-up:
 	terraform init
 	terraform apply -auto-approve -var-file="../../.tmp/lab.tfvars"
 
+terraform-mr-up:
+	cd test/terraform-multi-region
+	terraform init
+	terraform apply -auto-approve -var-file="../../.tmp/lab.tfvars"
+
 run:
 	# AZURE_TENANT_ID=$${TENANT_ID} AZURE_CLIENT_ID=$${CLIENT_ID} AZURE_CLIENT_SECRET=$${CLIENT_SECRET} \
 	go run ./src \
