@@ -62,6 +62,8 @@ func (r *Reconciler) run(ctx context.Context) (string, error) {
 		return revision, err
 	}
 
+	r.filterSourceApps(ctx, sourceApps)
+
 	err = r.populateSourceAppsSecrets(ctx, sourceApps)
 	if err != nil {
 		return revision, err
@@ -200,6 +202,19 @@ func (r *Reconciler) updateCache(ctx context.Context, sourceApps *source.SourceA
 	}
 
 	return nil
+}
+
+func (r *Reconciler) filterSourceApps(ctx context.Context, sourceApps *source.SourceApps) {
+	log := logr.FromContextOrDiscard(ctx)
+
+	for _, name := range sourceApps.GetSortedNames() {
+		app, _ := sourceApps.Get(name)
+		shouldRunInLocation := app.ShoudRunInLocation(r.cfg.Location)
+		if !shouldRunInLocation {
+			log.V(1).Info("sourceApp was deleted because of location mis-match", "app", app.Name(), "currentLocation", r.cfg.Location, "locationFilter", app.Specification.LocationFilter)
+			sourceApps.Delete(name)
+		}
+	}
 }
 
 func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *source.SourceApps) error {

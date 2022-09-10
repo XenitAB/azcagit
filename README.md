@@ -29,6 +29,8 @@ apiVersion: aca.xenit.io/v1alpha1
 metadata:
   name: foobar
 spec:
+  locationFilter:
+    - West Europe
   remoteSecrets:
     - appSecretName: connection-string
       remoteSecretName: mssql-connection-string
@@ -63,6 +65,7 @@ YAML-files can contain one or more documents (with `---` as a document separator
 - Populate Container Apps secrets from Azure KeyVault
 - Populate Container Apps registries with default registry credential
 - Send notifications to the git commits
+- Filter locations, making it possible to specify in the manifest what regions can run the app
 
 ## Frequently Asked Questions
 
@@ -119,6 +122,12 @@ It sure is! You can find an example for the setup using terraform [here](test/te
 
 [![Watch the video](https://img.youtube.com/vi/9SwfSIfa6I0/maxresdefault.jpg)](https://youtu.be/9SwfSIfa6I0)
 
+> What is the location filter feature?
+
+It makes it possible to specify `spec.locationFilter` with an array of what Azure regions are allowed to run this specific app.
+
+![multi-region-location-filter](docs/multi-region-location-filter.png "Example of a notification in GitHub")
+
 ## Things TODO in the future
 
 - [x] Append secrets to Container Apps from KeyVault
@@ -129,6 +138,7 @@ It sure is! You can find an example for the setup using terraform [here](test/te
 - [x] Manually trigger reconcile
 - [x] Enforce Location for app
 - [x] Add Container Registry credentials by default
+- [x] Add location filter
 
 ## Usage
 

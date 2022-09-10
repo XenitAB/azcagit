@@ -33,9 +33,12 @@ func (r *RemoteSecretSpecification) Valid() bool {
 	return true
 }
 
+type LocationFilterSpecification string
+
 type SourceAppSpecification struct {
-	App           *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
-	RemoteSecrets []RemoteSecretSpecification    `json:"remoteSecrets,omitempty" yaml:"remoteSecrets,omitempty"`
+	App            *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
+	RemoteSecrets  []RemoteSecretSpecification    `json:"remoteSecrets,omitempty" yaml:"remoteSecrets,omitempty"`
+	LocationFilter []LocationFilterSpecification  `json:"locationFilter,omitempty" yaml:"locationFilter,omitempty"`
 }
 
 type SourceApp struct {
@@ -240,10 +243,39 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 		newapp.Specification.App.Tags = make(map[string]*string)
 	}
 
+	if len(newapp.Specification.LocationFilter) != 0 {
+		fixedLocationFilter := []LocationFilterSpecification{}
+		for _, filter := range newapp.Specification.LocationFilter {
+			fixedLocationFilter = append(fixedLocationFilter, LocationFilterSpecification(fixLocationFilter(filter)))
+		}
+		newapp.Specification.LocationFilter = fixedLocationFilter
+	}
+
 	newapp.Specification.App.Tags["aca.xenit.io"] = toPtr("true")
 
 	*app = newapp
 	return nil
+}
+
+func (app *SourceApp) ShoudRunInLocation(currentLocation string) bool {
+	if app == nil || app.Specification == nil || len(app.Specification.LocationFilter) == 0 {
+		return true
+	}
+
+	fixedCurrentLocation := fixLocationFilter(LocationFilterSpecification(currentLocation))
+	for _, filter := range app.Specification.LocationFilter {
+		if fixedCurrentLocation == filter {
+			return true
+		}
+	}
+
+	return false
+}
+
+func fixLocationFilter(filter LocationFilterSpecification) LocationFilterSpecification {
+	filterWithoutSpaces := strings.ReplaceAll(string(filter), " ", "")
+	lowercaseFilter := strings.ToLower(filterWithoutSpaces)
+	return LocationFilterSpecification(lowercaseFilter)
 }
 
 type SourceApps map[string]SourceApp
@@ -289,6 +321,10 @@ func (apps *SourceApps) Get(name string) (SourceApp, bool) {
 		return SourceApp{}, false
 	}
 	return app, ok
+}
+
+func (apps *SourceApps) Delete(name string) {
+	delete(*apps, name)
 }
 
 func (apps *SourceApps) SetAppSecret(appName string, secretName string, secretValue string) error {
