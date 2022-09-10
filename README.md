@@ -128,6 +128,13 @@ It makes it possible to specify `spec.locationFilter` with an array of what Azur
 
 ![multi-region-location-filter](docs/multi-region-location-filter.png "Example of a notification in GitHub")
 
+> How does the location filter work?
+
+- No change if `spec.locationFilter` isn't defined
+- No change if `spec.locationFilter` is an empty list
+- No change if `spec.locationFilter` contains the location of azcagit (defined with `--location`)
+- If `spec.locationFilter` has a value, of values, where it or none of them match the location of azcagit - we'll skip it (only logged with `--debug` enabled)
+
 ## Things TODO in the future
 
 - [x] Append secrets to Container Apps from KeyVault
