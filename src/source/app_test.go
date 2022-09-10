@@ -657,3 +657,145 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 		require.Equal(t, c.expectedOutput, remoteSecrets)
 	}
 }
+
+func TestParseLocationFilterSpecification(t *testing.T) {
+	cases := []struct {
+		testDescription        string
+		input                  string
+		expectedLocationFilter []LocationFilterSpecification
+		expectedErrorContains  string
+	}{
+		{
+			testDescription: "no locationFilter specified",
+			input: `
+kind: AzureContainerApp
+apiVersion: aca.xenit.io/v1alpha1
+metadata:
+  name: foo
+spec:
+  app:
+    properties:
+      configuration:
+        activeRevisionsMode: Single`,
+			expectedLocationFilter: nil,
+			expectedErrorContains:  "",
+		},
+		{
+			testDescription: "one locationFilter specified",
+			input: `
+kind: AzureContainerApp
+apiVersion: aca.xenit.io/v1alpha1
+metadata:
+  name: foo
+spec:
+  locationFilter:
+    - Foo Bar
+  app:
+    properties:
+      configuration:
+        activeRevisionsMode: Single`,
+			expectedLocationFilter: []LocationFilterSpecification{
+				LocationFilterSpecification("foobar"),
+			},
+			expectedErrorContains: "",
+		},
+	}
+
+	for i, c := range cases {
+		t.Logf("Test #%d: %s", i, c.testDescription)
+		app := &SourceApp{}
+		err := app.Unmarshal([]byte(c.input), config.Config{
+			ManagedEnvironmentID: "ze-me-id",
+			Location:             "zefakeregion",
+		})
+		if c.expectedErrorContains == "" {
+			require.NoError(t, err)
+		} else {
+			require.ErrorContains(t, err, c.expectedErrorContains)
+		}
+
+		require.Equal(t, c.expectedLocationFilter, app.Specification.LocationFilter)
+	}
+}
+
+func TestSourceAppShouldRunInLocation(t *testing.T) {
+	cases := []struct {
+		currentLocation string
+		app             *SourceApp
+		expectedResult  bool
+	}{
+		{
+			currentLocation: "foo",
+			app:             nil,
+			expectedResult:  true,
+		},
+		{
+			currentLocation: "foo",
+			app: &SourceApp{
+				Specification: &SourceAppSpecification{
+					LocationFilter: nil,
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			currentLocation: "foo",
+			app: &SourceApp{
+				Specification: &SourceAppSpecification{
+					LocationFilter: []LocationFilterSpecification{},
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			currentLocation: "foo",
+			app: &SourceApp{
+				Specification: &SourceAppSpecification{
+					LocationFilter: []LocationFilterSpecification{
+						"bar",
+					},
+				},
+			},
+			expectedResult: false,
+		},
+		{
+			currentLocation: "foo",
+			app: &SourceApp{
+				Specification: &SourceAppSpecification{
+					LocationFilter: []LocationFilterSpecification{
+						"foo",
+					},
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			currentLocation: "foo",
+			app: &SourceApp{
+				Specification: &SourceAppSpecification{
+					LocationFilter: []LocationFilterSpecification{
+						"bar",
+						"foo",
+					},
+				},
+			},
+			expectedResult: true,
+		},
+		{
+			currentLocation: "Foo Bar",
+			app: &SourceApp{
+				Specification: &SourceAppSpecification{
+					LocationFilter: []LocationFilterSpecification{
+						"foobar",
+					},
+				},
+			},
+			expectedResult: true,
+		},
+	}
+
+	for _, c := range cases {
+		result := c.app.ShoudRunInLocation(c.currentLocation)
+		require.Equal(t, c.expectedResult, result)
+	}
+}

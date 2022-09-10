@@ -831,4 +831,37 @@ func TestReconciler(t *testing.T) {
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "fake notification error")
 	}()
+
+	// test locationFilter
+	func() {
+		defer resetClients()
+
+		cfg := config.Config{
+			Location: "foobar",
+		}
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, appCache, secretCache)
+		require.NoError(t, err)
+
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &source.SourceAppSpecification{
+					LocationFilter: []source.LocationFilterSpecification{
+						"zefakeregion",
+					},
+					App: &armappcontainers.ContainerApp{},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{}, nil)
+		err = reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteClient.Actions()
+		require.Len(t, actions, 0)
+	}()
 }
