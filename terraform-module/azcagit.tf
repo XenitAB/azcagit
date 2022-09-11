@@ -28,6 +28,12 @@ resource "azurerm_role_assignment" "azcagit_platform" {
   principal_id         = azuread_service_principal.azcagit.object_id
 }
 
+resource "azurerm_role_assignment" "azcagit_platform_metrics_publisher" {
+  scope                = azurerm_resource_group.platform.id
+  role_definition_name = "Monitoring Metrics Publisher"
+  principal_id         = azuread_service_principal.azcagit.object_id
+}
+
 resource "azurerm_role_assignment" "azcagit_tenant" {
   scope                = azurerm_resource_group.tenant.id
   role_definition_name = "Contributor"

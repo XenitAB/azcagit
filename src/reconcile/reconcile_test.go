@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
+	"github.com/xenitab/azcagit/src/metrics"
 	"github.com/xenitab/azcagit/src/notification"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/secret"
@@ -23,12 +24,13 @@ func TestReconciler(t *testing.T) {
 	remoteClient := remote.NewInMemRemote()
 	secretClient := secret.NewInMemSecret()
 	notificationClient := notification.NewInMemNotification()
+	metricsClient := metrics.NewInMemMetrics()
 	appCache := cache.NewAppCache()
 	secretCache := cache.NewSecretCache()
 
 	ctx := context.Background()
 
-	reconciler, err := NewReconciler(config.Config{}, sourceClient, remoteClient, secretClient, notificationClient, appCache, secretCache)
+	reconciler, err := NewReconciler(config.Config{}, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
 	require.NoError(t, err)
 
 	resetClients := func() {
@@ -43,6 +45,7 @@ func TestReconciler(t *testing.T) {
 		secretClient.Reset()
 		notificationClient.SendResponse(nil)
 		notificationClient.ResetNotifications()
+		metricsClient.Reset()
 		reconciler.previousNotificationEvent = notification.NotificationEvent{}
 	}
 
@@ -624,7 +627,7 @@ func TestReconciler(t *testing.T) {
 			ContainerRegistryUsername: "foo",
 			ContainerRegistryPassword: "bar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, appCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
 		require.NoError(t, err)
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
@@ -839,7 +842,7 @@ func TestReconciler(t *testing.T) {
 		cfg := config.Config{
 			Location: "foobar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, appCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
 		require.NoError(t, err)
 
 		sourceClient.GetResponse(&source.SourceApps{
@@ -863,5 +866,38 @@ func TestReconciler(t *testing.T) {
 		require.NoError(t, err)
 		actions := remoteClient.Actions()
 		require.Len(t, actions, 0)
+	}()
+
+	// verify that metrics work
+	func() {
+		defer resetClients()
+		sourceClient.GetResponse(&source.SourceApps{
+			"foo": source.SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &source.SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteClient.GetSecondResponse(&remote.RemoteApps{
+			"foo": remote.RemoteApp{
+				App:     &armappcontainers.ContainerApp{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteClient.Actions()
+		require.Len(t, actions, 1)
+		require.Equal(t, actions[0].Name, "foo")
+		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		receivedMetrics := metricsClient.IntStats()
+		require.Len(t, receivedMetrics, 1)
+		require.Equal(t, 1, receivedMetrics[0])
 	}()
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
+	"github.com/xenitab/azcagit/src/metrics"
 	"github.com/xenitab/azcagit/src/notification"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/secret"
@@ -21,12 +22,13 @@ type Reconciler struct {
 	remoteClient              remote.Remote
 	secretClient              secret.Secret
 	notificationClient        notification.Notification
+	metricsClient             metrics.Metrics
 	appCache                  *cache.AppCache
 	secretCache               *cache.SecretCache
 	previousNotificationEvent notification.NotificationEvent
 }
 
-func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, notificationClient notification.Notification, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
 	previousNotificationEvent := notification.NotificationEvent{}
 	return &Reconciler{
 		cfg,
@@ -34,6 +36,7 @@ func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient r
 		remoteClient,
 		secretClient,
 		notificationClient,
+		metricsClient,
 		appCache,
 		secretCache,
 		previousNotificationEvent,
@@ -57,12 +60,19 @@ func (r *Reconciler) Run(ctx context.Context) error {
 }
 
 func (r *Reconciler) run(ctx context.Context) (string, error) {
+	log := logr.FromContextOrDiscard(ctx)
+
 	sourceApps, revision, err := r.getSourceApps(ctx)
 	if err != nil {
 		return revision, err
 	}
 
 	r.filterSourceApps(ctx, sourceApps)
+
+	err = r.metricsClient.Int(ctx, "SourceApps", len(*sourceApps))
+	if err != nil {
+		log.Error(err, "unable to push metrics")
+	}
 
 	err = r.populateSourceAppsSecrets(ctx, sourceApps)
 	if err != nil {
