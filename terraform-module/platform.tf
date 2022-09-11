@@ -3,6 +3,12 @@ resource "azurerm_resource_group" "platform" {
   location = var.location
 }
 
+resource "azurerm_role_assignment" "current_platform_metrics_publisher" {
+  scope                = azurerm_resource_group.platform.id
+  role_definition_name = "Monitoring Metrics Publisher"
+  principal_id         = data.azuread_client_config.current.object_id
+}
+
 resource "azurerm_log_analytics_workspace" "this" {
   name                = "log-${local.eln}"
   location            = azurerm_resource_group.platform.location
