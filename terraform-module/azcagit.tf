@@ -91,6 +91,7 @@ resource "azapi_resource" "container_app_azcagit" {
               "--subscription-id", data.azurerm_client_config.current.subscription_id,
               "--managed-environment-id", azapi_resource.managed_environment.id,
               "--key-vault-name", azurerm_key_vault.tenant_kv.name,
+              "--own-resource-group-name", azurerm_resource_group.platform.name,
               "--container-registry-server", azurerm_container_registry.tenant.login_server,
               "--container-registry-username", azurerm_container_registry.tenant.admin_username,
               "--location", azurerm_resource_group.tenant.location,

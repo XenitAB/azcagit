@@ -16,45 +16,53 @@ import (
 type AzureMetrics struct {
 	pl                    runtime.Pipeline
 	customMetricsEndpoint string
-	region                string
+	azureRegion           string
 }
 
 var _ Metrics = (*AzureMetrics)(nil)
 
 func NewAzureMetrics(cfg config.Config, credential azcore.TokenCredential) *AzureMetrics {
+	// The `//` in `https://monitoring.azure.com//.default` is intentional and the required audience is `https://monitoring.azure.com/`,
+	// right now something happens inside of the `runtime` which makes the audience `https://monitoring.azure.com` when there's a single `/`.
 	authPolicy := runtime.NewBearerTokenPolicy(credential, []string{"https://monitoring.azure.com//.default"}, nil)
-	pl := runtime.NewPipeline("azcustommetrics", "v0.0.1", runtime.PipelineOptions{PerRetry: []policy.Policy{authPolicy}}, &policy.ClientOptions{})
-	resourceId := "subscriptions/2a6936a5-fc30-492a-ab19-ec59068b5b96/resourceGroups/rg-dev-we-azcagit-platform/providers/Microsoft.App/containerApps/azcagit"
+	pl := runtime.NewPipeline("azcagit", "undefined", runtime.PipelineOptions{PerRetry: []policy.Policy{authPolicy}}, &policy.ClientOptions{})
 	return &AzureMetrics{
 		pl:                    pl,
-		customMetricsEndpoint: fmt.Sprintf("https://%s.monitoring.azure.com/%s/metrics", fixedAzureLocation(cfg.Location), resourceId),
-		region:                fixedAzureLocation(cfg.Location),
+		customMetricsEndpoint: generateCustomMetricsEndpoint(cfg),
+		azureRegion:           sanitizeAzureLocation(cfg.Location),
 	}
 }
 
-func fixedAzureLocation(location string) string {
+func generateCustomMetricsEndpoint(cfg config.Config) string {
+	azureRegion := sanitizeAzureLocation(cfg.Location)
+	resourceId := fmt.Sprintf("subscriptions/%s/resourceGroups/%s/providers/Microsoft.App/containerApps/%s", cfg.SubscriptionID, cfg.OwnResourceGroupName, cfg.OwnContainerAppName)
+	return fmt.Sprintf("https://%s.monitoring.azure.com/%s/metrics", azureRegion, resourceId)
+
+}
+
+func sanitizeAzureLocation(location string) string {
 	locationWithoutSpaces := strings.ReplaceAll(location, " ", "")
 	lowercaseLocation := strings.ToLower(locationWithoutSpaces)
 	return lowercaseLocation
 }
 
 func (m *AzureMetrics) Float64(ctx context.Context, metricName string, metric float64) error {
-	customMetrics := newCustomMetrics(m.region, metricName, metric)
+	customMetrics := newCustomMetrics(m.azureRegion, metricName, metric)
 	return m.create(ctx, customMetrics)
 }
 
 func (m *AzureMetrics) Int(ctx context.Context, metricName string, metric int) error {
-	customMetrics := newCustomMetrics(m.region, metricName, float64(metric))
+	customMetrics := newCustomMetrics(m.azureRegion, metricName, float64(metric))
 	return m.create(ctx, customMetrics)
 }
 
 func newCustomMetrics(region string, metricName string, metric float64) CustomMetrics {
 	return CustomMetrics{
-		Time: toPtr(time.Now()),
-		Data: &CustomMetricsData{
-			BaseData: &CustomMetricsBaseData{
-				Metric:    &metricName,
-				Namespace: toPtr("azcagit"),
+		Time: time.Now(),
+		Data: CustomMetricsData{
+			BaseData: CustomMetricsBaseData{
+				Metric:    metricName,
+				Namespace: "azcagit",
 				DimNames: []string{
 					"region",
 				},
@@ -63,10 +71,10 @@ func newCustomMetrics(region string, metricName string, metric float64) CustomMe
 						DimValues: []string{
 							region,
 						},
-						Min:   &metric,
-						Max:   &metric,
-						Sum:   &metric,
-						Count: toPtr(1),
+						Min:   metric,
+						Max:   metric,
+						Sum:   metric,
+						Count: 1,
 					},
 				},
 			},
@@ -74,32 +82,28 @@ func newCustomMetrics(region string, metricName string, metric float64) CustomMe
 	}
 }
 
-func toPtr[T any](v T) *T {
-	return &v
-}
-
 type CustomMetricsSeries struct {
 	DimValues []string `json:"dimValues,omitempty"`
-	Min       *float64 `json:"min,omitempty"`
-	Max       *float64 `json:"max,omitempty"`
-	Sum       *float64 `json:"sum,omitempty"`
-	Count     *int     `json:"count,omitempty"`
+	Min       float64  `json:"min,omitempty"`
+	Max       float64  `json:"max,omitempty"`
+	Sum       float64  `json:"sum,omitempty"`
+	Count     int      `json:"count,omitempty"`
 }
 
 type CustomMetricsBaseData struct {
-	Metric    *string               `json:"metric,omitempty"`
-	Namespace *string               `json:"namespace,omitempty"`
+	Metric    string                `json:"metric,omitempty"`
+	Namespace string                `json:"namespace,omitempty"`
 	DimNames  []string              `json:"dimNames,omitempty"`
 	Series    []CustomMetricsSeries `json:"series,omitempty"`
 }
 
 type CustomMetricsData struct {
-	BaseData *CustomMetricsBaseData `json:"baseData,omitempty"`
+	BaseData CustomMetricsBaseData `json:"baseData,omitempty"`
 }
 
 type CustomMetrics struct {
-	Time *time.Time         `json:"time,omitempty"`
-	Data *CustomMetricsData `json:"data,omitempty"`
+	Time time.Time         `json:"time,omitempty"`
+	Data CustomMetricsData `json:"data,omitempty"`
 }
 
 func (client *AzureMetrics) create(ctx context.Context, body CustomMetrics) error {
