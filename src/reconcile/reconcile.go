@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
+	"github.com/xenitab/azcagit/src/metrics"
 	"github.com/xenitab/azcagit/src/notification"
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/secret"
@@ -21,12 +23,13 @@ type Reconciler struct {
 	remoteClient              remote.Remote
 	secretClient              secret.Secret
 	notificationClient        notification.Notification
+	metricsClient             metrics.Metrics
 	appCache                  *cache.AppCache
 	secretCache               *cache.SecretCache
 	previousNotificationEvent notification.NotificationEvent
 }
 
-func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, notificationClient notification.Notification, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
 	previousNotificationEvent := notification.NotificationEvent{}
 	return &Reconciler{
 		cfg,
@@ -34,6 +37,7 @@ func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient r
 		remoteClient,
 		secretClient,
 		notificationClient,
+		metricsClient,
 		appCache,
 		secretCache,
 		previousNotificationEvent,
@@ -43,6 +47,7 @@ func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient r
 func (r *Reconciler) Run(ctx context.Context) error {
 	var result *multierror.Error
 
+	startTime := time.Now()
 	revision, reconcileErr := r.run(ctx)
 	if reconcileErr != nil {
 		result = multierror.Append(reconcileErr, result)
@@ -53,7 +58,31 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		result = multierror.Append(err, result)
 	}
 
+	r.reportReconcileMetrics(ctx, startTime, result)
+
 	return result.ErrorOrNil()
+}
+
+func (r *Reconciler) reportReconcileMetrics(ctx context.Context, startTime time.Time, result *multierror.Error) {
+	log := logr.FromContextOrDiscard(ctx)
+
+	endTime := time.Now()
+	reconcileDuration := endTime.Sub(startTime)
+
+	err := r.metricsClient.Duration(ctx, "Reconcile Duration (s)", reconcileDuration)
+	if err != nil {
+		log.Error(err, "unable to push metrics for reconcile duration")
+	}
+
+	success := true
+	if result.ErrorOrNil() != nil {
+		success = false
+	}
+
+	err = r.metricsClient.Success(ctx, "Reconcile Result", success)
+	if err != nil {
+		log.Error(err, "unable to push metrics for reconcile result")
+	}
 }
 
 func (r *Reconciler) run(ctx context.Context) (string, error) {
@@ -63,6 +92,8 @@ func (r *Reconciler) run(ctx context.Context) (string, error) {
 	}
 
 	r.filterSourceApps(ctx, sourceApps)
+
+	r.reportSourceAppsMetrics(ctx, sourceApps)
 
 	err = r.populateSourceAppsSecrets(ctx, sourceApps)
 	if err != nil {
@@ -95,6 +126,14 @@ func (r *Reconciler) run(ctx context.Context) (string, error) {
 	}
 
 	return revision, nil
+}
+
+func (r *Reconciler) reportSourceAppsMetrics(ctx context.Context, sourceApps *source.SourceApps) {
+	log := logr.FromContextOrDiscard(ctx)
+	err := r.metricsClient.Int(ctx, "Source App Count", len(*sourceApps))
+	if err != nil {
+		log.Error(err, "unable to push metrics for source app count")
+	}
 }
 
 func (r *Reconciler) getSourceApps(ctx context.Context) (*source.SourceApps, string, error) {

@@ -12,6 +12,7 @@ import (
 	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
 	"github.com/xenitab/azcagit/src/logger"
+	"github.com/xenitab/azcagit/src/metrics"
 	"github.com/xenitab/azcagit/src/notification"
 	"github.com/xenitab/azcagit/src/reconcile"
 	"github.com/xenitab/azcagit/src/remote"
@@ -77,10 +78,12 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
+	metricsClient := metrics.NewAzureMetrics(cfg, cred)
+
 	appCache := cache.NewAppCache()
 	secretCache := cache.NewSecretCache()
 
-	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, appCache, secretCache)
+	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
 	if err != nil {
 		return err
 	}

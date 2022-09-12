@@ -66,6 +66,7 @@ YAML-files can contain one or more documents (with `---` as a document separator
 - Populate Container Apps registries with default registry credential
 - Send notifications to the git commits
 - Filter locations, making it possible to specify in the manifest what regions can run the app
+- Push custom metrics to Azure monitor
 
 ## Frequently Asked Questions
 
@@ -120,7 +121,7 @@ In GitHub, a successful notification looks like this:
 
 It sure is! You can find an example for the setup using terraform [here](test/terraform-multi-region/main.tf). We've also recorded a short video showing it in action:
 
-[![Watch the video](https://img.youtube.com/vi/9SwfSIfa6I0/maxresdefault.jpg)](https://youtu.be/9SwfSIfa6I0)
+[![Watch the video](docs/multi-region-thumbnail.jpg)](https://youtu.be/9SwfSIfa6I0)
 
 > What is the location filter feature?
 
@@ -135,13 +136,19 @@ It makes it possible to specify `spec.locationFilter` with an array of what Azur
 - No change if `spec.locationFilter` contains the location of azcagit (defined with `--location`)
 - If `spec.locationFilter` has a value, of values, where it or none of them match the location of azcagit - we'll skip it (only logged with `--debug` enabled)
 
+> Where can I find the custom metrics?
+
+If you open the `azcagit` container app (in the platform resource group) and go to Monitoring and then Metrics, you can choose the namespace azcagit and then the specific metrics you want to look at.
+
+![custom-metrics](docs/custom-metrics.png "Example custom metrics in Azure")
+
 ## Things TODO in the future
 
 - [x] Append secrets to Container Apps from KeyVault
 - [x] ~~Better error handling of validation failures (should deletion be stopped?)~~ _stop reconciliation on any parsing error_
 - [x] Push git commit status (like [Flux notification-controller](https://fluxcd.io/docs/components/notification/provider/#git-commit-status))
 - [ ] Health checks
-- [ ] Metrics
+- [x] Metrics
 - [x] Manually trigger reconcile
 - [x] Enforce Location for app
 - [x] Add Container Registry credentials by default

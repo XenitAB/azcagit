@@ -244,11 +244,11 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 	}
 
 	if len(newapp.Specification.LocationFilter) != 0 {
-		fixedLocationFilter := []LocationFilterSpecification{}
+		sanitizedLocationFilters := []LocationFilterSpecification{}
 		for _, filter := range newapp.Specification.LocationFilter {
-			fixedLocationFilter = append(fixedLocationFilter, LocationFilterSpecification(fixLocationFilter(filter)))
+			sanitizedLocationFilters = append(sanitizedLocationFilters, LocationFilterSpecification(sanitizeAzureLocation(filter)))
 		}
-		newapp.Specification.LocationFilter = fixedLocationFilter
+		newapp.Specification.LocationFilter = sanitizedLocationFilters
 	}
 
 	newapp.Specification.App.Tags["aca.xenit.io"] = toPtr("true")
@@ -262,7 +262,7 @@ func (app *SourceApp) ShoudRunInLocation(currentLocation string) bool {
 		return true
 	}
 
-	fixedCurrentLocation := fixLocationFilter(LocationFilterSpecification(currentLocation))
+	fixedCurrentLocation := sanitizeAzureLocation(LocationFilterSpecification(currentLocation))
 	for _, filter := range app.Specification.LocationFilter {
 		if fixedCurrentLocation == filter {
 			return true
@@ -272,7 +272,7 @@ func (app *SourceApp) ShoudRunInLocation(currentLocation string) bool {
 	return false
 }
 
-func fixLocationFilter(filter LocationFilterSpecification) LocationFilterSpecification {
+func sanitizeAzureLocation(filter LocationFilterSpecification) LocationFilterSpecification {
 	filterWithoutSpaces := strings.ReplaceAll(string(filter), " ", "")
 	lowercaseFilter := strings.ToLower(filterWithoutSpaces)
 	return LocationFilterSpecification(lowercaseFilter)
