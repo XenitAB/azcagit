@@ -51,6 +51,20 @@ func (m *AzureMetrics) Int(ctx context.Context, metricName string, metric int) e
 	return m.create(ctx, customMetrics)
 }
 
+func (m *AzureMetrics) Duration(ctx context.Context, metricName string, metric time.Duration) error {
+	customMetrics := newCustomMetrics(m.azureRegion, metricName, metric.Seconds())
+	return m.create(ctx, customMetrics)
+}
+
+func (m *AzureMetrics) Success(ctx context.Context, metricName string, metric bool) error {
+	metricVal := float64(0)
+	if metric {
+		metricVal = 1
+	}
+	customMetrics := newCustomMetrics(m.azureRegion, metricName, metricVal)
+	return m.create(ctx, customMetrics)
+}
+
 func newCustomMetrics(region string, metricName string, metric float64) CustomMetrics {
 	return CustomMetrics{
 		Time: time.Now(),

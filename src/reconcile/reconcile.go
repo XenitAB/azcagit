@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/hashicorp/go-multierror"
@@ -46,6 +47,7 @@ func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient r
 func (r *Reconciler) Run(ctx context.Context) error {
 	var result *multierror.Error
 
+	startTime := time.Now()
 	revision, reconcileErr := r.run(ctx)
 	if reconcileErr != nil {
 		result = multierror.Append(reconcileErr, result)
@@ -56,12 +58,34 @@ func (r *Reconciler) Run(ctx context.Context) error {
 		result = multierror.Append(err, result)
 	}
 
+	r.reportReconcileMetrics(ctx, startTime, result)
+
 	return result.ErrorOrNil()
 }
 
-func (r *Reconciler) run(ctx context.Context) (string, error) {
+func (r *Reconciler) reportReconcileMetrics(ctx context.Context, startTime time.Time, result *multierror.Error) {
 	log := logr.FromContextOrDiscard(ctx)
 
+	endTime := time.Now()
+	reconcileDuration := endTime.Sub(startTime)
+
+	err := r.metricsClient.Duration(ctx, "Reconcile Duration (s)", reconcileDuration)
+	if err != nil {
+		log.Error(err, "unable to push metrics for reconcile duration")
+	}
+
+	success := true
+	if result.ErrorOrNil() != nil {
+		success = false
+	}
+
+	err = r.metricsClient.Success(ctx, "Reconcile Result", success)
+	if err != nil {
+		log.Error(err, "unable to push metrics for reconcile result")
+	}
+}
+
+func (r *Reconciler) run(ctx context.Context) (string, error) {
 	sourceApps, revision, err := r.getSourceApps(ctx)
 	if err != nil {
 		return revision, err
@@ -69,10 +93,7 @@ func (r *Reconciler) run(ctx context.Context) (string, error) {
 
 	r.filterSourceApps(ctx, sourceApps)
 
-	err = r.metricsClient.Int(ctx, "SourceApps", len(*sourceApps))
-	if err != nil {
-		log.Error(err, "unable to push metrics")
-	}
+	r.reportSourceAppsMetrics(ctx, sourceApps)
 
 	err = r.populateSourceAppsSecrets(ctx, sourceApps)
 	if err != nil {
@@ -105,6 +126,14 @@ func (r *Reconciler) run(ctx context.Context) (string, error) {
 	}
 
 	return revision, nil
+}
+
+func (r *Reconciler) reportSourceAppsMetrics(ctx context.Context, sourceApps *source.SourceApps) {
+	log := logr.FromContextOrDiscard(ctx)
+	err := r.metricsClient.Int(ctx, "Source App Count", len(*sourceApps))
+	if err != nil {
+		log.Error(err, "unable to push metrics for source app count")
+	}
 }
 
 func (r *Reconciler) getSourceApps(ctx context.Context) (*source.SourceApps, string, error) {
