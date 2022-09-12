@@ -46,11 +46,6 @@ func sanitizeAzureLocation(location string) string {
 	return lowercaseLocation
 }
 
-func (m *AzureMetrics) Float64(ctx context.Context, metricName string, metric float64) error {
-	customMetrics := newCustomMetrics(m.azureRegion, metricName, metric)
-	return m.create(ctx, customMetrics)
-}
-
 func (m *AzureMetrics) Int(ctx context.Context, metricName string, metric int) error {
 	customMetrics := newCustomMetrics(m.azureRegion, metricName, float64(metric))
 	return m.create(ctx, customMetrics)
