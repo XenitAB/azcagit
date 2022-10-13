@@ -34,11 +34,19 @@ func (r *RemoteSecretSpecification) Valid() bool {
 }
 
 type LocationFilterSpecification string
+type ImageReplacementSpecification struct {
+	ImageName   *string `json:"imageName,omitempty" yaml:"imageName,omitempty"`
+	NewImageTag *string `json:"newImageTag,omitempty" yaml:"newImageTag,omitempty"`
+}
+type ReplacementsSpecification struct {
+	Images []ImageReplacementSpecification `json:"images,omitempty" yaml:"image,omitempty"`
+}
 
 type SourceAppSpecification struct {
 	App            *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
 	RemoteSecrets  []RemoteSecretSpecification    `json:"remoteSecrets,omitempty" yaml:"remoteSecrets,omitempty"`
 	LocationFilter []LocationFilterSpecification  `json:"locationFilter,omitempty" yaml:"locationFilter,omitempty"`
+	Replacements   *ReplacementsSpecification     `json:"replacements,omitempty" yaml:"replacements,omitempty"`
 }
 
 type SourceApp struct {
@@ -253,7 +261,34 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 
 	newapp.Specification.App.Tags["aca.xenit.io"] = toPtr("true")
 
+	err = newapp.applyReplacements()
+	if err != nil {
+		return err
+	}
+
 	*app = newapp
+	return nil
+}
+
+func (app *SourceApp) applyReplacements() error {
+	if app.Specification.Replacements != nil && app.Specification.Replacements.Images != nil && len(app.Specification.Replacements.Images) != 0 {
+		if app.Specification.App.Properties.Template == nil || app.Specification.App.Properties.Template.Containers == nil || len(app.Specification.App.Properties.Template.Containers) == 0 {
+			return fmt.Errorf("no containers found")
+		}
+		for i, container := range app.Specification.App.Properties.Template.Containers {
+			if container.Image == nil || *container.Image == "" {
+				return fmt.Errorf("no image found for container %d", i)
+			}
+			oldImage := *container.Image
+			imageParts := strings.Split(oldImage, ":")
+			imageName := imageParts[0]
+			for _, replacementImage := range app.Specification.Replacements.Images {
+				if imageName == *replacementImage.ImageName {
+					*app.Specification.App.Properties.Template.Containers[i].Image = fmt.Sprintf("%s:%s", imageName, *replacementImage.NewImageTag)
+				}
+			}
+		}
+	}
 	return nil
 }
 

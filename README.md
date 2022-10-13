@@ -34,6 +34,10 @@ spec:
   remoteSecrets:
     - appSecretName: connection-string
       remoteSecretName: mssql-connection-string
+  replacements:
+    images:
+      - imageName: "mcr.microsoft.com/azuredocs/containerapps-helloworld"
+        newImageTag: "v0.1"
   app:
     properties:
       configuration:
