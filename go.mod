@@ -18,7 +18,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/libgit2/git2go/v33 v33.0.9
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
-	github.com/onsi/gomega v1.20.0
 	github.com/stretchr/testify v1.8.0
 	github.com/whilp/git-urls v1.0.0
 	go.uber.org/zap v1.23.0
@@ -94,7 +93,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503 // indirect
-	golang.org/x/net v0.0.0-20220822230855-b0a4917ee28c // indirect
+	golang.org/x/net v0.0.0-20221012135044-0b7e1fb9d458 // indirect
 	golang.org/x/sys v0.0.0-20220817070843-5a390386f1f2 // indirect
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
 	golang.org/x/text v0.3.7 // indirect
