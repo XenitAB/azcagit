@@ -161,6 +161,81 @@ spec:
 			},
 			expectedError: "",
 		},
+		{
+			testDescription: "validate that image replacement works",
+			rawYaml: `
+kind: AzureContainerApp
+apiVersion: aca.xenit.io/v1alpha1
+metadata:
+  name: foo
+spec:
+  replacements:
+    images:
+      - imageName: "mcr.microsoft.com/azuredocs/containerapps-helloworld"
+        newImageTag: "v0.1"
+  app:
+    properties:
+      configuration:
+        activeRevisionsMode: Single
+      template:
+        containers:
+        - name: simple-hello-world-container
+          image: mcr.microsoft.com/azuredocs/containerapps-helloworld:latest
+          resources:
+            cpu: 0.25
+            memory: .5Gi
+        scale:
+          minReplicas: 1
+          maxReplicas: 1
+`,
+			expectedResult: SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &SourceAppSpecification{
+					Replacements: &ReplacementsSpecification{
+						Images: []ImageReplacementSpecification{
+							{
+								ImageName:   toPtr("mcr.microsoft.com/azuredocs/containerapps-helloworld"),
+								NewImageTag: toPtr("v0.1"),
+							},
+						},
+					},
+					App: &armappcontainers.ContainerApp{
+						Location: toPtr("ze-location"),
+						Tags: map[string]*string{
+							"aca.xenit.io": toPtr("true"),
+						},
+						Identity: nil,
+						Properties: &armappcontainers.ContainerAppProperties{
+							ManagedEnvironmentID: toPtr("ze-managedEnvironmentID"),
+							Configuration: &armappcontainers.Configuration{
+								ActiveRevisionsMode: toPtr(armappcontainers.ActiveRevisionsModeSingle),
+							},
+							Template: &armappcontainers.Template{
+								Containers: []*armappcontainers.Container{
+									{
+										Name:  toPtr("simple-hello-world-container"),
+										Image: toPtr("mcr.microsoft.com/azuredocs/containerapps-helloworld:v0.1"),
+										Resources: &armappcontainers.ContainerResources{
+											CPU:    toPtr(float64(0.25)),
+											Memory: toPtr(".5Gi"),
+										},
+									},
+								},
+								Scale: &armappcontainers.Scale{
+									MaxReplicas: toPtr(int32(1)),
+									MinReplicas: toPtr(int32(1)),
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedError: "",
+		},
 	}
 
 	for i, c := range cases {
