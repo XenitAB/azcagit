@@ -33,6 +33,12 @@ resource "azurerm_key_vault_access_policy" "tenant_azcagit" {
 }
 
 resource "azurerm_key_vault_access_policy" "tenant_current" {
+  for_each = {
+    for s in ["current"] :
+    s => s
+    if var.add_permissions_to_current_user
+  }
+
   key_vault_id = azurerm_key_vault.tenant_kv.id
   tenant_id    = data.azurerm_client_config.current.tenant_id
   object_id    = data.azuread_client_config.current.object_id

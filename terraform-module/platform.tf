@@ -4,6 +4,12 @@ resource "azurerm_resource_group" "platform" {
 }
 
 resource "azurerm_role_assignment" "current_platform_metrics_publisher" {
+  for_each = {
+    for s in ["current"] :
+    s => s
+    if var.add_permissions_to_current_user
+  }
+
   scope                = azurerm_resource_group.platform.id
   role_definition_name = "Monitoring Metrics Publisher"
   principal_id         = data.azuread_client_config.current.object_id
@@ -70,6 +76,12 @@ resource "azuread_group" "azcagit_trigger" {
 }
 
 resource "azuread_group_member" "azcagit_trigger" {
+  for_each = {
+    for s in ["current"] :
+    s => s
+    if var.add_permissions_to_current_user
+  }
+
   group_object_id  = azuread_group.azcagit_trigger.id
   member_object_id = data.azuread_client_config.current.object_id
 }

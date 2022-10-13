@@ -39,3 +39,9 @@ variable "azcagit_version" {
   description = "The version of azcagit to use"
   type        = string
 }
+
+variable "add_permissions_to_current_user" {
+  description = "Enable if you want permissions be added to the current user"
+  type        = bool
+  default     = false
+}
