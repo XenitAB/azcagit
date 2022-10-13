@@ -71,6 +71,7 @@ YAML-files can contain one or more documents (with `---` as a document separator
 - Send notifications to the git commits
 - Filter locations, making it possible to specify in the manifest what regions can run the app
 - Push custom metrics to Azure monitor
+- Functionality to replace the image tag using `spec.replacements.images`
 
 ## Frequently Asked Questions
 
@@ -145,6 +146,10 @@ It makes it possible to specify `spec.locationFilter` with an array of what Azur
 If you open the `azcagit` container app (in the platform resource group) and go to Monitoring and then Metrics, you can choose the namespace azcagit and then the specific metrics you want to look at.
 
 ![custom-metrics](docs/custom-metrics.png "Example custom metrics in Azure")
+
+> How does the image tag replacement work?
+
+If an image replacement is configured, it will match for the image name and if found it will apply the newImageTag.
 
 ## Things TODO in the future
 
