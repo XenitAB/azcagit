@@ -1,4 +1,4 @@
-FROM golang:1.19.0-alpine3.15 as builder
+FROM golang:1.19.2-alpine3.15 as builder
 RUN apk add --no-cache --repository http://dl-cdn.alpinelinux.org/alpine/v3.15/main/ gcc=~10.3 pkgconfig=~1.7 musl-dev=~1.2 libgit2-dev=~1.3 binutils-gold=~2.37
 WORKDIR /workspace
 COPY go.mod go.mod
