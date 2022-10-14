@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	ResourceGroupName         string `json:"resource_group_name" arg:"-g,--resource-group-name,env:RESOURCE_GROUP_NAME,required" help:"Azure Resource Group Name"`
+	Environment               string `json:"environment" arg:"--environment,env:ENVIRONMENT,required" help:"The current environment that azcagit is running in"`
 	SubscriptionID            string `json:"subscription_id" arg:"-s,--subscription-id,env:AZURE_SUBSCRIPTION_ID,required" help:"Azure Subscription ID"`
 	ManagedEnvironmentID      string `json:"managed_environment_id" arg:"-m,--managed-environment-id,env:MANAGED_ENVIRONMENT_ID,required" help:"Azure Container Apps Managed Environment ID"`
 	KeyVaultName              string `json:"key_vault_name" arg:"-k,--key-vault-name,env:KEY_VAULT_NAME,required" help:"Azure KeyVault name to extract secrets from"`
@@ -26,6 +27,7 @@ type Config struct {
 	DaprPubsubName            string `json:"dapr_pubsub_name" arg:"--dapr-pubsub-name,env:DAPR_PUBSUB_NAME" default:"azcagit-trigger" help:"The PubSub name for the trigger"`
 	DaprTopic                 string `json:"dapr_topic" arg:"--dapr-topic-name,env:DAPR_TOPIC_NAME,required" help:"The PubSub topic name for the trigger"`
 	NotificationsEnabled      bool   `json:"notifications_enabled" arg:"--notifications-enabled,env:NOTIFICATIONS_ENABLED" default:"false" help:"Sets if Notifications should be sent to the git provider, should be disabled if no token is provided in git url"`
+	NotificationGroup         string `json:"notification_group" arg:"--notification-group,env:NOTIFICATION_GROUP" default:"apps" help:"The notification group used by gitops-promotion"`
 	DebugEnabled              bool   `json:"debug_enabled" arg:"--debug,env:DEBUG" default:"false" help:"Enabled debug logging"`
 }
 

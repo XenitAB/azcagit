@@ -78,7 +78,8 @@ func (a *AzureDevOpsNotification) Send(ctx context.Context, event NotificationEv
 			Description: &event.Description,
 			State:       &state,
 			Context: &git.GitStatusContext{
-				Genre: toPtr("azcagit"),
+				// using fluxcd to be compatible with gitops-promotion
+				Genre: toPtr("fluxcd"),
 				Name:  &event.Name,
 			},
 		},

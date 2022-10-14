@@ -11,6 +11,8 @@ func TestNewConfig(t *testing.T) {
 		"/foo/bar/bin",
 		"--resource-group-name",
 		"foo",
+		"--environment",
+		"foobar",
 		"--subscription-id",
 		"bar",
 		"--managed-environment-id",
@@ -30,6 +32,7 @@ func TestNewConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, Config{
 		ResourceGroupName:    "foo",
+		Environment:          "foobar",
 		SubscriptionID:       "bar",
 		ManagedEnvironmentID: "baz",
 		KeyVaultName:         "ze-keyvault",
@@ -43,6 +46,7 @@ func TestNewConfig(t *testing.T) {
 		DaprAppPort:          8080,
 		DaprPubsubName:       "azcagit-trigger",
 		DaprTopic:            "ze-topic",
+		NotificationGroup:    "apps",
 	}, cfg)
 }
 
