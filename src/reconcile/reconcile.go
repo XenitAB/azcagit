@@ -334,7 +334,7 @@ func (r *Reconciler) sendNotification(ctx context.Context, revision string, reco
 		state = notification.NotificationStateFailure
 	}
 
-	name := strings.ToLower(fmt.Sprintf("%s-%s", r.cfg.NotificationGroup, r.cfg.Environment))
+	name := strings.ToLower(fmt.Sprintf("%s/%s-%s", r.cfg.ResourceGroupName, r.cfg.NotificationGroup, r.cfg.Environment))
 	event := notification.NotificationEvent{
 		Revision:    revision,
 		State:       state,
