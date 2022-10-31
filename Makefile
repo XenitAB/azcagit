@@ -76,3 +76,6 @@ docker-run: docker-build
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
 		--git-yaml-path "yaml/"
+
+k6-http-get:
+	k6 run -e LOAD_TEST_URI=$${LOAD_TEST_URI} test/k6/http_get.js
