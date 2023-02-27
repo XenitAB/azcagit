@@ -30,24 +30,24 @@ func NewKeyVaultSecret(cfg config.Config, cred azcore.TokenCredential) (*KeyVaul
 
 func (s *KeyVaultSecret) ListItems(ctx context.Context) (*Items, error) {
 	items := make(Items)
-	pager := s.client.ListPropertiesOfSecrets(&azsecrets.ListSecretsOptions{})
+	pager := s.client.NewListSecretsPager(&azsecrets.ListSecretsOptions{})
 	for pager.More() {
 		nextResult, err := pager.NextPage(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		for _, item := range nextResult.Secrets {
-			changedAt := item.Properties.UpdatedOn
+		for _, item := range nextResult.Value {
+			changedAt := item.Attributes.Updated
 			if changedAt == nil {
-				if item.Properties.CreatedOn == nil {
+				if item.Attributes.Created == nil {
 					return nil, fmt.Errorf("both UpdatedOn and CreatedOn are nil")
 				}
-				changedAt = item.Properties.CreatedOn
+				changedAt = item.Attributes.Created
 			}
 
-			items[*item.Name] = Item{
-				name:      *item.Name,
+			items[item.ID.Name()] = Item{
+				name:      item.ID.Name(),
 				changedAt: *changedAt,
 			}
 		}
@@ -57,7 +57,7 @@ func (s *KeyVaultSecret) ListItems(ctx context.Context) (*Items, error) {
 }
 
 func (s *KeyVaultSecret) Get(ctx context.Context, name string) (string, time.Time, error) {
-	res, err := s.client.GetSecret(ctx, name, &azsecrets.GetSecretOptions{})
+	res, err := s.client.GetSecret(ctx, name, "", &azsecrets.GetSecretOptions{})
 	if err != nil {
 		return "", time.Time{}, err
 	}
@@ -66,12 +66,12 @@ func (s *KeyVaultSecret) Get(ctx context.Context, name string) (string, time.Tim
 		return "", time.Time{}, fmt.Errorf("value for secret %q is nil", name)
 	}
 
-	changedAt := res.Properties.UpdatedOn
+	changedAt := res.Attributes.Updated
 	if changedAt == nil {
-		if res.Properties.CreatedOn == nil {
+		if res.Attributes.Created == nil {
 			return "", time.Time{}, fmt.Errorf("both UpdatedOn and CreatedOn are nil")
 		}
-		changedAt = res.Properties.CreatedOn
+		changedAt = res.Attributes.Created
 	}
 
 	return *res.Value, *changedAt, nil

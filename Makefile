@@ -23,7 +23,7 @@ vet:
 
 .PHONY: build
 build:
-	go build -o bin/azcagit ./src/main.go
+	CGO_ENABLED=0  go build -installsuffix 'static' -o bin/azcagit ./src/main.go
 
 .PHONY: test
 test: fmt vet
