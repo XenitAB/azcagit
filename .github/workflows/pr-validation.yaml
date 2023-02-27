@@ -15,16 +15,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: "^1.20.1"
-      - name: Install libgit2
-        run: |
-          cd /tmp
-          git clone https://github.com/libgit2/libgit2.git
-          cd libgit2
-          git checkout maint/v1.3
-          mkdir build && cd build
-          cmake ..
-          sudo cmake --build . --target install
-          sudo ldconfig
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3.2.0
         with:
@@ -58,16 +48,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: "^1.20.1"
-      - name: Install libgit2
-        run: |
-          cd /tmp
-          git clone https://github.com/libgit2/libgit2.git
-          cd libgit2
-          git checkout maint/v1.3
-          mkdir build && cd build
-          cmake ..
-          sudo cmake --build . --target install
-          sudo ldconfig
       - name: Run build
         run: |
           make build
@@ -81,16 +61,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: "^1.20.1"
-      - name: Install libgit2
-        run: |
-          cd /tmp
-          git clone https://github.com/libgit2/libgit2.git
-          cd libgit2
-          git checkout maint/v1.3
-          mkdir build && cd build
-          cmake ..
-          sudo cmake --build . --target install
-          sudo ldconfig
       - name: Run test
         run: |
           make test
@@ -104,16 +74,6 @@ jobs:
         uses: actions/setup-go@v3
         with:
           go-version: "^1.20.1"
-      - name: Install libgit2
-        run: |
-          cd /tmp
-          git clone https://github.com/libgit2/libgit2.git
-          cd libgit2
-          git checkout maint/v1.3
-          mkdir build && cd build
-          cmake ..
-          sudo cmake --build . --target install
-          sudo ldconfig
       - name: coverage
         run: |
           make cover

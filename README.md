@@ -106,7 +106,7 @@ It will be updated based on the manifest.
 
 > What git providers are supported?
 
-Most likely those supported by libgit2 / git2go, but with that said has only Azure DevOps (Azure Repositories) and GitHub been tested. If you need it with on-prem/enterprise variants of them or another git provider doesn't work as expected, create an issue or PR.
+Most likely those supported by go-git, but with that said has only Azure DevOps (Azure Repositories) and GitHub been tested. If you need it with on-prem/enterprise variants of them or another git provider doesn't work as expected, create an issue or PR.
 
 > Are private git repositories supported?
 
@@ -182,20 +182,6 @@ go run ./trigger-client -n example.servicebus.windows.net -t azcagit_trigger
 Please note that this requires you to be authenticated with either the Azure CLI and have access to publish to this topic with your current user, or use environment varaibles with a service principal that has access.
 
 ## Local development
-
-### libgit2
-
-`libgit2` (`v1.3.0`) is required to be [installed locally](https://github.com/libgit2/libgit2#installation).
-
-If you are using Arch based distribution, please follow the guidelines below:
-
-```shell
-cd /tmp
-git clone https://aur.archlinux.org/libgit2-git.git
-cd libgit2-git
-sed -i 's|\(git+https://github.com/libgit2/libgit2.git\)|\1#tag=v1.3.0|g' PKGBUILD
-makepkg -si
-```
 
 ### Configuration parameters
 

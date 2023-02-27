@@ -75,6 +75,9 @@ func (s *GitSource) checkout(ctx context.Context) (*map[string][]byte, string, e
 	cloneOpts := repository.CloneOptions{
 		ShallowClone:      true,
 		RecurseSubmodules: true,
+		CheckoutStrategy: repository.CheckoutStrategy{
+			Branch: s.cfg.GitBranch,
+		},
 	}
 	commit, err := gitReader.Clone(ctx, s.cfg.GitUrl, cloneOpts)
 	if err != nil {
@@ -84,7 +87,7 @@ func (s *GitSource) checkout(ctx context.Context) (*map[string][]byte, string, e
 
 	log.V(1).Info("commit data", "ShortMessage", commit.ShortMessage(), "String", commit.String(), "commit", commit)
 
-	revision := string(commit.Hash)
+	revision := commit.Hash.String()
 	log.V(1).Info("current revision", "revision", revision)
 	if revision != s.lastRevision {
 		log.Info("new commit hash", "new_revision", revision, "last_revision", s.lastRevision)
