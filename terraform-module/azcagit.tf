@@ -40,102 +40,86 @@ resource "azurerm_role_assignment" "azcagit_tenant" {
   principal_id         = azuread_service_principal.azcagit.object_id
 }
 
-resource "azapi_resource" "container_app_azcagit" {
-  type                      = "Microsoft.App/containerapps@2022-03-01"
-  name                      = "azcagit"
-  parent_id                 = azurerm_resource_group.platform.id
-  location                  = azurerm_resource_group.platform.location
-  schema_validation_enabled = false
+resource "azurerm_container_app" "azcagit" {
+  name                         = "azcagit"
+  container_app_environment_id = azurerm_container_app_environment.this.id
+  resource_group_name          = azurerm_resource_group.platform.name
+  revision_mode                = "Single"
 
-  body = jsonencode({
-    properties = {
-      managedEnvironmentId = azapi_resource.managed_environment.id
-      configuration = {
-        activeRevisionsMode = "Single"
-        dapr = {
-          appId       = "azcagit"
-          appPort     = 8080
-          appProtocol = "http"
-          enabled     = true
-        }
-        secrets = [
-          {
-            name  = "git-url"
-            value = local.git_full_url
-          },
-          {
-            name  = "container-registry-password"
-            value = azurerm_container_registry.tenant.admin_password
-          },
-          {
-            name  = "azure-tenant-id"
-            value = data.azurerm_client_config.current.tenant_id
-          },
-          {
-            name  = "azure-client-id"
-            value = azuread_application.azcagit.application_id
-          },
-          {
-            name  = "azure-client-secret"
-            value = azuread_application_password.azcagit.value
-          }
-        ]
+  template {
+    container {
+      name  = "azcagit"
+      image = "ghcr.io/xenitab/azcagit:${var.azcagit_version}"
+      args = [
+        "--resource-group-name", azurerm_resource_group.tenant.name,
+        "--environment", var.environment,
+        "--subscription-id", data.azurerm_client_config.current.subscription_id,
+        "--managed-environment-id", azurerm_container_app_environment.this.id,
+        "--key-vault-name", azurerm_key_vault.tenant_kv.name,
+        "--own-resource-group-name", azurerm_resource_group.platform.name,
+        "--container-registry-server", azurerm_container_registry.tenant.login_server,
+        "--container-registry-username", azurerm_container_registry.tenant.admin_username,
+        "--location", azurerm_resource_group.tenant.location,
+        "--dapr-topic-name", azurerm_servicebus_topic.azcagit_trigger.name,
+        "--reconcile-interval", "5m",
+        "--git-branch", var.git_config.branch,
+        "--git-yaml-path", var.git_config.path,
+        "--notifications-enabled"
+      ]
+
+      env {
+        name        = "GIT_URL"
+        secret_name = "git-url"
       }
-      template = {
-        containers = [
-          {
-            name  = "azcagit"
-            image = "ghcr.io/xenitab/azcagit:${var.azcagit_version}"
-            args = [
-              "--resource-group-name", azurerm_resource_group.tenant.name,
-              "--environment", var.environment,
-              "--subscription-id", data.azurerm_client_config.current.subscription_id,
-              "--managed-environment-id", azapi_resource.managed_environment.id,
-              "--key-vault-name", azurerm_key_vault.tenant_kv.name,
-              "--own-resource-group-name", azurerm_resource_group.platform.name,
-              "--container-registry-server", azurerm_container_registry.tenant.login_server,
-              "--container-registry-username", azurerm_container_registry.tenant.admin_username,
-              "--location", azurerm_resource_group.tenant.location,
-              "--dapr-topic-name", azurerm_servicebus_topic.azcagit_trigger.name,
-              "--reconcile-interval", "5m",
-              "--git-branch", var.git_config.branch,
-              "--git-yaml-path", var.git_config.path,
-              "--notifications-enabled"
-            ]
-            env = [
-              {
-                name      = "GIT_URL"
-                secretRef = "git-url"
-              },
-              {
-                name      = "CONTAINER_REGISTRY_PASSWORD"
-                secretRef = "container-registry-password"
-              },
-              {
-                name      = "AZURE_TENANT_ID"
-                secretRef = "azure-tenant-id"
-              },
-              {
-                name      = "AZURE_CLIENT_ID"
-                secretRef = "azure-client-id"
-              },
-              {
-                name      = "AZURE_CLIENT_SECRET"
-                secretRef = "azure-client-secret"
-              },
-            ]
-            resources = {
-              cpu    = ".25"
-              memory = ".5Gi"
-            }
-          }
-        ]
-        scale = {
-          minReplicas = 1
-          maxReplicas = 1
-          rules       = []
-        }
+      env {
+        name        = "CONTAINER_REGISTRY_PASSWORD"
+        secret_name = "container-registry-password"
       }
+      env {
+        name        = "AZURE_TENANT_ID"
+        secret_name = "azure-tenant-id"
+      }
+      env {
+        name        = "AZURE_CLIENT_ID"
+        secret_name = "azure-client-id"
+      }
+      env {
+        name        = "AZURE_CLIENT_SECRET"
+        secret_name = "azure-client-secret"
+      }
+
+      memory = "0.5Gi"
+      cpu    = "0.25"
     }
-  })
+
+    min_replicas = 1
+    max_replicas = 1
+  }
+
+  secret {
+    name  = "git-url"
+    value = local.git_full_url
+  }
+  secret {
+    name  = "container-registry-password"
+    value = azurerm_container_registry.tenant.admin_password
+  }
+  secret {
+    name  = "azure-tenant-id"
+    value = data.azurerm_client_config.current.tenant_id
+  }
+  secret {
+    name  = "azure-client-id"
+    value = azuread_application.azcagit.application_id
+  }
+  secret {
+    name  = "azure-client-secret"
+    value = azuread_application_password.azcagit.value
+  }
+
+  dapr {
+    app_id       = "azcagit"
+    app_port     = 8080
+    app_protocol = "http"
+  }
 }

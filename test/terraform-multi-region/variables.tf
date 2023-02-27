@@ -14,3 +14,9 @@ variable "azcagit_version" {
   description = "The version of azcagit to use"
   type        = string
 }
+
+variable "unique_suffix" {
+  description = "Unique suffix that is used in globally unique resources names"
+  type        = string
+  default     = ""
+}

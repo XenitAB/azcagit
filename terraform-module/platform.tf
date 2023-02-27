@@ -37,30 +37,14 @@ resource "azurerm_subnet" "this" {
   address_prefixes     = ["10.0.0.0/20"]
 }
 
-resource "azapi_resource" "managed_environment" {
-  type                      = "Microsoft.App/managedEnvironments@2022-03-01"
-  name                      = "me-${local.eln}"
-  parent_id                 = azurerm_resource_group.platform.id
-  location                  = azurerm_resource_group.platform.location
-  schema_validation_enabled = false
-
-  body = jsonencode({
-    properties = {
-      internalLoadBalancerEnabled = false
-      appLogsConfiguration = {
-        destination = "log-analytics"
-        logAnalyticsConfiguration = {
-          customerId = azurerm_log_analytics_workspace.this.workspace_id
-          sharedKey  = azurerm_log_analytics_workspace.this.primary_shared_key
-        }
-      }
-      vnetConfiguration = {
-        infrastructureSubnetId = azurerm_subnet.this.id
-        internal               = false
-      },
-      zoneRedundant = true
-    }
-  })
+# FIXME: Add zone_redundant when supported: https://github.com/hashicorp/terraform-provider-azurerm/issues/20538
+resource "azurerm_container_app_environment" "this" {
+  name                           = "me-${local.eln}"
+  location                       = azurerm_resource_group.platform.location
+  resource_group_name            = azurerm_resource_group.platform.name
+  log_analytics_workspace_id     = azurerm_log_analytics_workspace.this.id
+  infrastructure_subnet_id       = azurerm_subnet.this.id
+  internal_load_balancer_enabled = false
 }
 
 resource "azurerm_servicebus_namespace" "azcagit_trigger" {
@@ -98,31 +82,22 @@ resource "azurerm_servicebus_topic" "azcagit_trigger" {
 
   enable_partitioning = true
 }
-resource "azapi_resource" "dapr_azcagit_trigger" {
-  type                      = "Microsoft.App/managedEnvironments/daprComponents@2022-03-01"
-  name                      = "azcagit-trigger"
-  parent_id                 = azapi_resource.managed_environment.id
-  schema_validation_enabled = false
 
-  body = jsonencode({
-    properties = {
-      componentType = "pubsub.azure.servicebus"
-      version       = "v1"
-      metadata = [
-        {
-          name      = "connectionString"
-          secretRef = "sb-root-connectionstring"
-        }
-      ]
-      secrets = [
-        {
-          name  = "sb-root-connectionstring"
-          value = azurerm_servicebus_namespace.azcagit_trigger.default_primary_connection_string
-        }
-      ]
-      scopes = [
-        "azcagit"
-      ]
-    }
-  })
+resource "azurerm_container_app_environment_dapr_component" "azcagit_trigger" {
+  name                         = "azcagit-trigger"
+  container_app_environment_id = azurerm_container_app_environment.this.id
+  component_type               = "pubsub.azure.servicebus"
+  version                      = "v1"
+  scopes                       = ["azcagit"]
+
+  secret {
+    name  = "sb-root-connectionstring"
+    value = azurerm_servicebus_namespace.azcagit_trigger.default_primary_connection_string
+  }
+
+  metadata {
+    name        = "connectionString"
+    secret_name = "sb-root-connectionstring"
+  }
 }
+
