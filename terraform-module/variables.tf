@@ -45,3 +45,15 @@ variable "add_permissions_to_current_user" {
   type        = bool
   default     = false
 }
+
+variable "network" {
+  description = "The network configuration"
+  type = object({
+    virtual_network_address_space = string
+    subnet_address_prefix         = string
+  })
+  default = {
+    virtual_network_address_space = "10.0.0.0/16"
+    subnet_address_prefix         = "10.0.0.0/20"
+  }
+}

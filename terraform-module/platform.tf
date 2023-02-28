@@ -27,14 +27,14 @@ resource "azurerm_virtual_network" "this" {
   name                = "vnet-${local.eln}"
   location            = azurerm_resource_group.platform.location
   resource_group_name = azurerm_resource_group.platform.name
-  address_space       = ["10.0.0.0/16"]
+  address_space       = [var.network.virtual_network_address_space]
 }
 
 resource "azurerm_subnet" "this" {
   name                 = "snet-${local.eln}-ca"
   resource_group_name  = azurerm_resource_group.platform.name
   virtual_network_name = azurerm_virtual_network.this.name
-  address_prefixes     = ["10.0.0.0/20"]
+  address_prefixes     = [var.network.subnet_address_prefix]
 }
 
 # FIXME: Add zone_redundant when supported: https://github.com/hashicorp/terraform-provider-azurerm/issues/20538
