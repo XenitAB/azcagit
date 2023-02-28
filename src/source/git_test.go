@@ -76,12 +76,17 @@ func TestGitSource(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(server.Root())
 
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
 	err = server.StartHTTP()
 	require.NoError(t, err)
 	defer server.StopHTTP()
 
 	repoPath := "test.git"
 	defaultBranch := "master"
+
+	// the fixture path can't be empty or it will return an error: clean working tree
 	tmpFixtureDir := t.TempDir()
 	err = os.WriteFile(filepath.Clean(fmt.Sprintf("%s/foo.txt", tmpFixtureDir)), []byte("test file"), 0600)
 	require.NoError(t, err)
@@ -104,23 +109,24 @@ func TestGitSource(t *testing.T) {
 	require.NoError(t, err)
 	defer ggc.Close()
 
-	_, err = ggc.Clone(context.Background(), repoURL, repository.CloneOptions{})
+	// an initial clone is required, or else the client won't have a repository and commands will fail
+	_, err = ggc.Clone(ctx, repoURL, repository.CloneOptions{})
 	require.NoError(t, err)
 
-	firstCommit, err := testCommitFile(t, ggc, "foo1.yaml", testFixtureYAML1, time.Now())
+	firstCommit, err := testCommitFile(t, ctx, ggc, "foo1.yaml", testFixtureYAML1)
 	require.NoError(t, err)
 
-	firstSourceApps, firstRevision, err := sourceClient.Get(context.TODO())
+	firstSourceApps, firstRevision, err := sourceClient.Get(ctx)
 	require.NoError(t, err)
 	require.Equal(t, firstCommit, firstRevision)
 	require.NotNil(t, firstSourceApps)
 	require.NoError(t, firstSourceApps.Error())
 	require.Len(t, firstSourceApps.GetSortedNames(), 1)
 
-	secondCommit, err := testCommitFile(t, ggc, "foo2.yaml", testFixtureYAML2, time.Now())
+	secondCommit, err := testCommitFile(t, ctx, ggc, "foo2.yaml", testFixtureYAML2)
 	require.NoError(t, err)
 
-	secondSourceApps, secondRevision, err := sourceClient.Get(context.TODO())
+	secondSourceApps, secondRevision, err := sourceClient.Get(ctx)
 	require.NoError(t, err)
 	require.Equal(t, secondCommit, secondRevision)
 	require.NotNil(t, secondSourceApps)
@@ -128,7 +134,7 @@ func TestGitSource(t *testing.T) {
 	require.Len(t, secondSourceApps.GetSortedNames(), 2)
 }
 
-func testCommitFile(t *testing.T, ggc *gg.Client, path, content string, time time.Time) (string, error) {
+func testCommitFile(t *testing.T, ctx context.Context, ggc *gg.Client, path, content string) (string, error) {
 	t.Helper()
 
 	ref, err := ggc.Head()
@@ -148,7 +154,8 @@ func testCommitFile(t *testing.T, ggc *gg.Client, path, content string, time tim
 	)
 	require.NoError(t, err)
 
-	err = ggc.Push(context.TODO())
+	// the commit needs to be pushed
+	err = ggc.Push(ctx)
 	require.NoError(t, err)
 
 	newRef, err := ggc.Head()
