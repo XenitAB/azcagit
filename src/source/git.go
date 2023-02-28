@@ -3,12 +3,13 @@ package source
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 
-	"github.com/fluxcd/source-controller/pkg/git"
-	"github.com/fluxcd/source-controller/pkg/git/libgit2"
-	"github.com/fluxcd/source-controller/pkg/git/strategy"
+	"github.com/fluxcd/pkg/git"
+	"github.com/fluxcd/pkg/git/gogit"
+	"github.com/fluxcd/pkg/git/repository"
 	"github.com/go-logr/logr"
 	"github.com/xenitab/azcagit/src/config"
 )
@@ -47,28 +48,46 @@ func (s *GitSource) checkout(ctx context.Context) (*map[string][]byte, string, e
 
 	defer tmpDirCleanup()
 
-	checkoutOpts := git.CheckoutOptions{
-		Branch:       s.cfg.GitBranch,
-		LastRevision: s.lastRevision,
-	}
-
-	strat, err := strategy.CheckoutStrategyForImplementation(ctx, libgit2.Implementation, checkoutOpts)
+	gitUrl, err := url.Parse(s.cfg.GitUrl)
 	if err != nil {
-		log.V(1).Error(err, "failed to set checkout strategy", "git_branch", s.cfg.GitBranch)
+		log.V(1).Error(err, "failed to parse git url")
 		return nil, "", err
 	}
 
-	commit, err := strat.Checkout(ctx, tmpDir, s.cfg.GitUrl, &git.AuthOptions{
-		TransportOptionsURL: s.cfg.GitUrl,
-	})
+	authOpts, err := git.NewAuthOptions(*gitUrl, nil)
 	if err != nil {
-		log.V(1).Error(err, "failed to checkout")
+		log.V(1).Error(err, "failed to parse auth options")
+		return nil, "", err
+	}
+
+	clientOpts := []gogit.ClientOption{gogit.WithDiskStorage()}
+	if authOpts.Transport == git.HTTP {
+		clientOpts = append(clientOpts, gogit.WithInsecureCredentialsOverHTTP())
+	}
+
+	gitReader, err := gogit.NewClient(tmpDir, authOpts, clientOpts...)
+	if err != nil {
+		log.V(1).Error(err, "failed to create git client")
+		return nil, "", err
+	}
+	defer gitReader.Close()
+
+	cloneOpts := repository.CloneOptions{
+		ShallowClone:      true,
+		RecurseSubmodules: true,
+		CheckoutStrategy: repository.CheckoutStrategy{
+			Branch: s.cfg.GitBranch,
+		},
+	}
+	commit, err := gitReader.Clone(ctx, s.cfg.GitUrl, cloneOpts)
+	if err != nil {
+		log.V(1).Error(err, "failed to clone")
 		return nil, "", err
 	}
 
 	log.V(1).Info("commit data", "ShortMessage", commit.ShortMessage(), "String", commit.String(), "commit", commit)
 
-	revision := string(commit.Hash)
+	revision := commit.Hash.String()
 	log.V(1).Info("current revision", "revision", revision)
 	if revision != s.lastRevision {
 		log.Info("new commit hash", "new_revision", revision, "last_revision", s.lastRevision)

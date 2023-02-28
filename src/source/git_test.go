@@ -16,13 +16,18 @@ package source
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/fluxcd/pkg/git"
+	gg "github.com/fluxcd/pkg/git/gogit"
+	"github.com/fluxcd/pkg/git/repository"
 	"github.com/fluxcd/pkg/gittestserver"
-	git2go "github.com/libgit2/git2go/v33"
 	"github.com/stretchr/testify/require"
 	"github.com/xenitab/azcagit/src/config"
 )
@@ -71,19 +76,22 @@ func TestGitSource(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(server.Root())
 
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
 	err = server.StartHTTP()
 	require.NoError(t, err)
 	defer server.StopHTTP()
 
 	repoPath := "test.git"
 	defaultBranch := "master"
-	tmpDir := t.TempDir()
-	err = server.InitRepo(tmpDir, defaultBranch, repoPath)
-	require.NoError(t, err)
 
-	repo, err := git2go.OpenRepository(filepath.Join(server.Root(), repoPath))
+	// the fixture path can't be empty or it will return an error: clean working tree
+	tmpFixtureDir := t.TempDir()
+	err = os.WriteFile(filepath.Clean(fmt.Sprintf("%s/foo.txt", tmpFixtureDir)), []byte("test file"), 0600)
 	require.NoError(t, err)
-	defer repo.Free()
+	err = server.InitRepo(tmpFixtureDir, defaultBranch, repoPath)
+	require.NoError(t, err)
 
 	repoURL := server.HTTPAddress() + "/" + repoPath
 	sourceClient, err := NewGitSource(config.Config{
@@ -94,100 +102,65 @@ func TestGitSource(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	firstCommit, err := testCommitFile(t, repo, "foo1.yaml", testFixtureYAML1, time.Now())
+	tmp := t.TempDir()
+	ggc, err := gg.NewClient(tmp, &git.AuthOptions{
+		Transport: git.HTTP,
+	})
+	require.NoError(t, err)
+	defer ggc.Close()
+
+	// an initial clone is required, or else the client won't have a repository and commands will fail
+	_, err = ggc.Clone(ctx, repoURL, repository.CloneOptions{})
 	require.NoError(t, err)
 
-	firstSourceApps, firstRevision, err := sourceClient.Get(context.TODO())
+	firstCommit, err := testCommitFile(t, ctx, ggc, "foo1.yaml", testFixtureYAML1)
 	require.NoError(t, err)
-	require.Equal(t, firstCommit.String(), firstRevision)
+
+	firstSourceApps, firstRevision, err := sourceClient.Get(ctx)
+	require.NoError(t, err)
+	require.Equal(t, firstCommit, firstRevision)
 	require.NotNil(t, firstSourceApps)
 	require.NoError(t, firstSourceApps.Error())
 	require.Len(t, firstSourceApps.GetSortedNames(), 1)
 
-	secondCommit, err := testCommitFile(t, repo, "foo2.yaml", testFixtureYAML2, time.Now())
+	secondCommit, err := testCommitFile(t, ctx, ggc, "foo2.yaml", testFixtureYAML2)
 	require.NoError(t, err)
 
-	secondSourceApps, secondRevision, err := sourceClient.Get(context.TODO())
+	secondSourceApps, secondRevision, err := sourceClient.Get(ctx)
 	require.NoError(t, err)
-	require.Equal(t, secondCommit.String(), secondRevision)
+	require.Equal(t, secondCommit, secondRevision)
 	require.NotNil(t, secondSourceApps)
 	require.NoError(t, secondSourceApps.Error())
 	require.Len(t, secondSourceApps.GetSortedNames(), 2)
 }
 
-func testCommitFile(t *testing.T, repo *git2go.Repository, path, content string, time time.Time) (*git2go.Oid, error) {
+func testCommitFile(t *testing.T, ctx context.Context, ggc *gg.Client, path, content string) (string, error) {
 	t.Helper()
 
-	var parentC []*git2go.Commit
-	head, err := testHeadCommit(t, repo)
-	if err == nil {
-		defer head.Free()
-		parentC = append(parentC, head)
-	}
+	ref, err := ggc.Head()
+	require.NoError(t, err)
 
-	index, err := repo.Index()
-	if err != nil {
-		return nil, err
-	}
-	defer index.Free()
+	_, err = ggc.Commit(
+		git.Commit{
+			Author: git.Signature{
+				Name:  "Jane Doe",
+				Email: "author@example.com",
+			},
+			Message: "testing",
+		},
+		repository.WithFiles(map[string]io.Reader{
+			path: strings.NewReader(content),
+		}),
+	)
+	require.NoError(t, err)
 
-	blobOID, err := repo.CreateBlobFromBuffer([]byte(content))
-	if err != nil {
-		return nil, err
-	}
+	// the commit needs to be pushed
+	err = ggc.Push(ctx)
+	require.NoError(t, err)
 
-	entry := &git2go.IndexEntry{
-		Mode: git2go.FilemodeBlob,
-		Id:   blobOID,
-		Path: path,
-	}
+	newRef, err := ggc.Head()
+	require.NoError(t, err)
+	require.NotEqual(t, ref, newRef)
 
-	if err := index.Add(entry); err != nil {
-		return nil, err
-	}
-	if err := index.Write(); err != nil {
-		return nil, err
-	}
-
-	treeID, err := index.WriteTree()
-	if err != nil {
-		return nil, err
-	}
-
-	tree, err := repo.LookupTree(treeID)
-	if err != nil {
-		return nil, err
-	}
-	defer tree.Free()
-
-	c, err := repo.CreateCommit("HEAD", testMockSignature(t, time), testMockSignature(t, time), "Committing "+path, tree, parentC...)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
-}
-
-func testMockSignature(t *testing.T, time time.Time) *git2go.Signature {
-	t.Helper()
-
-	return &git2go.Signature{
-		Name:  "Jane Doe",
-		Email: "author@example.com",
-		When:  time,
-	}
-}
-
-func testHeadCommit(t *testing.T, repo *git2go.Repository) (*git2go.Commit, error) {
-	t.Helper()
-
-	head, err := repo.Head()
-	if err != nil {
-		return nil, err
-	}
-	defer head.Free()
-	c, err := repo.LookupCommit(head.Target())
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
+	return newRef, nil
 }
