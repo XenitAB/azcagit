@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/fluxcd/pkg/git"
 	"github.com/fluxcd/pkg/git/gogit"
@@ -81,8 +82,9 @@ func (s *GitSource) checkout(ctx context.Context) (*map[string][]byte, string, e
 	}
 	commit, err := gitReader.Clone(ctx, s.cfg.GitUrl, cloneOpts)
 	if err != nil {
-		log.V(1).Error(err, "failed to clone")
-		return nil, "", err
+		redactedErr := redactGitSecretFromError(s.cfg.GitUrl, err)
+		log.V(1).Error(redactedErr, "failed to clone")
+		return nil, "", redactedErr
 	}
 
 	log.V(1).Info("commit data", "ShortMessage", commit.ShortMessage(), "String", commit.String(), "commit", commit)
@@ -106,6 +108,26 @@ func (s *GitSource) checkout(ctx context.Context) (*map[string][]byte, string, e
 	}
 
 	return yamlFiles, revision, nil
+}
+
+func redactGitSecretFromError(gitUrl string, inputErr error) error {
+	parsedGitUrl, err := url.Parse(gitUrl)
+	if err != nil {
+		return inputErr
+	}
+
+	gitSecret, ok := parsedGitUrl.User.Password()
+	if !ok {
+		return inputErr
+	}
+
+	if gitSecret == "" {
+		return inputErr
+	}
+
+	inputErrString := inputErr.Error()
+	inputErrStringRedacted := strings.ReplaceAll(inputErrString, gitSecret, "redacted")
+	return fmt.Errorf(inputErrStringRedacted)
 }
 
 func createTemporaryDirectory(ctx context.Context, path string) (string, func(), error) {

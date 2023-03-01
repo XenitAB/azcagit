@@ -164,3 +164,30 @@ func testCommitFile(t *testing.T, ctx context.Context, ggc *gg.Client, path, con
 
 	return newRef, nil
 }
+
+func TestRedactGitSecretFromError(t *testing.T) {
+	cases := []struct {
+		testDescription  string
+		gitUrl           string
+		inputErrorString string
+		expectedResult   string
+	}{
+		{
+			testDescription: "redact secret",
+			// secretlint-disable
+			gitUrl: "https://foo:supersecret@foobar.net",
+			// secretlint-disable
+			inputErrorString: "unable to clone https://foo:supersecret@foobar.net",
+			// secretlint-disable
+			expectedResult: "unable to clone https://foo:redacted@foobar.net",
+		},
+	}
+
+	for i, c := range cases {
+		t.Logf("Test #%d: %s", i, c.testDescription)
+		inputError := fmt.Errorf(c.inputErrorString)
+		result := redactGitSecretFromError(c.gitUrl, inputError)
+		require.Equal(t, c.expectedResult, result.Error())
+	}
+
+}
