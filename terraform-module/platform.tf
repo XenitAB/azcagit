@@ -57,6 +57,7 @@ resource "azurerm_servicebus_namespace" "azcagit_trigger" {
 resource "azuread_group" "azcagit_trigger" {
   display_name     = "aad-${local.eln}"
   security_enabled = true
+  owners           = var.aad_resource_owner_object_ids
 }
 
 resource "azuread_group_member" "azcagit_trigger" {

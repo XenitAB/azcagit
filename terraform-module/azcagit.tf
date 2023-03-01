@@ -5,10 +5,12 @@ locals {
 
 resource "azuread_application" "azcagit" {
   display_name = "sp-${local.eln}-azcagit"
+  owners       = var.aad_resource_owner_object_ids
 }
 
 resource "azuread_service_principal" "azcagit" {
   application_id = azuread_application.azcagit.application_id
+  owners         = var.aad_resource_owner_object_ids
 }
 
 resource "azuread_application_password" "azcagit" {
