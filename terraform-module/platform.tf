@@ -51,14 +51,14 @@ resource "azurerm_storage_account" "this" {
   name                     = "sa${replace(local.eln, "-", "")}${var.unique_suffix}"
   resource_group_name      = azurerm_resource_group.platform.name
   location                 = azurerm_resource_group.platform.location
-  account_tier             = "Premium"
-  account_replication_type = "ZRS"
+  account_tier             = var.storage_configuration.account_tier
+  account_replication_type = var.storage_configuration.account_replication_type
 }
 
 resource "azurerm_storage_share" "this" {
   name                 = "containerapps"
   storage_account_name = azurerm_storage_account.this.name
-  quota                = 128
+  quota                = var.storage_configuration.share_quota
 }
 
 resource "azurerm_container_app_environment_storage" "this" {
