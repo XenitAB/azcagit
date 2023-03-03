@@ -51,8 +51,10 @@ resource "azurerm_storage_account" "this" {
   name                     = "sa${replace(local.eln, "-", "")}${var.unique_suffix}"
   resource_group_name      = azurerm_resource_group.platform.name
   location                 = azurerm_resource_group.platform.location
-  account_tier             = var.storage_configuration.account_tier
+  account_tier             = "Premium"
+  account_kind             = "FileStorage"
   account_replication_type = var.storage_configuration.account_replication_type
+
 }
 
 resource "azurerm_storage_share" "this" {

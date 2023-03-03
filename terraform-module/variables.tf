@@ -67,12 +67,10 @@ variable "aad_resource_owner_object_ids" {
 variable "storage_configuration" {
   description = "The storage configuration"
   type = object({
-    account_tier             = string
     account_replication_type = string
     share_quota              = string
   })
   default = {
-    account_tier             = "Premium"
     account_replication_type = "ZRS"
     share_quota              = 128
   }
