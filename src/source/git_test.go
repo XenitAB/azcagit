@@ -110,7 +110,7 @@ func TestGitSource(t *testing.T) {
 	defer ggc.Close()
 
 	// an initial clone is required, or else the client won't have a repository and commands will fail
-	_, err = ggc.Clone(ctx, repoURL, repository.CloneOptions{})
+	_, err = ggc.Clone(ctx, repoURL, repository.CloneConfig{})
 	require.NoError(t, err)
 
 	firstCommit, err := testCommitFile(t, ctx, ggc, "foo1.yaml", testFixtureYAML1)
@@ -155,7 +155,7 @@ func testCommitFile(t *testing.T, ctx context.Context, ggc *gg.Client, path, con
 	require.NoError(t, err)
 
 	// the commit needs to be pushed
-	err = ggc.Push(ctx)
+	err = ggc.Push(ctx, repository.PushConfig{})
 	require.NoError(t, err)
 
 	newRef, err := ggc.Head()
