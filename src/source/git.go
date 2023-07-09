@@ -73,7 +73,7 @@ func (s *GitSource) checkout(ctx context.Context) (*map[string][]byte, string, e
 	}
 	defer gitReader.Close()
 
-	cloneOpts := repository.CloneOptions{
+	cloneOpts := repository.CloneConfig{
 		ShallowClone:      true,
 		RecurseSubmodules: true,
 		CheckoutStrategy: repository.CheckoutStrategy{
