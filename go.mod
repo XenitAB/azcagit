@@ -18,7 +18,7 @@ require (
 	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
-	github.com/stretchr/testify v1.8.3
+	github.com/stretchr/testify v1.8.4
 	github.com/whilp/git-urls v1.0.0
 	go.uber.org/zap v1.24.0
 	golang.org/x/oauth2 v0.10.0
