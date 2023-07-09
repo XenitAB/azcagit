@@ -20,3 +20,9 @@ variable "unique_suffix" {
   type        = string
   default     = ""
 }
+
+variable "aad_resource_owner_object_ids" {
+  description = "Add the list of object_ids as owners to the Azure AD applications, service principals and groups"
+  type        = list(string)
+  default     = []
+}
