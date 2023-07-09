@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
 	"github.com/hashicorp/go-multierror"
 	"github.com/xenitab/azcagit/src/config"
 	"sigs.k8s.io/yaml"

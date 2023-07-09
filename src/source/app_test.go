@@ -3,7 +3,7 @@ package source
 import (
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
 	"github.com/stretchr/testify/require"
 	"github.com/xenitab/azcagit/src/config"
 )
@@ -85,6 +85,8 @@ spec:
 			expectedError: "",
 		},
 		{
+			// NOTE: from v1.1.0 of github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers and later,
+			//       the armappcontainers.ContainerApp has it's own implementation of UnmarshalJSON() which ignores invalid properties.
 			testDescription: "containerapp invalid property",
 			rawYaml: `
 kind: AzureContainerApp
@@ -95,8 +97,25 @@ spec:
   app:
     foobar: baz
 `,
-			expectedResult: SourceApp{},
-			expectedError:  "json: unknown field \"foobar\"",
+			expectedResult: SourceApp{
+				Kind:       "AzureContainerApp",
+				APIVersion: "aca.xenit.io/v1alpha1",
+				Metadata: map[string]string{
+					"name": "foo",
+				},
+				Specification: &SourceAppSpecification{
+					App: &armappcontainers.ContainerApp{
+						Location: toPtr("ze-location"),
+						Tags: map[string]*string{
+							"aca.xenit.io": toPtr("true"),
+						},
+						Properties: &armappcontainers.ContainerAppProperties{
+							ManagedEnvironmentID: toPtr("ze-managedEnvironmentID"),
+						},
+					},
+				},
+			},
+			expectedError: "",
 		},
 		{
 			testDescription: "containerapp with multiple properties",

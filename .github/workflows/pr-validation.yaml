@@ -14,11 +14,11 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: "^1.20.1"
+          go-version: "^1.20.5"
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3.2.0
         with:
-          version: v1.51.2
+          version: v1.53.3
 
   fmt:
     runs-on: ubuntu-latest
@@ -28,7 +28,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: "^1.20.1"
+          go-version: "^1.20.5"
       - name: Run fmt
         run: |
           make fmt
@@ -47,7 +47,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: "^1.20.1"
+          go-version: "^1.20.5"
       - name: Run build
         run: |
           make build
@@ -60,7 +60,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: "^1.20.1"
+          go-version: "^1.20.5"
       - name: Run test
         run: |
           make test
@@ -73,7 +73,7 @@ jobs:
       - name: Setup go
         uses: actions/setup-go@v3
         with:
-          go-version: "^1.20.1"
+          go-version: "^1.20.5"
       - name: coverage
         run: |
           make cover
@@ -90,12 +90,13 @@ jobs:
       - name: Prepare
         id: prep
         run: |
+          BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           VERSION=sha-${GITHUB_SHA::8}
           if [[ $GITHUB_REF == refs/tags/* ]]; then
             VERSION=${GITHUB_REF/refs\/tags\//}
           fi
-          echo ::set-output name=BUILD_DATE::$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          echo ::set-output name=VERSION::${VERSION}
+          echo "BUILD_DATE=${BUILD_DATE}" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
       - uses: brpaz/hadolint-action@v1.5.0
         with:
           dockerfile: Dockerfile
