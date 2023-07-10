@@ -86,9 +86,29 @@ func (r *Reconciler) reportReconcileMetrics(ctx context.Context, startTime time.
 }
 
 func (r *Reconciler) run(ctx context.Context) (string, error) {
-	sourceApps, revision, err := r.getSourceApps(ctx)
+	sources, revision, err := r.getSources(ctx)
 	if err != nil {
 		return revision, err
+	}
+
+	var result *multierror.Error
+	err = r.runSourceApps(ctx, sources)
+	if err != nil {
+		result = multierror.Append(fmt.Errorf("sourceApps error: %w", err), result)
+	}
+
+	err = r.runSourceJobs(ctx, sources)
+	if err != nil {
+		result = multierror.Append(fmt.Errorf("sourceJobs error: %w", err), result)
+	}
+
+	return revision, result.ErrorOrNil()
+}
+
+func (r *Reconciler) runSourceApps(ctx context.Context, sources *source.Sources) error {
+	sourceApps, err := r.getSourceApps(ctx, sources)
+	if err != nil {
+		return err
 	}
 
 	r.filterSourceApps(ctx, sourceApps)
@@ -97,35 +117,39 @@ func (r *Reconciler) run(ctx context.Context) (string, error) {
 
 	err = r.populateSourceAppsSecrets(ctx, sourceApps)
 	if err != nil {
-		return revision, err
+		return err
 	}
 
 	err = r.populateSourceAppsRegistries(sourceApps)
 	if err != nil {
-		return revision, err
+		return err
 	}
 
 	remoteApps, err := r.getRemoteApps(ctx)
 	if err != nil {
-		return revision, err
+		return err
 	}
 
 	err = r.deleteAppsIfNeeded(ctx, sourceApps, remoteApps)
 	if err != nil {
-		return revision, err
+		return err
 	}
 
 	err = r.createOrUpdateAppsIfNeeded(ctx, sourceApps, remoteApps)
 	if err != nil {
-		return revision, err
+		return err
 	}
 
 	err = r.updateCache(ctx, sourceApps)
 	if err != nil {
-		return revision, err
+		return err
 	}
 
-	return revision, nil
+	return nil
+}
+
+func (r *Reconciler) runSourceJobs(ctx context.Context, sources *source.Sources) error {
+	return nil
 }
 
 func (r *Reconciler) reportSourceAppsMetrics(ctx context.Context, sourceApps *source.SourceApps) {
@@ -136,21 +160,31 @@ func (r *Reconciler) reportSourceAppsMetrics(ctx context.Context, sourceApps *so
 	}
 }
 
-func (r *Reconciler) getSourceApps(ctx context.Context) (*source.SourceApps, string, error) {
-	sourceApps, revision, err := r.sourceClient.Get(ctx)
+func (r *Reconciler) getSources(ctx context.Context) (*source.Sources, string, error) {
+	sources, revision, err := r.sourceClient.Get(ctx)
 	if err != nil {
 		return nil, revision, fmt.Errorf("failed to get sourceApps: %w", err)
 	}
 
-	if sourceApps == nil {
-		return nil, revision, fmt.Errorf("sourceApps is nil")
+	return sources, revision, nil
+}
+
+func (r *Reconciler) getSourceApps(ctx context.Context, sources *source.Sources) (*source.SourceApps, error) {
+	if sources == nil {
+		return nil, fmt.Errorf("sources is nil")
 	}
+
+	if sources.Apps == nil {
+		return nil, fmt.Errorf("sourceApps is nil")
+	}
+
+	sourceApps := sources.Apps
 
 	if sourceApps.Error() != nil {
-		return nil, revision, fmt.Errorf("sourceApps contains errors, stopping reconciliation: %w", sourceApps.Error())
+		return nil, fmt.Errorf("sourceApps contains errors, stopping reconciliation: %w", sourceApps.Error())
 	}
 
-	return sourceApps, revision, nil
+	return sourceApps, nil
 }
 
 func (r *Reconciler) getRemoteApps(ctx context.Context) (*remote.RemoteApps, error) {

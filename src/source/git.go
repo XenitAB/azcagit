@@ -29,14 +29,14 @@ func NewGitSource(cfg config.Config) (*GitSource, error) {
 	}, nil
 }
 
-func (s *GitSource) Get(ctx context.Context) (*SourceApps, string, error) {
+func (s *GitSource) Get(ctx context.Context) (*Sources, string, error) {
 	yamlFiles, revision, err := s.checkout(ctx)
 	if err != nil {
 		return nil, "", err
 	}
 
-	apps := getSourceAppsFromFiles(yamlFiles, s.cfg)
-	return apps, revision, nil
+	sources := getSourcesFromFiles(yamlFiles, s.cfg)
+	return sources, revision, nil
 }
 
 func (s *GitSource) checkout(ctx context.Context) (*map[string][]byte, string, error) {

@@ -53,7 +53,7 @@ func TestReconciler(t *testing.T) {
 	func() {
 		defer resetClients()
 		err := reconciler.Run(ctx)
-		require.ErrorContains(t, err, "sourceApps is nil")
+		require.ErrorContains(t, err, "sources is nil")
 	}()
 
 	// sourceClient.Get() returns error
@@ -68,7 +68,7 @@ func TestReconciler(t *testing.T) {
 	// first remoteClient.Get() returns nil
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "remoteApps is nil")
 	}()
@@ -77,7 +77,7 @@ func TestReconciler(t *testing.T) {
 	// first remoteClient.Get() returns error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
 		remoteClient.GetFirstResponse(nil, fmt.Errorf("foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "failed to get remoteApps: foobar")
@@ -87,7 +87,7 @@ func TestReconciler(t *testing.T) {
 	// first remoteClient.Get() returns empty RemoteApps without error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
@@ -98,15 +98,17 @@ func TestReconciler(t *testing.T) {
 	// second remoteClient.Get() returns nil RemoteApps with error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -125,15 +127,17 @@ func TestReconciler(t *testing.T) {
 	// second remoteClient.Get() returns one RemoteApp without error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -157,25 +161,27 @@ func TestReconciler(t *testing.T) {
 	// second remoteClient.Get() returns one RemoteApp without error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo1",
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-				},
-			},
-			"foo2": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo2",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+				"foo2": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo2",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -201,25 +207,27 @@ func TestReconciler(t *testing.T) {
 	// second remoteClient.Get() returns two RemoteApps without error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo1",
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-				},
-			},
-			"foo2": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo2",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+				"foo2": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo2",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -249,15 +257,17 @@ func TestReconciler(t *testing.T) {
 	// second remoteClient.Get() returns one RemoteApps without error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo1",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -293,17 +303,19 @@ func TestReconciler(t *testing.T) {
 	// second remoteClient.Get() returns one RemoteApps without error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo1",
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+					Err: fmt.Errorf("foobar"),
 				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-				},
-				Err: fmt.Errorf("foobar"),
 			},
 		}, defaultFakeRevision, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{
@@ -379,8 +391,10 @@ func TestReconciler(t *testing.T) {
 			},
 			Managed: true,
 		}
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": sourceApp1,
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": sourceApp1,
+			},
 		}, defaultFakeRevision, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remoteApp1,
@@ -427,8 +441,10 @@ func TestReconciler(t *testing.T) {
 
 		// verify that update is made if source app changed
 		{
-			sourceClient.GetResponse(&source.SourceApps{
-				"foo1": sourceApp1Updated,
+			sourceClient.GetResponse(&source.Sources{
+				Apps: &source.SourceApps{
+					"foo1": sourceApp1Updated,
+				},
 			}, defaultFakeRevision, nil)
 			remoteClient.GetFirstResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
@@ -452,7 +468,7 @@ func TestReconciler(t *testing.T) {
 	// second remoteClient.Get() returns one RemoteApp (non managed) without error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
@@ -477,7 +493,7 @@ func TestReconciler(t *testing.T) {
 	// remoteClient.Delete() returns error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
 		remoteClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
@@ -495,15 +511,17 @@ func TestReconciler(t *testing.T) {
 	// remoteClient.Set() returns error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo1",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -524,15 +542,17 @@ func TestReconciler(t *testing.T) {
 	// remoteClient.Set() returns error
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo1",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -546,19 +566,21 @@ func TestReconciler(t *testing.T) {
 	func() {
 		defer resetClients()
 		secretClient.Set("ze-remote-secret", "foobar", time.Now())
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-					RemoteSecrets: []source.RemoteSecretSpecification{
-						{
-							SecretName:       toPtr("ze-app-secret"),
-							RemoteSecretName: toPtr("ze-remote-secret"),
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+						RemoteSecrets: []source.RemoteSecretSpecification{
+							{
+								SecretName:       toPtr("ze-app-secret"),
+								RemoteSecretName: toPtr("ze-remote-secret"),
+							},
 						},
 					},
 				},
@@ -587,19 +609,21 @@ func TestReconciler(t *testing.T) {
 	// test remote secret failure
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-					RemoteSecrets: []source.RemoteSecretSpecification{
-						{
-							SecretName:       toPtr("ze-app-secret"),
-							RemoteSecretName: toPtr("ze-remote-secret-failure"),
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+						RemoteSecrets: []source.RemoteSecretSpecification{
+							{
+								SecretName:       toPtr("ze-app-secret"),
+								RemoteSecretName: toPtr("ze-remote-secret-failure"),
+							},
 						},
 					},
 				},
@@ -629,15 +653,17 @@ func TestReconciler(t *testing.T) {
 		}
 		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
 		require.NoError(t, err)
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -666,15 +692,17 @@ func TestReconciler(t *testing.T) {
 	// test notification success event
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -734,15 +762,17 @@ func TestReconciler(t *testing.T) {
 	func() {
 		defer resetClients()
 		{
-			sourceClient.GetResponse(&source.SourceApps{
-				"foo": source.SourceApp{
-					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha2",
-					Metadata: map[string]string{
-						"name": "foo",
-					},
-					Specification: &source.SourceAppSpecification{
-						App: &armappcontainers.ContainerApp{},
+			sourceClient.GetResponse(&source.Sources{
+				Apps: &source.SourceApps{
+					"foo": source.SourceApp{
+						Kind:       "AzureContainerApp",
+						APIVersion: "aca.xenit.io/v1alpha2",
+						Metadata: map[string]string{
+							"name": "foo",
+						},
+						Specification: &source.SourceAppSpecification{
+							App: &armappcontainers.ContainerApp{},
+						},
 					},
 				},
 			}, "first-revision", nil)
@@ -758,15 +788,17 @@ func TestReconciler(t *testing.T) {
 
 		}
 		{
-			sourceClient.GetResponse(&source.SourceApps{
-				"foo": source.SourceApp{
-					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha2",
-					Metadata: map[string]string{
-						"name": "foo",
-					},
-					Specification: &source.SourceAppSpecification{
-						App: &armappcontainers.ContainerApp{},
+			sourceClient.GetResponse(&source.Sources{
+				Apps: &source.SourceApps{
+					"foo": source.SourceApp{
+						Kind:       "AzureContainerApp",
+						APIVersion: "aca.xenit.io/v1alpha2",
+						Metadata: map[string]string{
+							"name": "foo",
+						},
+						Specification: &source.SourceAppSpecification{
+							App: &armappcontainers.ContainerApp{},
+						},
 					},
 				},
 			}, "second-revision", nil)
@@ -811,15 +843,17 @@ func TestReconciler(t *testing.T) {
 	func() {
 		defer resetClients()
 
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -845,18 +879,20 @@ func TestReconciler(t *testing.T) {
 		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
 		require.NoError(t, err)
 
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					LocationFilter: []source.LocationFilterSpecification{
-						"zefakeregion",
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
 					},
-					App: &armappcontainers.ContainerApp{},
+					Specification: &source.SourceAppSpecification{
+						LocationFilter: []source.LocationFilterSpecification{
+							"zefakeregion",
+						},
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
@@ -871,15 +907,17 @@ func TestReconciler(t *testing.T) {
 	// verify that metrics work
 	func() {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha2",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)

@@ -36,11 +36,19 @@ func sanitizeAzureLocation(filter LocationFilterSpecification) LocationFilterSpe
 	return LocationFilterSpecification(lowercaseFilter)
 }
 
-func getSourceAppsFromFiles(yamlFiles *map[string][]byte, cfg config.Config) *SourceApps {
-	apps := SourceApps{}
+func getSourcesFromFiles(yamlFiles *map[string][]byte, cfg config.Config) *Sources {
+	apps := &SourceApps{}
 	for path := range *yamlFiles {
 		content := (*yamlFiles)[path]
 		apps.Unmarshal(path, content, cfg)
 	}
-	return &apps
+	jobs := &SourceJobs{}
+	for path := range *yamlFiles {
+		content := (*yamlFiles)[path]
+		jobs.Unmarshal(path, content, cfg)
+	}
+	return &Sources{
+		Apps: apps,
+		Jobs: jobs,
+	}
 }
