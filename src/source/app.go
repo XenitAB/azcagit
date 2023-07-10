@@ -151,10 +151,13 @@ func (app *SourceApp) GetRemoteSecrets() []RemoteSecretSpecification {
 
 }
 
-func (app *SourceApp) ValidateFields() error {
+func (app *SourceApp) ValidateFields() (bool, error) {
 	var result *multierror.Error
+	if app.Kind == "" {
+		return false, fmt.Errorf("kind is missing")
+	}
 	if app.Kind != "" && app.Kind != AzureContainerAppKind {
-		result = multierror.Append(fmt.Errorf("kind should be %s", AzureContainerAppKind), result)
+		return false, nil
 	}
 	requiredVersion := AzureContainerAppVersion
 	if app.APIVersion != "" && app.APIVersion != requiredVersion {
@@ -188,29 +191,33 @@ func (app *SourceApp) ValidateFields() error {
 		result = multierror.Append(fmt.Errorf("location is disabled and set through azcagit"), result)
 	}
 
-	return result.ErrorOrNil()
+	return true, result.ErrorOrNil()
 }
 
-func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
+func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) (bool, error) {
 	j, err := yaml.YAMLToJSON(y)
 	if err != nil {
-		return err
+		return true, err
 	}
 	dec := json.NewDecoder(bytes.NewReader(j))
 	dec.DisallowUnknownFields()
 	var newapp SourceApp
 	err = dec.Decode(&newapp)
 	if err != nil {
-		return err
+		return true, err
 	}
 
-	err = newapp.ValidateFields()
+	isContainerApp, err := newapp.ValidateFields()
 	if err != nil {
-		return err
+		return isContainerApp, err
+	}
+
+	if !isContainerApp {
+		return false, nil
 	}
 
 	if cfg.ManagedEnvironmentID == "" {
-		return fmt.Errorf("cfg.ManagedEnvironmentID is not set")
+		return true, fmt.Errorf("cfg.ManagedEnvironmentID is not set")
 	}
 
 	if newapp.Specification.App.Properties == nil {
@@ -219,7 +226,7 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 	newapp.Specification.App.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
 
 	if cfg.Location == "" {
-		return fmt.Errorf("cfg.Location is not set")
+		return true, fmt.Errorf("cfg.Location is not set")
 	}
 	newapp.Specification.App.Location = &cfg.Location
 
@@ -239,11 +246,11 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 
 	err = newapp.applyReplacements()
 	if err != nil {
-		return err
+		return true, err
 	}
 
 	*app = newapp
-	return nil
+	return true, nil
 }
 
 func (app *SourceApp) applyReplacements() error {
@@ -292,10 +299,13 @@ func (apps *SourceApps) Unmarshal(path string, y []byte, cfg config.Config) {
 	parts := strings.Split(string(y), "---")
 	for i, part := range parts {
 		var app SourceApp
-		err := app.Unmarshal([]byte(part), cfg)
+		isContainerApp, err := app.Unmarshal([]byte(part), cfg)
 		if err != nil {
 			app.Err = fmt.Errorf("unable to unmarshal SourceApp from %s (document %d): %w", path, i, err)
 			(*apps)[fmt.Sprintf("%s-%d", path, i)] = app
+			continue
+		}
+		if !isContainerApp {
 			continue
 		}
 		_, ok := (*apps)[app.Name()]

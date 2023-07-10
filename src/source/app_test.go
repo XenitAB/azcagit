@@ -14,6 +14,7 @@ func TestSourceApp(t *testing.T) {
 		rawYaml         string
 		expectedResult  SourceApp
 		expectedError   string
+		isContainerApp  bool
 	}{
 		{
 			testDescription: "plain working",
@@ -25,6 +26,7 @@ metadata:
 `,
 			expectedResult: SourceApp{},
 			expectedError:  "spec is missing",
+			isContainerApp: true,
 		},
 		{
 			testDescription: "invalid kind",
@@ -35,7 +37,19 @@ metadata:
   name: foo
 `,
 			expectedResult: SourceApp{},
-			expectedError:  "kind should be AzureContainerApp",
+			expectedError:  "",
+			isContainerApp: false,
+		},
+		{
+			testDescription: "missing kind",
+			rawYaml: `
+apiVersion: aca.xenit.io/v1alpha2
+metadata:
+  name: foo
+`,
+			expectedResult: SourceApp{},
+			expectedError:  "kind is missing",
+			isContainerApp: false,
 		},
 		{
 			testDescription: "apiVersion aca.xenit.io/v1alpha1 deprecated",
@@ -47,6 +61,7 @@ metadata:
 `,
 			expectedResult: SourceApp{},
 			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha2",
+			isContainerApp: true,
 		},
 		{
 			testDescription: "invalid apiVersion",
@@ -58,6 +73,7 @@ metadata:
 `,
 			expectedResult: SourceApp{},
 			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha2",
+			isContainerApp: true,
 		},
 		{
 			testDescription: "containerapp active revisions mode",
@@ -93,7 +109,8 @@ spec:
 					},
 				},
 			},
-			expectedError: "",
+			expectedError:  "",
+			isContainerApp: true,
 		},
 		{
 			// NOTE: from v1.1.0 of github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers and later,
@@ -126,7 +143,8 @@ spec:
 					},
 				},
 			},
-			expectedError: "",
+			expectedError:  "",
+			isContainerApp: true,
 		},
 		{
 			testDescription: "containerapp with multiple properties",
@@ -189,7 +207,8 @@ spec:
 					},
 				},
 			},
-			expectedError: "",
+			expectedError:  "",
+			isContainerApp: true,
 		},
 		{
 			testDescription: "validate that image replacement works",
@@ -264,17 +283,19 @@ spec:
 					},
 				},
 			},
-			expectedError: "",
+			expectedError:  "",
+			isContainerApp: true,
 		},
 	}
 
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		app := SourceApp{}
-		err := app.Unmarshal([]byte(c.rawYaml), config.Config{
+		isContainerApp, err := app.Unmarshal([]byte(c.rawYaml), config.Config{
 			Location:             "ze-location",
 			ManagedEnvironmentID: "ze-managedEnvironmentID",
 		})
+		require.Equal(t, c.isContainerApp, isContainerApp)
 		if c.expectedError != "" {
 			require.Error(t, err)
 			require.Contains(t, err.Error(), c.expectedError)
@@ -415,8 +436,8 @@ spec:
       configuration:
         activeRevisionsMode: Single
 ---
-kind: foobar
-apiVersion: aca.xenit.io/v1alpha2
+kind: AzureContainerApp
+apiVersion: foobar
 metadata:
  name: bar
 spec:
@@ -449,7 +470,7 @@ spec:
 				},
 			},
 			expectedLenght: 2,
-			expectedError:  "kind should be AzureContainerApp",
+			expectedError:  "apiVersion for AzureContainerApp should be",
 		},
 	}
 
@@ -809,10 +830,11 @@ spec:
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		app := &SourceApp{}
-		err := app.Unmarshal([]byte(c.input), config.Config{
+		isContainerApp, err := app.Unmarshal([]byte(c.input), config.Config{
 			ManagedEnvironmentID: "ze-me-id",
 			Location:             "zefakeregion",
 		})
+		require.True(t, isContainerApp)
 		if c.expectedErrorContains == "" {
 			require.NoError(t, err)
 		} else {
