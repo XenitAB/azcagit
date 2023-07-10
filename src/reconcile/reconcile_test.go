@@ -101,7 +101,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -128,7 +128,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -160,7 +160,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo1": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
@@ -170,7 +170,7 @@ func TestReconciler(t *testing.T) {
 			},
 			"foo2": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo2",
 				},
@@ -204,7 +204,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo1": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
@@ -214,7 +214,7 @@ func TestReconciler(t *testing.T) {
 			},
 			"foo2": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo2",
 				},
@@ -252,7 +252,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo1": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
@@ -296,7 +296,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo1": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
@@ -338,7 +338,7 @@ func TestReconciler(t *testing.T) {
 		later := time.Now().Add(1 * time.Minute)
 		sourceApp1 := source.SourceApp{
 			Kind:       "AzureContainerApp",
-			APIVersion: "aca.xenit.io/v1alpha1",
+			APIVersion: "aca.xenit.io/v1alpha2",
 			Metadata: map[string]string{
 				"name": "foo1",
 			},
@@ -350,7 +350,7 @@ func TestReconciler(t *testing.T) {
 		}
 		sourceApp1Updated := source.SourceApp{
 			Kind:       "AzureContainerApp",
-			APIVersion: "aca.xenit.io/v1alpha1",
+			APIVersion: "aca.xenit.io/v1alpha2",
 			Metadata: map[string]string{
 				"name": "foo1",
 			},
@@ -498,7 +498,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo1": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
@@ -527,7 +527,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo1": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo1",
 				},
@@ -549,7 +549,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -557,7 +557,7 @@ func TestReconciler(t *testing.T) {
 					App: &armappcontainers.ContainerApp{},
 					RemoteSecrets: []source.RemoteSecretSpecification{
 						{
-							AppSecretName:    toPtr("ze-app-secret"),
+							SecretName:       toPtr("ze-app-secret"),
 							RemoteSecretName: toPtr("ze-remote-secret"),
 						},
 					},
@@ -590,7 +590,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -598,7 +598,7 @@ func TestReconciler(t *testing.T) {
 					App: &armappcontainers.ContainerApp{},
 					RemoteSecrets: []source.RemoteSecretSpecification{
 						{
-							AppSecretName:    toPtr("ze-app-secret"),
+							SecretName:       toPtr("ze-app-secret"),
 							RemoteSecretName: toPtr("ze-remote-secret-failure"),
 						},
 					},
@@ -632,7 +632,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -669,7 +669,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -737,7 +737,7 @@ func TestReconciler(t *testing.T) {
 			sourceClient.GetResponse(&source.SourceApps{
 				"foo": source.SourceApp{
 					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha1",
+					APIVersion: "aca.xenit.io/v1alpha2",
 					Metadata: map[string]string{
 						"name": "foo",
 					},
@@ -761,7 +761,7 @@ func TestReconciler(t *testing.T) {
 			sourceClient.GetResponse(&source.SourceApps{
 				"foo": source.SourceApp{
 					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha1",
+					APIVersion: "aca.xenit.io/v1alpha2",
 					Metadata: map[string]string{
 						"name": "foo",
 					},
@@ -814,7 +814,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -848,7 +848,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -874,7 +874,7 @@ func TestReconciler(t *testing.T) {
 		sourceClient.GetResponse(&source.SourceApps{
 			"foo": source.SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},

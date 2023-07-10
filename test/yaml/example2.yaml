@@ -1,5 +1,5 @@
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo3
 spec:
@@ -9,11 +9,11 @@ spec:
         activeRevisionsMode: Single
       template:
         containers:
-        - name: simple-hello-world-container
-          image: mcr.microsoft.com/azuredocs/containerapps-helloworld:latest
-          resources:
-            cpu: 0.25
-            memory: .5Gi
+          - name: simple-hello-world-container
+            image: mcr.microsoft.com/azuredocs/containerapps-helloworld:latest
+            resources:
+              cpu: 0.25
+              memory: .5Gi
         scale:
           minReplicas: 2
           maxReplicas: 2

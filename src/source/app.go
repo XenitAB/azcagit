@@ -14,33 +14,9 @@ import (
 )
 
 const (
-	AzureContainerAppVersion = "aca.xenit.io/v1alpha1"
+	AzureContainerAppVersion = "aca.xenit.io/v1alpha2"
 	AzureContainerAppKind    = "AzureContainerApp"
 )
-
-type RemoteSecretSpecification struct {
-	AppSecretName    *string `json:"appSecretName,omitempty" yaml:"appSecretName,omitempty"`
-	RemoteSecretName *string `json:"remoteSecretName,omitempty" yaml:"remoteSecretName,omitempty"`
-}
-
-func (r *RemoteSecretSpecification) Valid() bool {
-	if r.AppSecretName == nil || r.RemoteSecretName == nil {
-		return false
-	}
-	if *r.AppSecretName == "" || *r.RemoteSecretName == "" {
-		return false
-	}
-	return true
-}
-
-type LocationFilterSpecification string
-type ImageReplacementSpecification struct {
-	ImageName   *string `json:"imageName,omitempty" yaml:"imageName,omitempty"`
-	NewImageTag *string `json:"newImageTag,omitempty" yaml:"newImageTag,omitempty"`
-}
-type ReplacementsSpecification struct {
-	Images []ImageReplacementSpecification `json:"images,omitempty" yaml:"image,omitempty"`
-}
 
 type SourceAppSpecification struct {
 	App            *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
@@ -307,12 +283,6 @@ func (app *SourceApp) ShoudRunInLocation(currentLocation string) bool {
 	return false
 }
 
-func sanitizeAzureLocation(filter LocationFilterSpecification) LocationFilterSpecification {
-	filterWithoutSpaces := strings.ReplaceAll(string(filter), " ", "")
-	lowercaseFilter := strings.ToLower(filterWithoutSpaces)
-	return LocationFilterSpecification(lowercaseFilter)
-}
-
 type SourceApps map[string]SourceApp
 
 func (apps *SourceApps) Unmarshal(path string, y []byte, cfg config.Config) {
@@ -362,10 +332,10 @@ func (apps *SourceApps) Delete(name string) {
 	delete(*apps, name)
 }
 
-func (apps *SourceApps) SetAppSecret(appName string, secretName string, secretValue string) error {
-	app, ok := (*apps)[appName]
+func (apps *SourceApps) SetSecret(name string, secretName string, secretValue string) error {
+	app, ok := (*apps)[name]
 	if !ok {
-		return fmt.Errorf("no sourceApp with name %q", appName)
+		return fmt.Errorf("no sourceApp with name %q", name)
 	}
 
 	err := app.SetSecret(secretName, secretValue)
@@ -373,15 +343,15 @@ func (apps *SourceApps) SetAppSecret(appName string, secretName string, secretVa
 		return err
 	}
 
-	(*apps)[appName] = app
+	(*apps)[name] = app
 
 	return nil
 }
 
-func (apps *SourceApps) SetAppRegistry(appName string, server string, username string, password string) error {
-	app, ok := (*apps)[appName]
+func (apps *SourceApps) SetRegistry(name string, server string, username string, password string) error {
+	app, ok := (*apps)[name]
 	if !ok {
-		return fmt.Errorf("no sourceApp with name %q", appName)
+		return fmt.Errorf("no sourceApp with name %q", name)
 	}
 
 	err := app.SetRegistry(server, username, password)
@@ -389,7 +359,7 @@ func (apps *SourceApps) SetAppRegistry(appName string, server string, username s
 		return err
 	}
 
-	(*apps)[appName] = app
+	(*apps)[name] = app
 
 	return nil
 }
@@ -422,13 +392,4 @@ func (apps *SourceApps) Error() error {
 	}
 
 	return result.ErrorOrNil()
-}
-
-func getSourceAppsFromFiles(yamlFiles *map[string][]byte, cfg config.Config) *SourceApps {
-	apps := SourceApps{}
-	for path := range *yamlFiles {
-		content := (*yamlFiles)[path]
-		apps.Unmarshal(path, content, cfg)
-	}
-	return &apps
 }

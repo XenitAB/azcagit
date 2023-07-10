@@ -35,7 +35,7 @@ import (
 const (
 	testFixtureYAML1 = `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo1
 spec:
@@ -53,7 +53,7 @@ spec:
           maxReplicas: 1`
 	testFixtureYAML2 = `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo2
 spec:

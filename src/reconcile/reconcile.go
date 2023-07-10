@@ -289,9 +289,9 @@ func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *
 				return fmt.Errorf("unable to get secret %d for app %q from cache", i, name)
 			}
 
-			err = sourceApps.SetAppSecret(name, *remoteSecret.AppSecretName, secretValue)
+			err = sourceApps.SetSecret(name, *remoteSecret.SecretName, secretValue)
 			if err != nil {
-				return fmt.Errorf("unable to set secret %q for app %q", *remoteSecret.AppSecretName, name)
+				return fmt.Errorf("unable to set secret %q for app %q", *remoteSecret.SecretName, name)
 			}
 		}
 	}
@@ -309,7 +309,7 @@ func (r *Reconciler) populateSourceAppsRegistries(sourceApps *source.SourceApps)
 	}
 
 	for _, name := range sourceApps.GetSortedNames() {
-		err := sourceApps.SetAppRegistry(name, r.cfg.ContainerRegistryServer, r.cfg.ContainerRegistryUsername, r.cfg.ContainerRegistryPassword)
+		err := sourceApps.SetRegistry(name, r.cfg.ContainerRegistryServer, r.cfg.ContainerRegistryUsername, r.cfg.ContainerRegistryPassword)
 		if err != nil {
 			return err
 		}

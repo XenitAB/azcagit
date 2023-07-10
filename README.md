@@ -25,14 +25,14 @@ An example manifest:
 
 ```yaml
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foobar
 spec:
   locationFilter:
     - West Europe
   remoteSecrets:
-    - appSecretName: connection-string
+    - secretName: connection-string
       remoteSecretName: mssql-connection-string
   replacements:
     images:

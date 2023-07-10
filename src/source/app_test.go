@@ -19,7 +19,7 @@ func TestSourceApp(t *testing.T) {
 			testDescription: "plain working",
 			rawYaml: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo
 `,
@@ -30,12 +30,23 @@ metadata:
 			testDescription: "invalid kind",
 			rawYaml: `
 kind: foobar
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo
 `,
 			expectedResult: SourceApp{},
 			expectedError:  "kind should be AzureContainerApp",
+		},
+		{
+			testDescription: "apiVersion aca.xenit.io/v1alpha1 deprecated",
+			rawYaml: `
+kind: AzureContainerApp
+apiVersion: aca.xenit.io/v1alpha1
+metadata:
+  name: foo
+`,
+			expectedResult: SourceApp{},
+			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha2",
 		},
 		{
 			testDescription: "invalid apiVersion",
@@ -46,13 +57,13 @@ metadata:
   name: foo
 `,
 			expectedResult: SourceApp{},
-			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha1",
+			expectedError:  "apiVersion for AzureContainerApp should be aca.xenit.io/v1alpha2",
 		},
 		{
 			testDescription: "containerapp active revisions mode",
 			rawYaml: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo
 spec:
@@ -63,7 +74,7 @@ spec:
 `,
 			expectedResult: SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -90,7 +101,7 @@ spec:
 			testDescription: "containerapp invalid property",
 			rawYaml: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo
 spec:
@@ -99,7 +110,7 @@ spec:
 `,
 			expectedResult: SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -121,7 +132,7 @@ spec:
 			testDescription: "containerapp with multiple properties",
 			rawYaml: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo
 spec:
@@ -142,7 +153,7 @@ spec:
 `,
 			expectedResult: SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -184,7 +195,7 @@ spec:
 			testDescription: "validate that image replacement works",
 			rawYaml: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo
 spec:
@@ -209,7 +220,7 @@ spec:
 `,
 			expectedResult: SourceApp{
 				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
+				APIVersion: "aca.xenit.io/v1alpha2",
 				Metadata: map[string]string{
 					"name": "foo",
 				},
@@ -286,7 +297,7 @@ func TestSourceApps(t *testing.T) {
 			testDescription: "plain working, single document",
 			rawYaml: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
  name: foo
 spec:
@@ -298,7 +309,7 @@ spec:
 			expectedResult: SourceApps{
 				"foo": {
 					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha1",
+					APIVersion: "aca.xenit.io/v1alpha2",
 					Metadata: map[string]string{
 						"name": "foo",
 					},
@@ -325,7 +336,7 @@ spec:
 			testDescription: "plain working, two documents",
 			rawYaml: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
  name: foo
 spec:
@@ -335,7 +346,7 @@ spec:
         activeRevisionsMode: Single
 ---
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
  name: bar
 spec:
@@ -347,7 +358,7 @@ spec:
 			expectedResult: SourceApps{
 				"foo": {
 					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha1",
+					APIVersion: "aca.xenit.io/v1alpha2",
 					Metadata: map[string]string{
 						"name": "foo",
 					},
@@ -368,7 +379,7 @@ spec:
 				},
 				"bar": {
 					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha1",
+					APIVersion: "aca.xenit.io/v1alpha2",
 					Metadata: map[string]string{
 						"name": "bar",
 					},
@@ -395,7 +406,7 @@ spec:
 			testDescription: "one valid, one invalid",
 			rawYaml: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
  name: foo
 spec:
@@ -405,7 +416,7 @@ spec:
         activeRevisionsMode: Single
 ---
 kind: foobar
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
  name: bar
 spec:
@@ -417,7 +428,7 @@ spec:
 			expectedResult: SourceApps{
 				"foo": {
 					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha1",
+					APIVersion: "aca.xenit.io/v1alpha2",
 					Metadata: map[string]string{
 						"name": "foo",
 					},
@@ -556,7 +567,7 @@ func TestSourceAppSetSecret(t *testing.T) {
 		apps := make(SourceApps)
 		apps["foo"] = app
 
-		err := apps.SetAppSecret("foo", "bar", "baz")
+		err := apps.SetSecret("foo", "bar", "baz")
 		require.NoError(t, err)
 
 		updatedApp, ok := apps["foo"]
@@ -665,7 +676,7 @@ func TestSourceAppSetRegistry(t *testing.T) {
 		apps := make(SourceApps)
 		apps["foo"] = app
 
-		err := apps.SetAppRegistry("foo", "ze-server", "foo", "bar")
+		err := apps.SetRegistry("foo", "ze-server", "foo", "bar")
 		require.NoError(t, err)
 
 		updatedApp, ok := apps["foo"]
@@ -693,7 +704,7 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 					Specification: &SourceAppSpecification{
 						RemoteSecrets: []RemoteSecretSpecification{
 							{
-								AppSecretName:    toPtr("foo"),
+								SecretName:       toPtr("foo"),
 								RemoteSecretName: toPtr("bar"),
 							},
 						},
@@ -703,7 +714,7 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 					Specification: &SourceAppSpecification{
 						RemoteSecrets: []RemoteSecretSpecification{
 							{
-								AppSecretName:    toPtr("baz"),
+								SecretName:       toPtr("baz"),
 								RemoteSecretName: toPtr("foobar"),
 							},
 						},
@@ -722,7 +733,7 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 					Specification: &SourceAppSpecification{
 						RemoteSecrets: []RemoteSecretSpecification{
 							{
-								AppSecretName:    toPtr("foo"),
+								SecretName:       toPtr("foo"),
 								RemoteSecretName: toPtr("bar"),
 							},
 						},
@@ -732,7 +743,7 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 					Specification: &SourceAppSpecification{
 						RemoteSecrets: []RemoteSecretSpecification{
 							{
-								AppSecretName:    toPtr("foo"),
+								SecretName:       toPtr("foo"),
 								RemoteSecretName: toPtr("bar"),
 							},
 						},
@@ -752,7 +763,7 @@ func TestSourceAppsGetRemoteSecret(t *testing.T) {
 	}
 }
 
-func TestParseLocationFilterSpecification(t *testing.T) {
+func TestSourceAppParseLocationFilterSpecification(t *testing.T) {
 	cases := []struct {
 		testDescription        string
 		input                  string
@@ -763,7 +774,7 @@ func TestParseLocationFilterSpecification(t *testing.T) {
 			testDescription: "no locationFilter specified",
 			input: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo
 spec:
@@ -778,7 +789,7 @@ spec:
 			testDescription: "one locationFilter specified",
 			input: `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo
 spec:
