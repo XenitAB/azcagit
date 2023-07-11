@@ -151,13 +151,13 @@ func (job *SourceJob) GetRemoteSecrets() []RemoteSecretSpecification {
 
 }
 
-func (job *SourceJob) ValidateFields() (bool, error) {
+func (job *SourceJob) ValidateFields() error {
 	var result *multierror.Error
 	if job.Kind == "" {
-		return false, fmt.Errorf("kind is missing")
+		return fmt.Errorf("kind is missing")
 	}
 	if job.Kind != "" && job.Kind != AzureContainerJobKind {
-		return false, nil
+		return fmt.Errorf("kind not AzureContainerJob")
 	}
 	requiredVersion := AzureContainerJobVersion
 	if job.APIVersion != "" && job.APIVersion != requiredVersion {
@@ -191,7 +191,26 @@ func (job *SourceJob) ValidateFields() (bool, error) {
 		result = multierror.Append(fmt.Errorf("location is disabled and set through azcagit"), result)
 	}
 
-	return true, result.ErrorOrNil()
+	return result.ErrorOrNil()
+}
+
+func validateJsonIsJobKind(j []byte) (bool, error) {
+	dec := json.NewDecoder(bytes.NewReader(j))
+	var newjob SourceJob
+	err := dec.Decode(&newjob)
+	if err != nil {
+		return false, err
+	}
+
+	if newjob.Kind == "" {
+		return false, fmt.Errorf("kind is missing")
+	}
+
+	if newjob.Kind != "" && newjob.Kind != AzureContainerJobKind {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (job *SourceJob) Unmarshal(y []byte, cfg config.Config) (bool, error) {
@@ -199,6 +218,16 @@ func (job *SourceJob) Unmarshal(y []byte, cfg config.Config) (bool, error) {
 	if err != nil {
 		return true, err
 	}
+
+	isContainerJob, err := validateJsonIsJobKind(j)
+	if err != nil {
+		return isContainerJob, err
+	}
+
+	if !isContainerJob {
+		return false, nil
+	}
+
 	dec := json.NewDecoder(bytes.NewReader(j))
 	dec.DisallowUnknownFields()
 	var newjob SourceJob
@@ -207,13 +236,9 @@ func (job *SourceJob) Unmarshal(y []byte, cfg config.Config) (bool, error) {
 		return true, err
 	}
 
-	isContainerJob, err := newjob.ValidateFields()
+	err = newjob.ValidateFields()
 	if err != nil {
-		return isContainerJob, err
-	}
-
-	if !isContainerJob {
-		return false, nil
+		return true, err
 	}
 
 	if cfg.ManagedEnvironmentID == "" {

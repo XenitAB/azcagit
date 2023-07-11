@@ -29,6 +29,21 @@ metadata:
 			isContainerJob: true,
 		},
 		{
+			testDescription: "app skipped",
+			rawYaml: `
+kind: AzureContainerApp
+apiVersion: aca.xenit.io/v1alpha2
+metadata:
+  name: foo
+spec:
+  app:
+    foo: bar
+`,
+			expectedResult: SourceJob{},
+			expectedError:  "",
+			isContainerJob: false,
+		},
+		{
 			testDescription: "invalid kind",
 			rawYaml: `
 kind: foobar

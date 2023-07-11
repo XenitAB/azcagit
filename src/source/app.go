@@ -151,13 +151,13 @@ func (app *SourceApp) GetRemoteSecrets() []RemoteSecretSpecification {
 
 }
 
-func (app *SourceApp) ValidateFields() (bool, error) {
+func (app *SourceApp) ValidateFields() error {
 	var result *multierror.Error
 	if app.Kind == "" {
-		return false, fmt.Errorf("kind is missing")
+		return fmt.Errorf("kind is missing")
 	}
 	if app.Kind != "" && app.Kind != AzureContainerAppKind {
-		return false, nil
+		return fmt.Errorf("kind not AzureContainerApp")
 	}
 	requiredVersion := AzureContainerAppVersion
 	if app.APIVersion != "" && app.APIVersion != requiredVersion {
@@ -191,7 +191,26 @@ func (app *SourceApp) ValidateFields() (bool, error) {
 		result = multierror.Append(fmt.Errorf("location is disabled and set through azcagit"), result)
 	}
 
-	return true, result.ErrorOrNil()
+	return result.ErrorOrNil()
+}
+
+func validateJsonIsAppKind(j []byte) (bool, error) {
+	dec := json.NewDecoder(bytes.NewReader(j))
+	var newapp SourceApp
+	err := dec.Decode(&newapp)
+	if err != nil {
+		return false, err
+	}
+
+	if newapp.Kind == "" {
+		return false, fmt.Errorf("kind is missing")
+	}
+
+	if newapp.Kind != "" && newapp.Kind != AzureContainerAppKind {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) (bool, error) {
@@ -199,6 +218,16 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) (bool, error) {
 	if err != nil {
 		return true, err
 	}
+
+	isContainerApp, err := validateJsonIsAppKind(j)
+	if err != nil {
+		return isContainerApp, err
+	}
+
+	if !isContainerApp {
+		return false, nil
+	}
+
 	dec := json.NewDecoder(bytes.NewReader(j))
 	dec.DisallowUnknownFields()
 	var newapp SourceApp
@@ -207,13 +236,9 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) (bool, error) {
 		return true, err
 	}
 
-	isContainerApp, err := newapp.ValidateFields()
+	err = newapp.ValidateFields()
 	if err != nil {
-		return isContainerApp, err
-	}
-
-	if !isContainerApp {
-		return false, nil
+		return true, err
 	}
 
 	if cfg.ManagedEnvironmentID == "" {
