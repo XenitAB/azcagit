@@ -195,7 +195,7 @@ func TestReconciler(t *testing.T) {
 			},
 		}, nil)
 		err := reconciler.Run(ctx)
-		require.ErrorContains(t, err, "unable to locate foo2 after create or update")
+		require.ErrorContains(t, err, "unable to locate app foo2 after create or update")
 		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo1")

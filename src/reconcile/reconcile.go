@@ -115,6 +115,10 @@ func (r *Reconciler) runSourceApps(ctx context.Context, sources *source.Sources)
 		return err
 	}
 
+	if sourceApps == nil {
+		return nil
+	}
+
 	r.filterSourceApps(ctx, sourceApps)
 
 	r.reportSourceAppsMetrics(ctx, sourceApps)
@@ -156,6 +160,10 @@ func (r *Reconciler) runSourceJobs(ctx context.Context, sources *source.Sources)
 	sourceJobs, err := r.getSourceJobs(ctx, sources)
 	if err != nil {
 		return err
+	}
+
+	if sourceJobs == nil {
+		return nil
 	}
 
 	r.filterSourceJobs(ctx, sourceJobs)
@@ -226,7 +234,7 @@ func (r *Reconciler) getSourceApps(ctx context.Context, sources *source.Sources)
 	}
 
 	if sources.Apps == nil {
-		return nil, fmt.Errorf("sourceApps is nil")
+		return nil, nil
 	}
 
 	sourceApps := sources.Apps
@@ -244,7 +252,7 @@ func (r *Reconciler) getSourceJobs(ctx context.Context, sources *source.Sources)
 	}
 
 	if sources.Jobs == nil {
-		return nil, fmt.Errorf("sourceJobs is nil")
+		return nil, nil
 	}
 
 	sourceJobs := sources.Jobs
