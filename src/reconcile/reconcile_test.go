@@ -21,27 +21,29 @@ const defaultFakeRevision = "6ffa5a7b2da7dc37e186e2581a903e325bbd38be"
 
 func TestReconciler(t *testing.T) {
 	sourceClient := source.NewInMemSource()
-	remoteClient := remote.NewInMemRemote()
+	remoteAppClient := remote.NewInMemApp()
+	remoteJobClient := remote.NewInMemJob()
 	secretClient := secret.NewInMemSecret()
 	notificationClient := notification.NewInMemNotification()
 	metricsClient := metrics.NewInMemMetrics()
 	appCache := cache.NewAppCache()
+	jobCache := cache.NewJobCache()
 	secretCache := cache.NewSecretCache()
 
 	ctx := context.Background()
 
-	reconciler, err := NewReconciler(config.Config{}, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
+	reconciler, err := NewReconciler(config.Config{}, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
 	require.NoError(t, err)
 
 	resetClients := func() {
 		sourceClient.GetResponse(nil, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(nil, nil)
-		remoteClient.GetSecondResponse(nil, nil)
-		remoteClient.ResetGetSecond()
-		remoteClient.CreateResponse(nil)
-		remoteClient.UpdateResponse(nil)
-		remoteClient.DeleteResponse(nil)
-		remoteClient.ResetActions()
+		remoteAppClient.GetFirstResponse(nil, nil)
+		remoteAppClient.GetSecondResponse(nil, nil)
+		remoteAppClient.ResetGetSecond()
+		remoteAppClient.CreateResponse(nil)
+		remoteAppClient.UpdateResponse(nil)
+		remoteAppClient.DeleteResponse(nil)
+		remoteAppClient.ResetActions()
 		secretClient.Reset()
 		notificationClient.SendResponse(nil)
 		notificationClient.ResetNotifications()
@@ -78,7 +80,7 @@ func TestReconciler(t *testing.T) {
 	func() {
 		defer resetClients()
 		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(nil, fmt.Errorf("foobar"))
+		remoteAppClient.GetFirstResponse(nil, fmt.Errorf("foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "failed to get remoteApps: foobar")
 	}()
@@ -88,7 +90,7 @@ func TestReconciler(t *testing.T) {
 	func() {
 		defer resetClients()
 		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
 	}()
@@ -112,14 +114,14 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(nil, fmt.Errorf("foobar second"))
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(nil, fmt.Errorf("foobar second"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "failed to get new remoteApps: foobar second")
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 	}()
 
 	// sourceClient.Get() returns one SourceApp without error
@@ -141,8 +143,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -150,10 +152,10 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 	}()
 
 	// sourceClient.Get() returns two SourceApps without error
@@ -185,8 +187,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -194,12 +196,12 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "unable to locate foo2 after create or update")
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo1")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 		require.Equal(t, actions[1].Name, "foo2")
-		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[1].Action, remote.InMemAppActionsCreate)
 	}()
 
 	// sourceClient.Get() returns two SourceApps without error
@@ -231,8 +233,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -244,12 +246,12 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo1")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 		require.Equal(t, actions[1].Name, "foo2")
-		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[1].Action, remote.InMemAppActionsCreate)
 	}()
 
 	// sourceClient.Get() returns one SourceApps without error
@@ -271,7 +273,7 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -281,7 +283,7 @@ func TestReconciler(t *testing.T) {
 				Managed: true,
 			},
 		}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -289,12 +291,12 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo2")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsDelete)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsDelete)
 		require.Equal(t, actions[1].Name, "foo1")
-		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsUpdate)
+		require.Equal(t, actions[1].Action, remote.InMemAppActionsUpdate)
 	}()
 
 	// verify that if any sourceApp contains parsing error, reconciliation stops
@@ -318,7 +320,7 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -328,7 +330,7 @@ func TestReconciler(t *testing.T) {
 				Managed: true,
 			},
 		}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -336,7 +338,7 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "sourceApps contains errors, stopping reconciliation")
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 0)
 	}()
 
@@ -396,10 +398,10 @@ func TestReconciler(t *testing.T) {
 				"foo1": sourceApp1,
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remoteApp1,
 		}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remoteApp1,
 		}, nil)
 
@@ -407,36 +409,36 @@ func TestReconciler(t *testing.T) {
 		{
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions := remoteClient.Actions()
+			actions := remoteAppClient.Actions()
 			require.Len(t, actions, 1)
 			require.Equal(t, actions[0].Name, "foo1")
-			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsUpdate)
-			remoteClient.ResetActions()
+			require.Equal(t, actions[0].Action, remote.InMemAppActionsUpdate)
+			remoteAppClient.ResetActions()
 		}
 
 		// verify no actions taken
 		{
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions := remoteClient.Actions()
+			actions := remoteAppClient.Actions()
 			require.Len(t, actions, 0)
 		}
 
 		// verify that update is made if appCache is outdated
 		{
-			remoteClient.GetFirstResponse(&remote.RemoteApps{
+			remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
 			}, nil)
-			remoteClient.GetSecondResponse(&remote.RemoteApps{
+			remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
 			}, nil)
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions := remoteClient.Actions()
+			actions := remoteAppClient.Actions()
 			require.Len(t, actions, 1)
 			require.Equal(t, actions[0].Name, "foo1")
-			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsUpdate)
-			remoteClient.ResetActions()
+			require.Equal(t, actions[0].Action, remote.InMemAppActionsUpdate)
+			remoteAppClient.ResetActions()
 		}
 
 		// verify that update is made if source app changed
@@ -446,19 +448,19 @@ func TestReconciler(t *testing.T) {
 					"foo1": sourceApp1Updated,
 				},
 			}, defaultFakeRevision, nil)
-			remoteClient.GetFirstResponse(&remote.RemoteApps{
+			remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
 			}, nil)
-			remoteClient.GetSecondResponse(&remote.RemoteApps{
+			remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
 			}, nil)
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions := remoteClient.Actions()
+			actions := remoteAppClient.Actions()
 			require.Len(t, actions, 1)
 			require.Equal(t, actions[0].Name, "foo1")
-			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsUpdate)
-			remoteClient.ResetActions()
+			require.Equal(t, actions[0].Action, remote.InMemAppActionsUpdate)
+			remoteAppClient.ResetActions()
 		}
 	}()
 
@@ -469,13 +471,13 @@ func TestReconciler(t *testing.T) {
 	func() {
 		defer resetClients()
 		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: false,
 			},
 		}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: false,
@@ -483,7 +485,7 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 0)
 	}()
 
@@ -494,13 +496,13 @@ func TestReconciler(t *testing.T) {
 	func() {
 		defer resetClients()
 		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
 			},
 		}, nil)
-		remoteClient.DeleteResponse(fmt.Errorf("delete foobar"))
+		remoteAppClient.DeleteResponse(fmt.Errorf("delete foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "delete foobar")
 	}()
@@ -525,13 +527,13 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
 			},
 		}, nil)
-		remoteClient.UpdateResponse(fmt.Errorf("update foobar"))
+		remoteAppClient.UpdateResponse(fmt.Errorf("update foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "update foobar")
 	}()
@@ -556,8 +558,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.CreateResponse(fmt.Errorf("new app foobar"))
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.CreateResponse(fmt.Errorf("new app foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "new app foobar")
 	}()
@@ -586,8 +588,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -595,10 +597,10 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, "foo", actions[0].Name)
-		require.Equal(t, remote.InMemRemoteActionsCreate, actions[0].Action)
+		require.Equal(t, remote.InMemAppActionsCreate, actions[0].Action)
 		require.Equal(t, "ze-app-secret", *actions[0].App.Properties.Configuration.Secrets[0].Name)
 		require.Equal(t, "foobar", *actions[0].App.Properties.Configuration.Secrets[0].Value)
 		cacheValue, ok := secretCache.Get("ze-remote-secret")
@@ -629,8 +631,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -638,7 +640,7 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "secret not found \"ze-remote-secret-failure\"")
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 0)
 	}()
 
@@ -651,7 +653,7 @@ func TestReconciler(t *testing.T) {
 			ContainerRegistryUsername: "foo",
 			ContainerRegistryPassword: "bar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
 		require.NoError(t, err)
 		sourceClient.GetResponse(&source.Sources{
 			Apps: &source.SourceApps{
@@ -667,8 +669,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -676,10 +678,10 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err = reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, "foo", actions[0].Name)
-		require.Equal(t, remote.InMemRemoteActionsCreate, actions[0].Action)
+		require.Equal(t, remote.InMemAppActionsCreate, actions[0].Action)
 		require.Len(t, actions[0].App.Properties.Configuration.Secrets, 1)
 		require.Equal(t, "azcagit-reg-cred", *actions[0].App.Properties.Configuration.Secrets[0].Name)
 		require.Equal(t, "bar", *actions[0].App.Properties.Configuration.Secrets[0].Value)
@@ -706,8 +708,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -715,10 +717,10 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 		notifications := notificationClient.GetNotifications()
 		require.Len(t, notifications, 1)
 		require.Equal(t, notification.NotificationStateSuccess, notifications[0].State)
@@ -776,8 +778,8 @@ func TestReconciler(t *testing.T) {
 					},
 				},
 			}, "first-revision", nil)
-			remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-			remoteClient.GetSecondResponse(&remote.RemoteApps{
+			remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+			remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 				"foo": remote.RemoteApp{
 					App:     &armappcontainers.ContainerApp{},
 					Managed: true,
@@ -802,8 +804,8 @@ func TestReconciler(t *testing.T) {
 					},
 				},
 			}, "second-revision", nil)
-			remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-			remoteClient.GetSecondResponse(&remote.RemoteApps{
+			remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+			remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 				"foo": remote.RemoteApp{
 					App:     &armappcontainers.ContainerApp{},
 					Managed: true,
@@ -857,8 +859,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -876,7 +878,7 @@ func TestReconciler(t *testing.T) {
 		cfg := config.Config{
 			Location: "foobar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
 		require.NoError(t, err)
 
 		sourceClient.GetResponse(&source.Sources{
@@ -896,11 +898,11 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{}, nil)
 		err = reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 0)
 	}()
 
@@ -921,8 +923,8 @@ func TestReconciler(t *testing.T) {
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -930,10 +932,10 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 		intStats := metricsClient.IntStats()
 		require.Len(t, intStats, 1)
 		require.Equal(t, 1, intStats[0])

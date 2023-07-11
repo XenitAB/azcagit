@@ -20,25 +20,29 @@ import (
 type Reconciler struct {
 	cfg                       config.Config
 	sourceClient              source.Source
-	remoteClient              remote.Remote
+	remoteAppClient           remote.App
+	remoteJobClient           remote.Job
 	secretClient              secret.Secret
 	notificationClient        notification.Notification
 	metricsClient             metrics.Metrics
 	appCache                  *cache.AppCache
+	jobCache                  *cache.JobCache
 	secretCache               *cache.SecretCache
 	previousNotificationEvent notification.NotificationEvent
 }
 
-func NewReconciler(cfg config.Config, sourceClient source.Source, remoteClient remote.Remote, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache *cache.AppCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+func NewReconciler(cfg config.Config, sourceClient source.Source, remoteAppClient remote.App, remoteJobClient remote.Job, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache *cache.AppCache, jobCache *cache.JobCache, secretCache *cache.SecretCache) (*Reconciler, error) {
 	previousNotificationEvent := notification.NotificationEvent{}
 	return &Reconciler{
 		cfg,
 		sourceClient,
-		remoteClient,
+		remoteAppClient,
+		remoteJobClient,
 		secretClient,
 		notificationClient,
 		metricsClient,
 		appCache,
+		jobCache,
 		secretCache,
 		previousNotificationEvent,
 	}, nil
@@ -140,7 +144,7 @@ func (r *Reconciler) runSourceApps(ctx context.Context, sources *source.Sources)
 		return err
 	}
 
-	err = r.updateCache(ctx, sourceApps)
+	err = r.updateAppCache(ctx, sourceApps)
 	if err != nil {
 		return err
 	}
@@ -149,6 +153,45 @@ func (r *Reconciler) runSourceApps(ctx context.Context, sources *source.Sources)
 }
 
 func (r *Reconciler) runSourceJobs(ctx context.Context, sources *source.Sources) error {
+	sourceJobs, err := r.getSourceJobs(ctx, sources)
+	if err != nil {
+		return err
+	}
+
+	r.filterSourceJobs(ctx, sourceJobs)
+
+	r.reportSourceJobsMetrics(ctx, sourceJobs)
+
+	err = r.populateSourceJobsSecrets(ctx, sourceJobs)
+	if err != nil {
+		return err
+	}
+
+	err = r.populateSourceJobsRegistries(sourceJobs)
+	if err != nil {
+		return err
+	}
+
+	remoteJobs, err := r.getRemoteJobs(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = r.deleteJobsIfNeeded(ctx, sourceJobs, remoteJobs)
+	if err != nil {
+		return err
+	}
+
+	err = r.createOrUpdateJobsIfNeeded(ctx, sourceJobs, remoteJobs)
+	if err != nil {
+		return err
+	}
+
+	err = r.updateJobCache(ctx, sourceJobs)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -157,6 +200,14 @@ func (r *Reconciler) reportSourceAppsMetrics(ctx context.Context, sourceApps *so
 	err := r.metricsClient.Int(ctx, "Source App Count", len(*sourceApps))
 	if err != nil {
 		log.Error(err, "unable to push metrics for source app count")
+	}
+}
+
+func (r *Reconciler) reportSourceJobsMetrics(ctx context.Context, sourceJobs *source.SourceJobs) {
+	log := logr.FromContextOrDiscard(ctx)
+	err := r.metricsClient.Int(ctx, "Source Job Count", len(*sourceJobs))
+	if err != nil {
+		log.Error(err, "unable to push metrics for source job count")
 	}
 }
 
@@ -187,8 +238,26 @@ func (r *Reconciler) getSourceApps(ctx context.Context, sources *source.Sources)
 	return sourceApps, nil
 }
 
+func (r *Reconciler) getSourceJobs(ctx context.Context, sources *source.Sources) (*source.SourceJobs, error) {
+	if sources == nil {
+		return nil, fmt.Errorf("sources is nil")
+	}
+
+	if sources.Jobs == nil {
+		return nil, fmt.Errorf("sourceJobs is nil")
+	}
+
+	sourceJobs := sources.Jobs
+
+	if sourceJobs.Error() != nil {
+		return nil, fmt.Errorf("sourceJobs contains errors, stopping reconciliation: %w", sourceJobs.Error())
+	}
+
+	return sourceJobs, nil
+}
+
 func (r *Reconciler) getRemoteApps(ctx context.Context) (*remote.RemoteApps, error) {
-	remoteApps, err := r.remoteClient.Get(ctx)
+	remoteApps, err := r.remoteAppClient.Get(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get remoteApps: %w", err)
 	}
@@ -198,6 +267,19 @@ func (r *Reconciler) getRemoteApps(ctx context.Context) (*remote.RemoteApps, err
 	}
 
 	return remoteApps, nil
+}
+
+func (r *Reconciler) getRemoteJobs(ctx context.Context) (*remote.RemoteJobs, error) {
+	remoteJobs, err := r.remoteJobClient.Get(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get remoteJobs: %w", err)
+	}
+
+	if remoteJobs == nil {
+		return nil, fmt.Errorf("remoteJobs is nil")
+	}
+
+	return remoteJobs, nil
 }
 
 func (r *Reconciler) deleteAppsIfNeeded(ctx context.Context, sourceApps *source.SourceApps, remoteApps *remote.RemoteApps) error {
@@ -214,7 +296,32 @@ func (r *Reconciler) deleteAppsIfNeeded(ctx context.Context, sourceApps *source.
 			if !remoteApp.Managed {
 				continue
 			}
-			err := r.remoteClient.Delete(ctx, name)
+			err := r.remoteAppClient.Delete(ctx, name)
+			if err != nil {
+				return err
+			}
+			log.Info("deleted remoteApp", "app", name)
+		}
+	}
+
+	return nil
+}
+
+func (r *Reconciler) deleteJobsIfNeeded(ctx context.Context, sourceJobs *source.SourceJobs, remoteJobs *remote.RemoteJobs) error {
+	log := logr.FromContextOrDiscard(ctx)
+
+	for _, name := range remoteJobs.GetSortedNames() {
+		if sourceJobs.Error() != nil {
+			log.Error(fmt.Errorf("delete disabled"), "no remoteJobs will be deleted while sourceJobs contains errors")
+			break
+		}
+		remoteJob, _ := remoteJobs.Get(name)
+		_, ok := sourceJobs.Get(name)
+		if !ok {
+			if !remoteJob.Managed {
+				continue
+			}
+			err := r.remoteJobClient.Delete(ctx, name)
 			if err != nil {
 				return err
 			}
@@ -241,7 +348,7 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 				return fmt.Errorf("trying to update a non-managed app: %s", name)
 			}
 
-			err := r.remoteClient.Update(ctx, name, *sourceApp.Specification.App)
+			err := r.remoteAppClient.Update(ctx, name, *sourceApp.Specification.App)
 			if err != nil {
 				return fmt.Errorf("failed to update %s: %w", name, err)
 			}
@@ -249,7 +356,7 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 			continue
 		}
 
-		err := r.remoteClient.Create(ctx, name, *sourceApp.Specification.App)
+		err := r.remoteAppClient.Create(ctx, name, *sourceApp.Specification.App)
 		if err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
@@ -259,8 +366,42 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 	return nil
 }
 
-func (r *Reconciler) updateCache(ctx context.Context, sourceApps *source.SourceApps) error {
-	newRemoteApps, err := r.remoteClient.Get(ctx)
+func (r *Reconciler) createOrUpdateJobsIfNeeded(ctx context.Context, sourceJobs *source.SourceJobs, remoteJobs *remote.RemoteJobs) error {
+	log := logr.FromContextOrDiscard(ctx)
+
+	for _, name := range sourceJobs.GetSortedNames() {
+		sourceJob, _ := sourceJobs.Get(name)
+		remoteJob, ok := remoteJobs.Get(name)
+		needsUpdate, updateReason := r.jobCache.NeedsUpdate(name, remoteJob.Job, sourceJob.Specification.Job)
+		if !needsUpdate {
+			log.Info("skipping update, no changes", "job", name)
+			continue
+		}
+		if ok {
+			if !remoteJob.Managed {
+				return fmt.Errorf("trying to update a non-managed job: %s", name)
+			}
+
+			err := r.remoteJobClient.Update(ctx, name, *sourceJob.Specification.Job)
+			if err != nil {
+				return fmt.Errorf("failed to update %s: %w", name, err)
+			}
+			log.Info("updated remoteJob", "job", name, "reason", updateReason)
+			continue
+		}
+
+		err := r.remoteJobClient.Create(ctx, name, *sourceJob.Specification.Job)
+		if err != nil {
+			return fmt.Errorf("failed to create %s: %w", name, err)
+		}
+		log.Info("created remoteJob", "job", name, "reason", updateReason)
+	}
+
+	return nil
+}
+
+func (r *Reconciler) updateAppCache(ctx context.Context, sourceApps *source.SourceApps) error {
+	newRemoteApps, err := r.remoteAppClient.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get new remoteApps: %w", err)
 	}
@@ -269,9 +410,27 @@ func (r *Reconciler) updateCache(ctx context.Context, sourceApps *source.SourceA
 		sourceApp, _ := sourceApps.Get(name)
 		remoteApp, ok := newRemoteApps.Get(name)
 		if !ok {
-			return fmt.Errorf("unable to locate %s after create or update", name)
+			return fmt.Errorf("unable to locate app %s after create or update", name)
 		}
 		r.appCache.Set(name, remoteApp.App, sourceApp.Specification.App)
+	}
+
+	return nil
+}
+
+func (r *Reconciler) updateJobCache(ctx context.Context, sourceJobs *source.SourceJobs) error {
+	newRemoteJobs, err := r.remoteJobClient.Get(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get new remoteJobs: %w", err)
+	}
+
+	for _, name := range sourceJobs.GetSortedNames() {
+		sourceJob, _ := sourceJobs.Get(name)
+		remoteJob, ok := newRemoteJobs.Get(name)
+		if !ok {
+			return fmt.Errorf("unable to locate job %s after create or update", name)
+		}
+		r.jobCache.Set(name, remoteJob.Job, sourceJob.Specification.Job)
 	}
 
 	return nil
@@ -286,6 +445,19 @@ func (r *Reconciler) filterSourceApps(ctx context.Context, sourceApps *source.So
 		if !shouldRunInLocation {
 			log.V(1).Info("sourceApp was deleted because of location mis-match", "app", app.Name(), "currentLocation", r.cfg.Location, "locationFilter", app.Specification.LocationFilter)
 			sourceApps.Delete(name)
+		}
+	}
+}
+
+func (r *Reconciler) filterSourceJobs(ctx context.Context, sourceJobs *source.SourceJobs) {
+	log := logr.FromContextOrDiscard(ctx)
+
+	for _, name := range sourceJobs.GetSortedNames() {
+		job, _ := sourceJobs.Get(name)
+		shouldRunInLocation := job.ShoudRunInLocation(r.cfg.Location)
+		if !shouldRunInLocation {
+			log.V(1).Info("sourceJob was deleted because of location mis-match", "job", job.Name(), "currentLocation", r.cfg.Location, "locationFilter", job.Specification.LocationFilter)
+			sourceJobs.Delete(name)
 		}
 	}
 }
@@ -333,6 +505,49 @@ func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *
 	return nil
 }
 
+func (r *Reconciler) populateSourceJobsSecrets(ctx context.Context, sourceJobs *source.SourceJobs) error {
+	secretItems, err := r.secretClient.ListItems(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, secretName := range sourceJobs.GetUniqueRemoteSecretNames() {
+		item, ok := secretItems.Get(secretName)
+		if !ok {
+			return fmt.Errorf("secret not found %q", secretName)
+		}
+
+		if r.secretCache.NeedsUpdate(secretName, item.LastChange()) {
+			secretValue, changedAt, err := r.secretClient.Get(ctx, secretName)
+			if err != nil {
+				return err
+			}
+			r.secretCache.Set(secretName, secretValue, changedAt)
+		}
+	}
+
+	for _, name := range sourceJobs.GetSortedNames() {
+		job, _ := sourceJobs.Get(name)
+		for i, remoteSecret := range job.GetRemoteSecrets() {
+			if !remoteSecret.Valid() {
+				return fmt.Errorf("secret %d for job %q not valid", i, name)
+			}
+
+			secretValue, ok := r.secretCache.Get(*remoteSecret.RemoteSecretName)
+			if !ok {
+				return fmt.Errorf("unable to get secret %d for job %q from cache", i, name)
+			}
+
+			err = sourceJobs.SetSecret(name, *remoteSecret.SecretName, secretValue)
+			if err != nil {
+				return fmt.Errorf("unable to set secret %q for job %q", *remoteSecret.SecretName, name)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (r *Reconciler) populateSourceAppsRegistries(sourceApps *source.SourceApps) error {
 	if r.cfg.ContainerRegistryServer == "" && r.cfg.ContainerRegistryUsername == "" && r.cfg.ContainerRegistryPassword == "" {
 		return nil
@@ -344,6 +559,25 @@ func (r *Reconciler) populateSourceAppsRegistries(sourceApps *source.SourceApps)
 
 	for _, name := range sourceApps.GetSortedNames() {
 		err := sourceApps.SetRegistry(name, r.cfg.ContainerRegistryServer, r.cfg.ContainerRegistryUsername, r.cfg.ContainerRegistryPassword)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (r *Reconciler) populateSourceJobsRegistries(sourceJobs *source.SourceJobs) error {
+	if r.cfg.ContainerRegistryServer == "" && r.cfg.ContainerRegistryUsername == "" && r.cfg.ContainerRegistryPassword == "" {
+		return nil
+	}
+
+	if r.cfg.ContainerRegistryServer != "" && (r.cfg.ContainerRegistryUsername == "" || r.cfg.ContainerRegistryPassword == "") {
+		return fmt.Errorf("all of container registry server, username and password needs to be set")
+	}
+
+	for _, name := range sourceJobs.GetSortedNames() {
+		err := sourceJobs.SetRegistry(name, r.cfg.ContainerRegistryServer, r.cfg.ContainerRegistryUsername, r.cfg.ContainerRegistryPassword)
 		if err != nil {
 			return err
 		}

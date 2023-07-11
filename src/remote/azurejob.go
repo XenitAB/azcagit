@@ -11,54 +11,54 @@ import (
 	"github.com/xenitab/azcagit/src/config"
 )
 
-type AzureRemote struct {
+type AzureJob struct {
 	resourceGroup string
-	client        *armappcontainers.ContainerAppsClient
+	client        *armappcontainers.JobsClient
 }
 
-var _ Remote = (*AzureRemote)(nil)
+var _ Job = (*AzureJob)(nil)
 
-func NewAzureRemote(cfg config.Config, cred azcore.TokenCredential) (*AzureRemote, error) {
-	client, err := armappcontainers.NewContainerAppsClient(cfg.SubscriptionID, cred, nil)
+func NewAzureJob(cfg config.Config, cred azcore.TokenCredential) (*AzureJob, error) {
+	client, err := armappcontainers.NewJobsClient(cfg.SubscriptionID, cred, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &AzureRemote{
+	return &AzureJob{
 		resourceGroup: cfg.ResourceGroupName,
 		client:        client,
 	}, nil
 }
 
-func (r *AzureRemote) Get(ctx context.Context) (*RemoteApps, error) {
-	apps := make(RemoteApps)
+func (r *AzureJob) Get(ctx context.Context) (*RemoteJobs, error) {
+	jobs := make(RemoteJobs)
 	pager := r.client.NewListByResourceGroupPager(r.resourceGroup, nil)
 	for pager.More() {
 		nextResult, err := pager.NextPage(ctx)
 		if err != nil {
 			return nil, err
 		}
-		for _, app := range nextResult.Value {
+		for _, job := range nextResult.Value {
 			managed := false
-			tag, ok := app.Tags["aca.xenit.io"]
+			tag, ok := job.Tags["aca.xenit.io"]
 			if ok {
 				if *tag == "true" {
 					managed = true
 				}
 			}
 
-			apps[*app.Name] = RemoteApp{
-				app,
+			jobs[*job.Name] = RemoteJob{
+				job,
 				managed,
 			}
 		}
 	}
 
-	return &apps, nil
+	return &jobs, nil
 }
 
-func (r *AzureRemote) Create(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
-	res, err := r.client.BeginCreateOrUpdate(ctx, r.resourceGroup, name, app, &armappcontainers.ContainerAppsClientBeginCreateOrUpdateOptions{})
+func (r *AzureJob) Create(ctx context.Context, name string, job armappcontainers.Job) error {
+	res, err := r.client.BeginCreateOrUpdate(ctx, r.resourceGroup, name, job, &armappcontainers.JobsClientBeginCreateOrUpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to create: %w", err)
 	}
@@ -73,12 +73,12 @@ func (r *AzureRemote) Create(ctx context.Context, name string, app armappcontain
 	return nil
 }
 
-func (r *AzureRemote) Update(ctx context.Context, name string, app armappcontainers.ContainerApp) error {
-	return r.Create(ctx, name, app)
+func (r *AzureJob) Update(ctx context.Context, name string, job armappcontainers.Job) error {
+	return r.Create(ctx, name, job)
 }
 
-func (r *AzureRemote) Delete(ctx context.Context, name string) error {
-	res, err := r.client.BeginDelete(ctx, r.resourceGroup, name, &armappcontainers.ContainerAppsClientBeginDeleteOptions{})
+func (r *AzureJob) Delete(ctx context.Context, name string) error {
+	res, err := r.client.BeginDelete(ctx, r.resourceGroup, name, &armappcontainers.JobsClientBeginDeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to delete: %w", err)
 	}
