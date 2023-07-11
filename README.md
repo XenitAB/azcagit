@@ -19,9 +19,9 @@ Platform is used for what we call "platform services", in this case the virtual 
 
 Tenant is used only to synchronize the Container Apps manifests. The Container Apps that are created by `azcagit` will reside here.
 
-The manifests are in the same format as Kubernetes manifests ([Kubernetes Resource Model aka KRM](https://cloud.google.com/blog/topics/developers-practitioners/build-platform-krm-part-2-how-kubernetes-resource-model-works)), but with a hard coupling to the [Azure Container Apps specification](https://docs.microsoft.com/en-us/azure/templates/microsoft.app/containerapps?pivots=deployment-language-arm-template) for `spec.app`.
+The manifests are in the same format as Kubernetes manifests ([Kubernetes Resource Model aka KRM](https://cloud.google.com/blog/topics/developers-practitioners/build-platform-krm-part-2-how-kubernetes-resource-model-works)), but with a hard coupling to the [Azure Container Apps specification](https://docs.microsoft.com/en-us/azure/templates/microsoft.app/containerapps?pivots=deployment-language-arm-template) for `spec.app` when using `kind: AzureContainerApp` and [Azure Container Jobs specification](https://learn.microsoft.com/en-us/azure/templates/microsoft.app/jobs?pivots=deployment-language-arm-template) for `spec.job` when using `kind: AzureContainerJob`.
 
-An example manifest:
+An example manifest of an app:
 
 ```yaml
 kind: AzureContainerApp
@@ -57,6 +57,42 @@ spec:
         scale:
           minReplicas: 1
           maxReplicas: 1
+```
+
+example manifest of a job:
+
+```yaml
+kind: AzureContainerJob
+apiVersion: aca.xenit.io/v1alpha2
+metadata:
+  name: foobar
+spec:
+  locationFilter:
+    - West Europe
+  remoteSecrets:
+    - secretName: connection-string
+      remoteSecretName: mssql-connection-string
+  replacements:
+    images:
+      - imageName: "mcr.microsoft.com/k8se/quickstart-jobs"
+        newImageTag: "latest"
+  job:
+    properties:
+      configuration:
+        scheduleTriggerConfig:
+          cronExpression: "*/5 * * * *"
+          parallelism: 1
+          replicaCompletionCount: 1
+        replicaRetryLimit: 1
+        replicaTimeout: 1800
+        triggerType: Schedule
+      template:
+        containers:
+          - name: main
+            image: mcr.microsoft.com/k8se/quickstart-jobs:foobar
+            resources:
+              cpu: 0.25
+              memory: .5Gi
 ```
 
 YAML-files can contain one or more documents (with `---` as a document separator). As of right now, all files in the git repository path (configured with `--git-path` when launching `azcagit`) needs to pass validation for any deletion to occur (deletion will be disabled if any manifests contains validation errors).
