@@ -1,0 +1,504 @@
+$defs:
+    Container:
+        additionalProperties: false
+        properties:
+            Args:
+                items:
+                    type: string
+                type: array
+            Command:
+                items:
+                    type: string
+                type: array
+            Env:
+                items:
+                    $ref: '#/$defs/EnvironmentVar'
+                type: array
+            Image:
+                type: string
+            Name:
+                type: string
+            Probes:
+                items:
+                    $ref: '#/$defs/ContainerAppProbe'
+                type: array
+            Resources:
+                $ref: '#/$defs/ContainerResources'
+            VolumeMounts:
+                items:
+                    $ref: '#/$defs/VolumeMount'
+                type: array
+        required:
+            - Args
+            - Command
+            - Env
+            - Image
+            - Name
+            - Probes
+            - Resources
+            - VolumeMounts
+        type: object
+    ContainerAppProbe:
+        additionalProperties: false
+        properties:
+            FailureThreshold:
+                type: integer
+            HTTPGet:
+                $ref: '#/$defs/ContainerAppProbeHTTPGet'
+            InitialDelaySeconds:
+                type: integer
+            PeriodSeconds:
+                type: integer
+            SuccessThreshold:
+                type: integer
+            TCPSocket:
+                $ref: '#/$defs/ContainerAppProbeTCPSocket'
+            TerminationGracePeriodSeconds:
+                type: integer
+            TimeoutSeconds:
+                type: integer
+            Type:
+                type: string
+        required:
+            - FailureThreshold
+            - HTTPGet
+            - InitialDelaySeconds
+            - PeriodSeconds
+            - SuccessThreshold
+            - TCPSocket
+            - TerminationGracePeriodSeconds
+            - TimeoutSeconds
+            - Type
+        type: object
+    ContainerAppProbeHTTPGet:
+        additionalProperties: false
+        properties:
+            HTTPHeaders:
+                items:
+                    $ref: '#/$defs/ContainerAppProbeHTTPGetHTTPHeadersItem'
+                type: array
+            Host:
+                type: string
+            Path:
+                type: string
+            Port:
+                type: integer
+            Scheme:
+                type: string
+        required:
+            - Port
+            - HTTPHeaders
+            - Host
+            - Path
+            - Scheme
+        type: object
+    ContainerAppProbeHTTPGetHTTPHeadersItem:
+        additionalProperties: false
+        properties:
+            Name:
+                type: string
+            Value:
+                type: string
+        required:
+            - Name
+            - Value
+        type: object
+    ContainerAppProbeTCPSocket:
+        additionalProperties: false
+        properties:
+            Host:
+                type: string
+            Port:
+                type: integer
+        required:
+            - Port
+            - Host
+        type: object
+    ContainerResources:
+        additionalProperties: false
+        properties:
+            CPU:
+                type: number
+            EphemeralStorage:
+                type: string
+            Memory:
+                type: string
+        required:
+            - CPU
+            - Memory
+            - EphemeralStorage
+        type: object
+    EnvironmentVar:
+        additionalProperties: false
+        properties:
+            Name:
+                type: string
+            SecretRef:
+                type: string
+            Value:
+                type: string
+        required:
+            - Name
+            - SecretRef
+            - Value
+        type: object
+    ImageReplacementSpecification:
+        additionalProperties: false
+        properties:
+            imageName:
+                type: string
+            newImageTag:
+                type: string
+        type: object
+    InitContainer:
+        additionalProperties: false
+        properties:
+            Args:
+                items:
+                    type: string
+                type: array
+            Command:
+                items:
+                    type: string
+                type: array
+            Env:
+                items:
+                    $ref: '#/$defs/EnvironmentVar'
+                type: array
+            Image:
+                type: string
+            Name:
+                type: string
+            Resources:
+                $ref: '#/$defs/ContainerResources'
+            VolumeMounts:
+                items:
+                    $ref: '#/$defs/VolumeMount'
+                type: array
+        required:
+            - Args
+            - Command
+            - Env
+            - Image
+            - Name
+            - Resources
+            - VolumeMounts
+        type: object
+    Job:
+        additionalProperties: false
+        properties:
+            ID:
+                type: string
+            Identity:
+                $ref: '#/$defs/ManagedServiceIdentity'
+            Location:
+                type: string
+            Name:
+                type: string
+            Properties:
+                $ref: '#/$defs/JobProperties'
+            SystemData:
+                $ref: '#/$defs/SystemData'
+            Tags:
+                patternProperties:
+                    .*:
+                        type: string
+                type: object
+            Type:
+                type: string
+        required:
+            - Location
+            - Identity
+            - Properties
+            - Tags
+            - ID
+            - Name
+            - SystemData
+            - Type
+        type: object
+    JobConfiguration:
+        additionalProperties: false
+        properties:
+            ManualTriggerConfig:
+                $ref: '#/$defs/JobConfigurationManualTriggerConfig'
+            Registries:
+                items:
+                    $ref: '#/$defs/RegistryCredentials'
+                type: array
+            ReplicaRetryLimit:
+                type: integer
+            ReplicaTimeout:
+                type: integer
+            ScheduleTriggerConfig:
+                $ref: '#/$defs/JobConfigurationScheduleTriggerConfig'
+            Secrets:
+                items:
+                    $ref: '#/$defs/Secret'
+                type: array
+            TriggerType:
+                type: string
+        required:
+            - ReplicaTimeout
+            - TriggerType
+            - ManualTriggerConfig
+            - Registries
+            - ReplicaRetryLimit
+            - ScheduleTriggerConfig
+            - Secrets
+        type: object
+    JobConfigurationManualTriggerConfig:
+        additionalProperties: false
+        properties:
+            Parallelism:
+                type: integer
+            ReplicaCompletionCount:
+                type: integer
+        required:
+            - Parallelism
+            - ReplicaCompletionCount
+        type: object
+    JobConfigurationScheduleTriggerConfig:
+        additionalProperties: false
+        properties:
+            CronExpression:
+                type: string
+            Parallelism:
+                type: integer
+            ReplicaCompletionCount:
+                type: integer
+        required:
+            - CronExpression
+            - Parallelism
+            - ReplicaCompletionCount
+        type: object
+    JobProperties:
+        additionalProperties: false
+        properties:
+            Configuration:
+                $ref: '#/$defs/JobConfiguration'
+            EnvironmentID:
+                type: string
+            EventStreamEndpoint:
+                type: string
+            OutboundIPAddresses:
+                items:
+                    type: string
+                type: array
+            ProvisioningState:
+                type: string
+            Template:
+                $ref: '#/$defs/JobTemplate'
+            WorkloadProfileName:
+                type: string
+        required:
+            - Configuration
+            - EnvironmentID
+            - Template
+            - WorkloadProfileName
+            - EventStreamEndpoint
+            - OutboundIPAddresses
+            - ProvisioningState
+        type: object
+    JobTemplate:
+        additionalProperties: false
+        properties:
+            Containers:
+                items:
+                    $ref: '#/$defs/Container'
+                type: array
+            InitContainers:
+                items:
+                    $ref: '#/$defs/InitContainer'
+                type: array
+            Volumes:
+                items:
+                    $ref: '#/$defs/Volume'
+                type: array
+        required:
+            - Containers
+            - InitContainers
+            - Volumes
+        type: object
+    ManagedServiceIdentity:
+        additionalProperties: false
+        properties:
+            PrincipalID:
+                type: string
+            TenantID:
+                type: string
+            Type:
+                type: string
+            UserAssignedIdentities:
+                patternProperties:
+                    .*:
+                        $ref: '#/$defs/UserAssignedIdentity'
+                type: object
+        required:
+            - Type
+            - UserAssignedIdentities
+            - PrincipalID
+            - TenantID
+        type: object
+    RegistryCredentials:
+        additionalProperties: false
+        properties:
+            Identity:
+                type: string
+            PasswordSecretRef:
+                type: string
+            Server:
+                type: string
+            Username:
+                type: string
+        required:
+            - Identity
+            - PasswordSecretRef
+            - Server
+            - Username
+        type: object
+    RemoteSecretSpecification:
+        additionalProperties: false
+        properties:
+            remoteSecretName:
+                type: string
+            secretName:
+                type: string
+        type: object
+    ReplacementsSpecification:
+        additionalProperties: false
+        properties:
+            images:
+                items:
+                    $ref: '#/$defs/ImageReplacementSpecification'
+                type: array
+        type: object
+    Secret:
+        additionalProperties: false
+        properties:
+            Identity:
+                type: string
+            KeyVaultURL:
+                type: string
+            Name:
+                type: string
+            Value:
+                type: string
+        required:
+            - Identity
+            - KeyVaultURL
+            - Name
+            - Value
+        type: object
+    SecretVolumeItem:
+        additionalProperties: false
+        properties:
+            Path:
+                type: string
+            SecretRef:
+                type: string
+        required:
+            - Path
+            - SecretRef
+        type: object
+    SourceJob:
+        additionalProperties: false
+        properties:
+            Err: true
+            apiVersion:
+                type: string
+            kind:
+                type: string
+            metadata:
+                patternProperties:
+                    .*:
+                        type: string
+                type: object
+            spec:
+                $ref: '#/$defs/SourceJobSpecification'
+        required:
+            - Err
+        type: object
+    SourceJobSpecification:
+        additionalProperties: false
+        properties:
+            job:
+                $ref: '#/$defs/Job'
+            locationFilter:
+                items:
+                    type: string
+                type: array
+            remoteSecrets:
+                items:
+                    $ref: '#/$defs/RemoteSecretSpecification'
+                type: array
+            replacements:
+                $ref: '#/$defs/ReplacementsSpecification'
+        type: object
+    SystemData:
+        additionalProperties: false
+        properties:
+            CreatedAt:
+                format: date-time
+                type: string
+            CreatedBy:
+                type: string
+            CreatedByType:
+                type: string
+            LastModifiedAt:
+                format: date-time
+                type: string
+            LastModifiedBy:
+                type: string
+            LastModifiedByType:
+                type: string
+        required:
+            - CreatedAt
+            - CreatedBy
+            - CreatedByType
+            - LastModifiedAt
+            - LastModifiedBy
+            - LastModifiedByType
+        type: object
+    UserAssignedIdentity:
+        additionalProperties: false
+        properties:
+            ClientID:
+                type: string
+            PrincipalID:
+                type: string
+        required:
+            - ClientID
+            - PrincipalID
+        type: object
+    Volume:
+        additionalProperties: false
+        properties:
+            Name:
+                type: string
+            Secrets:
+                items:
+                    $ref: '#/$defs/SecretVolumeItem'
+                type: array
+            StorageName:
+                type: string
+            StorageType:
+                type: string
+        required:
+            - Name
+            - Secrets
+            - StorageName
+            - StorageType
+        type: object
+    VolumeMount:
+        additionalProperties: false
+        properties:
+            MountPath:
+                type: string
+            VolumeName:
+                type: string
+        required:
+            - MountPath
+            - VolumeName
+        type: object
+$ref: '#/$defs/SourceJob'
+$schema: https://json-schema.org/draft/2020-12/schema

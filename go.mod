@@ -17,6 +17,8 @@ require (
 	github.com/go-logr/zapr v1.2.4
 	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/invopop/jsonschema v0.7.0
+	github.com/invopop/yaml v0.2.0
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
 	github.com/stretchr/testify v1.8.4
 	github.com/whilp/git-urls v1.0.0
@@ -55,6 +57,7 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/iancoleman/orderedmap v0.0.0-20190318233801-ac98e3ecb4b0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
