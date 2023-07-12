@@ -21,27 +21,36 @@ const defaultFakeRevision = "6ffa5a7b2da7dc37e186e2581a903e325bbd38be"
 
 func TestReconciler(t *testing.T) {
 	sourceClient := source.NewInMemSource()
-	remoteClient := remote.NewInMemRemote()
+	remoteAppClient := remote.NewInMemApp()
+	remoteJobClient := remote.NewInMemJob()
 	secretClient := secret.NewInMemSecret()
 	notificationClient := notification.NewInMemNotification()
 	metricsClient := metrics.NewInMemMetrics()
 	appCache := cache.NewAppCache()
+	jobCache := cache.NewJobCache()
 	secretCache := cache.NewSecretCache()
 
 	ctx := context.Background()
 
-	reconciler, err := NewReconciler(config.Config{}, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
+	reconciler, err := NewReconciler(config.Config{}, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
 	require.NoError(t, err)
 
 	resetClients := func() {
 		sourceClient.GetResponse(nil, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(nil, nil)
-		remoteClient.GetSecondResponse(nil, nil)
-		remoteClient.ResetGetSecond()
-		remoteClient.CreateResponse(nil)
-		remoteClient.UpdateResponse(nil)
-		remoteClient.DeleteResponse(nil)
-		remoteClient.ResetActions()
+		remoteAppClient.GetFirstResponse(nil, nil)
+		remoteAppClient.GetSecondResponse(nil, nil)
+		remoteAppClient.ResetGetSecond()
+		remoteAppClient.CreateResponse(nil)
+		remoteAppClient.UpdateResponse(nil)
+		remoteAppClient.DeleteResponse(nil)
+		remoteAppClient.ResetActions()
+		remoteJobClient.GetFirstResponse(nil, nil)
+		remoteJobClient.GetSecondResponse(nil, nil)
+		remoteJobClient.ResetGetSecond()
+		remoteJobClient.CreateResponse(nil)
+		remoteJobClient.UpdateResponse(nil)
+		remoteJobClient.DeleteResponse(nil)
+		remoteJobClient.ResetActions()
 		secretClient.Reset()
 		notificationClient.SendResponse(nil)
 		notificationClient.ResetNotifications()
@@ -49,96 +58,112 @@ func TestReconciler(t *testing.T) {
 		reconciler.previousNotificationEvent = notification.NotificationEvent{}
 	}
 
-	// everything is nil
-	func() {
+	t.Run("everything is nil", func(t *testing.T) {
 		defer resetClients()
 		err := reconciler.Run(ctx)
-		require.ErrorContains(t, err, "sourceApps is nil")
-	}()
+		require.ErrorContains(t, err, "sources is nil")
+	})
 
-	// sourceClient.Get() returns error
-	func() {
+	t.Run("sourceClient.Get() returns error", func(t *testing.T) {
 		defer resetClients()
 		sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "failed to get sourceApps: foobar")
-	}()
+	})
 
-	// sourceClient.Get() returns empty SourceApps without error
-	// first remoteClient.Get() returns nil
-	func() {
+	t.Run("sourceClient.Get() returns empty SourceApps without error, sourceClient.Get() returns empty SourceApps without error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "remoteApps is nil")
-	}()
+	})
 
-	// sourceClient.Get() returns empty SourceApps without error
-	// first remoteClient.Get() returns error
-	func() {
+	t.Run("sourceClient.Get() returns empty SourceApps without error, first remoteClient.Get() returns error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(nil, fmt.Errorf("foobar"))
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(nil, fmt.Errorf("foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "failed to get remoteApps: foobar")
-	}()
+	})
 
-	// sourceClient.Get() returns empty SourceApps without error
-	// first remoteClient.Get() returns empty RemoteApps without error
-	func() {
+	t.Run("sourceClient.Get() returns empty SourceApps without error, first remoteClient.Get() returns empty RemoteApps without error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-	}()
+	})
 
-	// sourceClient.Get() returns one SourceApp without error
-	// first remoteClient.Get() returns empty RemoteApps without error
-	// second remoteClient.Get() returns nil RemoteApps with error
-	func() {
+	t.Run("sourceClient.Get() returns one SourceApp without error, first remoteClient.Get() returns empty RemoteApps without error, second remoteClient.Get() returns nil RemoteApps with error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(nil, fmt.Errorf("foobar second"))
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(nil, fmt.Errorf("foobar second"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "failed to get new remoteApps: foobar second")
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
-	}()
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
+	})
 
-	// sourceClient.Get() returns one SourceApp without error
-	// first remoteClient.Get() returns empty RemoteApps without error
-	// second remoteClient.Get() returns one RemoteApp without error
-	func() {
+	t.Run("sourceClient.Get() returns one SourceJob without error, first remoteClient.Get() returns empty RemoteJobs without error, second remoteClient.Get() returns nil RemoteJobs with error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Jobs: &source.SourceJobs{
+				"foo": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{}, nil)
+		remoteJobClient.GetSecondResponse(nil, fmt.Errorf("foobar second"))
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "failed to get new remoteJobs: foobar second")
+		actions := remoteJobClient.Actions()
+		require.Len(t, actions, 1)
+		require.Equal(t, actions[0].Name, "foo")
+		require.Equal(t, actions[0].Action, remote.InMemJobActionsCreate)
+	})
+
+	t.Run("sourceClient.Get() returns one SourceApp without error, first remoteClient.Get() returns empty RemoteApps without error, second remoteClient.Get() returns one RemoteApp without error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -146,85 +171,157 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
-	}()
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
+	})
 
-	// sourceClient.Get() returns two SourceApps without error
-	// first remoteClient.Get() returns empty RemoteApps without error
-	// second remoteClient.Get() returns one RemoteApp without error
-	func() {
+	t.Run("sourceClient.Get() returns one SourceJob without error, first remoteClient.Get() returns empty RemoteJobs without error, second remoteClient.Get() returns one RemoteJob without error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo1",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-				},
-			},
-			"foo2": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo2",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Jobs: &source.SourceJobs{
+				"foo": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{}, nil)
+		remoteJobClient.GetSecondResponse(&remote.RemoteJobs{
+			"foo": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteJobClient.Actions()
+		require.Len(t, actions, 1)
+		require.Equal(t, actions[0].Name, "foo")
+		require.Equal(t, actions[0].Action, remote.InMemJobActionsCreate)
+	})
+
+	t.Run("sourceClient.Get() returns two SourceApps without error, first remoteClient.Get() returns empty RemoteApps without error, second remoteClient.Get() returns one RemoteApp without error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+				},
+				"foo2": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo2",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
 			},
 		}, nil)
 		err := reconciler.Run(ctx)
-		require.ErrorContains(t, err, "unable to locate foo2 after create or update")
-		actions := remoteClient.Actions()
+		require.ErrorContains(t, err, "unable to locate app foo2 after create or update")
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo1")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 		require.Equal(t, actions[1].Name, "foo2")
-		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsCreate)
-	}()
+		require.Equal(t, actions[1].Action, remote.InMemAppActionsCreate)
+	})
 
-	// sourceClient.Get() returns two SourceApps without error
-	// first remoteClient.Get() returns empty RemoteApps without error
-	// second remoteClient.Get() returns two RemoteApps without error
-	func() {
+	t.Run("sourceClient.Get() returns two SourceJobs without error, first remoteClient.Get() returns empty RemoteJobs without error, second remoteClient.Get() returns one RemoteJob without error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo1",
+		sourceClient.GetResponse(&source.Sources{
+			Jobs: &source.SourceJobs{
+				"foo1": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
 				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-				},
-			},
-			"foo2": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo2",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+				"foo2": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo2",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{}, nil)
+		remoteJobClient.GetSecondResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "unable to locate job foo2 after create or update")
+		actions := remoteJobClient.Actions()
+		require.Len(t, actions, 2)
+		require.Equal(t, actions[0].Name, "foo1")
+		require.Equal(t, actions[0].Action, remote.InMemJobActionsCreate)
+		require.Equal(t, actions[1].Name, "foo2")
+		require.Equal(t, actions[1].Action, remote.InMemJobActionsCreate)
+	})
+
+	t.Run("sourceClient.Get() returns two SourceApps without error, first remoteClient.Get() returns empty RemoteApps without error, second remoteClient.Get() returns two RemoteApps without error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+				},
+				"foo2": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo2",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -236,32 +333,78 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo1")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 		require.Equal(t, actions[1].Name, "foo2")
-		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsCreate)
-	}()
+		require.Equal(t, actions[1].Action, remote.InMemAppActionsCreate)
+	})
 
-	// sourceClient.Get() returns one SourceApps without error
-	// first remoteClient.Get() returns two RemoteApps without error
-	// second remoteClient.Get() returns one RemoteApps without error
-	func() {
+	t.Run("sourceClient.Get() returns two SourceJobs without error, first remoteClient.Get() returns empty RemoteJobs without error, second remoteClient.Get() returns two RemoteJobs without error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo1",
+		sourceClient.GetResponse(&source.Sources{
+			Jobs: &source.SourceJobs{
+				"foo1": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
 				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+				"foo2": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo2",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{}, nil)
+		remoteJobClient.GetSecondResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+			"foo2": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteJobClient.Actions()
+		require.Len(t, actions, 2)
+		require.Equal(t, actions[0].Name, "foo1")
+		require.Equal(t, actions[0].Action, remote.InMemJobActionsCreate)
+		require.Equal(t, actions[1].Name, "foo2")
+		require.Equal(t, actions[1].Action, remote.InMemJobActionsCreate)
+	})
+
+	t.Run("sourceClient.Get() returns one SourceApps without error, first remoteClient.Get() returns two RemoteApps without error, second remoteClient.Get() returns one RemoteApps without error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -271,7 +414,7 @@ func TestReconciler(t *testing.T) {
 				Managed: true,
 			},
 		}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -279,34 +422,74 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 2)
 		require.Equal(t, actions[0].Name, "foo2")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsDelete)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsDelete)
 		require.Equal(t, actions[1].Name, "foo1")
-		require.Equal(t, actions[1].Action, remote.InMemRemoteActionsUpdate)
-	}()
+		require.Equal(t, actions[1].Action, remote.InMemAppActionsUpdate)
+	})
 
-	// verify that if any sourceApp contains parsing error, reconciliation stops
-	// sourceClient.Get() returns one SourceApp with error
-	// first remoteClient.Get() returns two RemoteApps without error
-	// second remoteClient.Get() returns one RemoteApps without error
-	func() {
+	t.Run("sourceClient.Get() returns one SourceJobs without error, first remoteClient.Get() returns two RemoteJobs without error, second remoteClient.Get() returns one RemoteJobs without error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo1",
+		sourceClient.GetResponse(&source.Sources{
+			Jobs: &source.SourceJobs{
+				"foo1": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
 				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-				},
-				Err: fmt.Errorf("foobar"),
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+			"foo2": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+		}, nil)
+		remoteJobClient.GetSecondResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteJobClient.Actions()
+		require.Len(t, actions, 2)
+		require.Equal(t, actions[0].Name, "foo2")
+		require.Equal(t, actions[0].Action, remote.InMemJobActionsDelete)
+		require.Equal(t, actions[1].Name, "foo1")
+		require.Equal(t, actions[1].Action, remote.InMemJobActionsUpdate)
+	})
+
+	t.Run("verify that if any sourceApp contains parsing error, reconciliation stops, sourceClient.Get() returns one SourceApp with error, first remoteClient.Get() returns two RemoteApps without error, second remoteClient.Get() returns one RemoteApps without error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+					Err: fmt.Errorf("foobar"),
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -316,7 +499,7 @@ func TestReconciler(t *testing.T) {
 				Managed: true,
 			},
 		}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -324,21 +507,56 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "sourceApps contains errors, stopping reconciliation")
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 0)
-	}()
+	})
 
-	// test appCache
-	// sourceClient.Get() returns one SourceApp without error
-	// first remoteClient.Get() returns one RemoteApp without error
-	// second remoteClient.Get() returns one RemoteApp without error
-	func() {
+	t.Run("verify that if any sourceJob contains parsing error, reconciliation stops, sourceClient.Get() returns one SourceJob with error, first remoteClient.Get() returns two RemoteJobs without error, second remoteClient.Get() returns one RemoteJobs without error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{
+			Jobs: &source.SourceJobs{
+				"foo1": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
+					Err: fmt.Errorf("foobar"),
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+			"foo2": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+		}, nil)
+		remoteJobClient.GetSecondResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "sourceJobs contains errors, stopping reconciliation")
+		actions := remoteJobClient.Actions()
+		require.Len(t, actions, 0)
+	})
+
+	t.Run("test appCache, sourceClient.Get() returns one SourceApp without error, first remoteClient.Get() returns one RemoteApp without error, second remoteClient.Get() returns one RemoteApp without error", func(t *testing.T) {
 		defer resetClients()
 		now := time.Now()
 		later := time.Now().Add(1 * time.Minute)
 		sourceApp1 := source.SourceApp{
 			Kind:       "AzureContainerApp",
-			APIVersion: "aca.xenit.io/v1alpha1",
+			APIVersion: "aca.xenit.io/v1alpha2",
 			Metadata: map[string]string{
 				"name": "foo1",
 			},
@@ -350,7 +568,7 @@ func TestReconciler(t *testing.T) {
 		}
 		sourceApp1Updated := source.SourceApp{
 			Kind:       "AzureContainerApp",
-			APIVersion: "aca.xenit.io/v1alpha1",
+			APIVersion: "aca.xenit.io/v1alpha2",
 			Metadata: map[string]string{
 				"name": "foo1",
 			},
@@ -379,87 +597,197 @@ func TestReconciler(t *testing.T) {
 			},
 			Managed: true,
 		}
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": sourceApp1,
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": sourceApp1,
+			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remoteApp1,
 		}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remoteApp1,
 		}, nil)
 
-		// run once and appCache
-		{
+		t.Run("run once and appCache", func(t *testing.T) {
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions := remoteClient.Actions()
+			actions := remoteAppClient.Actions()
 			require.Len(t, actions, 1)
 			require.Equal(t, actions[0].Name, "foo1")
-			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsUpdate)
-			remoteClient.ResetActions()
-		}
+			require.Equal(t, actions[0].Action, remote.InMemAppActionsUpdate)
+			remoteAppClient.ResetActions()
+		})
 
-		// verify no actions taken
-		{
+		t.Run("verify no actions taken", func(t *testing.T) {
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions := remoteClient.Actions()
+			actions := remoteAppClient.Actions()
 			require.Len(t, actions, 0)
-		}
+		})
 
-		// verify that update is made if appCache is outdated
-		{
-			remoteClient.GetFirstResponse(&remote.RemoteApps{
+		t.Run("verify that update is made if appCache is outdated", func(t *testing.T) {
+			remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
 			}, nil)
-			remoteClient.GetSecondResponse(&remote.RemoteApps{
+			remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
 			}, nil)
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions := remoteClient.Actions()
+			actions := remoteAppClient.Actions()
 			require.Len(t, actions, 1)
 			require.Equal(t, actions[0].Name, "foo1")
-			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsUpdate)
-			remoteClient.ResetActions()
-		}
+			require.Equal(t, actions[0].Action, remote.InMemAppActionsUpdate)
+			remoteAppClient.ResetActions()
+		})
 
-		// verify that update is made if source app changed
-		{
-			sourceClient.GetResponse(&source.SourceApps{
-				"foo1": sourceApp1Updated,
+		t.Run("verify that update is made if source app changed", func(t *testing.T) {
+			sourceClient.GetResponse(&source.Sources{
+				Apps: &source.SourceApps{
+					"foo1": sourceApp1Updated,
+				},
 			}, defaultFakeRevision, nil)
-			remoteClient.GetFirstResponse(&remote.RemoteApps{
+			remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
 			}, nil)
-			remoteClient.GetSecondResponse(&remote.RemoteApps{
+			remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 				"foo1": remoteApp1Later,
 			}, nil)
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions := remoteClient.Actions()
+			actions := remoteAppClient.Actions()
 			require.Len(t, actions, 1)
 			require.Equal(t, actions[0].Name, "foo1")
-			require.Equal(t, actions[0].Action, remote.InMemRemoteActionsUpdate)
-			remoteClient.ResetActions()
-		}
-	}()
+			require.Equal(t, actions[0].Action, remote.InMemAppActionsUpdate)
+			remoteAppClient.ResetActions()
+		})
+	})
 
-	// do not delete unmanaged remote apps
-	// sourceClient.Get() returns empty SourceApps without error
-	// first remoteClient.Get() returns one RemoteApp (non managed) without error
-	// second remoteClient.Get() returns one RemoteApp (non managed) without error
-	func() {
+	t.Run("test jobCache, sourceClient.Get() returns one SourceJob without error, first remoteClient.Get() returns one RemoteJob without error, second remoteClient.Get() returns one RemoteJob without error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		now := time.Now()
+		later := time.Now().Add(1 * time.Minute)
+		sourceJob1 := source.SourceJob{
+			Kind:       "AzureContainerJob",
+			APIVersion: "aca.xenit.io/v1alpha2",
+			Metadata: map[string]string{
+				"name": "foo1",
+			},
+			Specification: &source.SourceJobSpecification{
+				Job: &armappcontainers.Job{
+					Name: toPtr("foo1"),
+				},
+			},
+		}
+		sourceJob1Updated := source.SourceJob{
+			Kind:       "AzureContainerJob",
+			APIVersion: "aca.xenit.io/v1alpha2",
+			Metadata: map[string]string{
+				"name": "foo1",
+			},
+			Specification: &source.SourceJobSpecification{
+				Job: &armappcontainers.Job{
+					Name: toPtr("foo1"),
+					Tags: map[string]*string{
+						"foo": toPtr("bar"),
+					},
+				},
+			},
+		}
+		remoteJob1 := remote.RemoteJob{
+			Job: &armappcontainers.Job{
+				SystemData: &armappcontainers.SystemData{
+					LastModifiedAt: &now,
+				},
+			},
+			Managed: true,
+		}
+		remoteJob1Later := remote.RemoteJob{
+			Job: &armappcontainers.Job{
+				SystemData: &armappcontainers.SystemData{
+					LastModifiedAt: &later,
+				},
+			},
+			Managed: true,
+		}
+		sourceClient.GetResponse(&source.Sources{
+			Jobs: &source.SourceJobs{
+				"foo1": sourceJob1,
+			},
+		}, defaultFakeRevision, nil)
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{
+			"foo1": remoteJob1,
+		}, nil)
+		remoteJobClient.GetSecondResponse(&remote.RemoteJobs{
+			"foo1": remoteJob1,
+		}, nil)
+
+		t.Run("run once and jobCache", func(t *testing.T) {
+			err := reconciler.Run(ctx)
+			require.NoError(t, err)
+			actions := remoteJobClient.Actions()
+			require.Len(t, actions, 1)
+			require.Equal(t, actions[0].Name, "foo1")
+			require.Equal(t, actions[0].Action, remote.InMemJobActionsUpdate)
+			remoteJobClient.ResetActions()
+		})
+
+		t.Run("verify no actions taken", func(t *testing.T) {
+			err := reconciler.Run(ctx)
+			require.NoError(t, err)
+			actions := remoteJobClient.Actions()
+			require.Len(t, actions, 0)
+		})
+
+		t.Run("verify that update is made if jobCache is outdated", func(t *testing.T) {
+			remoteJobClient.GetFirstResponse(&remote.RemoteJobs{
+				"foo1": remoteJob1Later,
+			}, nil)
+			remoteJobClient.GetSecondResponse(&remote.RemoteJobs{
+				"foo1": remoteJob1Later,
+			}, nil)
+			err := reconciler.Run(ctx)
+			require.NoError(t, err)
+			actions := remoteJobClient.Actions()
+			require.Len(t, actions, 1)
+			require.Equal(t, actions[0].Name, "foo1")
+			require.Equal(t, actions[0].Action, remote.InMemJobActionsUpdate)
+			remoteJobClient.ResetActions()
+		})
+
+		t.Run("verify that update is made if source app changed", func(t *testing.T) {
+			sourceClient.GetResponse(&source.Sources{
+				Jobs: &source.SourceJobs{
+					"foo1": sourceJob1Updated,
+				},
+			}, defaultFakeRevision, nil)
+			remoteJobClient.GetFirstResponse(&remote.RemoteJobs{
+				"foo1": remoteJob1Later,
+			}, nil)
+			remoteJobClient.GetSecondResponse(&remote.RemoteJobs{
+				"foo1": remoteJob1Later,
+			}, nil)
+			err := reconciler.Run(ctx)
+			require.NoError(t, err)
+			actions := remoteJobClient.Actions()
+			require.Len(t, actions, 1)
+			require.Equal(t, actions[0].Name, "foo1")
+			require.Equal(t, actions[0].Action, remote.InMemJobActionsUpdate)
+			remoteJobClient.ResetActions()
+		})
+	})
+
+	t.Run("do not delete unmanaged remoteApps, sourceClient.Get() returns empty SourceApps without error, first remoteClient.Get() returns one RemoteApp (non managed) without error, second remoteClient.Get() returns one RemoteApp (non managed) without error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: false,
 			},
 		}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: false,
@@ -467,105 +795,182 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 0)
-	}()
+	})
 
-	// delete failure
-	// sourceClient.Get() returns empty SourceApps without error
-	// first remoteClient.Get() returns one RemoteApp without error
-	// remoteClient.Delete() returns error
-	func() {
+	t.Run("do not delete unmanaged remoteJobs, sourceClient.Get() returns empty SourceJobs without error, first remoteClient.Get() returns one RemoteJob (non managed) without error, second remoteClient.Get() returns one RemoteJob (non managed) without error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		sourceClient.GetResponse(&source.Sources{Jobs: &source.SourceJobs{}}, defaultFakeRevision, nil)
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: false,
+			},
+		}, nil)
+		remoteJobClient.GetSecondResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: false,
+			},
+		}, nil)
+		err := reconciler.Run(ctx)
+		require.NoError(t, err)
+		actions := remoteJobClient.Actions()
+		require.Len(t, actions, 0)
+	})
+
+	t.Run("delete failure, sourceClient.Get() returns empty SourceApps without error, first remoteClient.Get() returns one RemoteApp without error, remoteClient.Delete() returns error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{Apps: &source.SourceApps{}}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
 			},
 		}, nil)
-		remoteClient.DeleteResponse(fmt.Errorf("delete foobar"))
+		remoteAppClient.DeleteResponse(fmt.Errorf("delete foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "delete foobar")
-	}()
+	})
 
-	// update failure
-	// sourceClient.Get() returns one SourceApp without error
-	// first remoteClient.Get() returns one RemoteApp without error
-	// remoteClient.Set() returns error
-	func() {
+	t.Run("delete failure, sourceClient.Get() returns empty SourceJobs without error, first remoteClient.Get() returns one RemoteJob without error, remoteClient.Delete() returns error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo1",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{Jobs: &source.SourceJobs{}}, defaultFakeRevision, nil)
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+		}, nil)
+		remoteJobClient.DeleteResponse(fmt.Errorf("delete foobar"))
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "delete foobar")
+	})
+
+	t.Run("update failure, sourceClient.Get() returns one SourceApp without error, first remoteClient.Get() returns one RemoteApp without error, remoteClient.Set() returns error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{
 			"foo1": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
 			},
 		}, nil)
-		remoteClient.UpdateResponse(fmt.Errorf("update foobar"))
+		remoteAppClient.UpdateResponse(fmt.Errorf("update foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "update foobar")
-	}()
+	})
 
-	// new app failure
-	// sourceClient.Get() returns one SourceApp without error
-	// first remoteClient.Get() returns empty RemoteApps without error
-	// remoteClient.Set() returns error
-	func() {
+	t.Run("update failure, sourceClient.Get() returns one SourceJob without error, first remoteClient.Get() returns one RemoteJob without error, remoteClient.Set() returns error", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo1": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo1",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Jobs: &source.SourceJobs{
+				"foo1": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.CreateResponse(fmt.Errorf("new app foobar"))
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{
+			"foo1": remote.RemoteJob{
+				Job:     &armappcontainers.Job{},
+				Managed: true,
+			},
+		}, nil)
+		remoteJobClient.UpdateResponse(fmt.Errorf("update foobar"))
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "update foobar")
+	})
+
+	t.Run("new app failure, sourceClient.Get() returns one SourceApp without error, first remoteClient.Get() returns empty RemoteApps without error, remoteClient.Set() returns error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo1": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.CreateResponse(fmt.Errorf("new app foobar"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "new app foobar")
-	}()
+	})
 
-	// test remote secret
-	func() {
+	t.Run("new job failure, sourceClient.Get() returns one SourceJob without error, first remoteClient.Get() returns empty RemoteJobs without error, remoteClient.Set() returns error", func(t *testing.T) {
+		defer resetClients()
+		sourceClient.GetResponse(&source.Sources{
+			Jobs: &source.SourceJobs{
+				"foo1": source.SourceJob{
+					Kind:       "AzureContainerJob",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo1",
+					},
+					Specification: &source.SourceJobSpecification{
+						Job: &armappcontainers.Job{},
+					},
+				},
+			},
+		}, defaultFakeRevision, nil)
+		remoteJobClient.GetFirstResponse(&remote.RemoteJobs{}, nil)
+		remoteJobClient.CreateResponse(fmt.Errorf("new app foobar"))
+		err := reconciler.Run(ctx)
+		require.ErrorContains(t, err, "new app foobar")
+	})
+
+	t.Run("test remote secret", func(t *testing.T) {
 		defer resetClients()
 		secretClient.Set("ze-remote-secret", "foobar", time.Now())
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-					RemoteSecrets: []source.RemoteSecretSpecification{
-						{
-							AppSecretName:    toPtr("ze-app-secret"),
-							RemoteSecretName: toPtr("ze-remote-secret"),
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+						RemoteSecrets: []source.RemoteSecretSpecification{
+							{
+								SecretName:       toPtr("ze-app-secret"),
+								RemoteSecretName: toPtr("ze-remote-secret"),
+							},
 						},
 					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -573,40 +978,41 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, "foo", actions[0].Name)
-		require.Equal(t, remote.InMemRemoteActionsCreate, actions[0].Action)
+		require.Equal(t, remote.InMemAppActionsCreate, actions[0].Action)
 		require.Equal(t, "ze-app-secret", *actions[0].App.Properties.Configuration.Secrets[0].Name)
 		require.Equal(t, "foobar", *actions[0].App.Properties.Configuration.Secrets[0].Value)
 		cacheValue, ok := secretCache.Get("ze-remote-secret")
 		require.True(t, ok)
 		require.Equal(t, "foobar", cacheValue)
-	}()
+	})
 
-	// test remote secret failure
-	func() {
+	t.Run("test remote secret failure", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
-					RemoteSecrets: []source.RemoteSecretSpecification{
-						{
-							AppSecretName:    toPtr("ze-app-secret"),
-							RemoteSecretName: toPtr("ze-remote-secret-failure"),
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+						RemoteSecrets: []source.RemoteSecretSpecification{
+							{
+								SecretName:       toPtr("ze-app-secret"),
+								RemoteSecretName: toPtr("ze-remote-secret-failure"),
+							},
 						},
 					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -614,12 +1020,11 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "secret not found \"ze-remote-secret-failure\"")
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 0)
-	}()
+	})
 
-	// test populate registry
-	func() {
+	t.Run("test populate registry", func(t *testing.T) {
 		defer resetClients()
 
 		cfg := config.Config{
@@ -627,22 +1032,24 @@ func TestReconciler(t *testing.T) {
 			ContainerRegistryUsername: "foo",
 			ContainerRegistryPassword: "bar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
 		require.NoError(t, err)
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -650,10 +1057,10 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err = reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, "foo", actions[0].Name)
-		require.Equal(t, remote.InMemRemoteActionsCreate, actions[0].Action)
+		require.Equal(t, remote.InMemAppActionsCreate, actions[0].Action)
 		require.Len(t, actions[0].App.Properties.Configuration.Secrets, 1)
 		require.Equal(t, "azcagit-reg-cred", *actions[0].App.Properties.Configuration.Secrets[0].Name)
 		require.Equal(t, "bar", *actions[0].App.Properties.Configuration.Secrets[0].Value)
@@ -661,25 +1068,26 @@ func TestReconciler(t *testing.T) {
 		require.Equal(t, "foobar.io", *actions[0].App.Properties.Configuration.Registries[0].Server)
 		require.Equal(t, "foo", *actions[0].App.Properties.Configuration.Registries[0].Username)
 		require.Equal(t, "azcagit-reg-cred", *actions[0].App.Properties.Configuration.Registries[0].PasswordSecretRef)
-	}()
+	})
 
-	// test notification success event
-	func() {
+	t.Run("test notification success event", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -687,18 +1095,17 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 		notifications := notificationClient.GetNotifications()
 		require.Len(t, notifications, 1)
 		require.Equal(t, notification.NotificationStateSuccess, notifications[0].State)
 		require.Equal(t, defaultFakeRevision, notifications[0].Revision)
-	}()
+	})
 
-	// test notification failure event
-	func() {
+	t.Run("test notification failure event", func(t *testing.T) {
 		defer resetClients()
 		sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("fake unable to parse"))
 		err := reconciler.Run(ctx)
@@ -706,21 +1113,21 @@ func TestReconciler(t *testing.T) {
 		notifications := notificationClient.GetNotifications()
 		require.Len(t, notifications, 1)
 		require.Equal(t, notification.NotificationStateFailure, notifications[0].State)
-	}()
+	})
 
-	// test two notifications
-	func() {
+	t.Run("test two notifications", func(t *testing.T) {
 		defer resetClients()
-		{
+		t.Run("first", func(t *testing.T) {
 			sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("ze-failure-one"))
 			err := reconciler.Run(ctx)
 			require.ErrorContains(t, err, "ze-failure-one")
-		}
-		{
+		})
+
+		t.Run("second", func(t *testing.T) {
 			sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("ze-failure-two"))
 			err := reconciler.Run(ctx)
 			require.ErrorContains(t, err, "ze-failure-two")
-		}
+		})
 
 		notifications := notificationClient.GetNotifications()
 		require.Len(t, notifications, 2)
@@ -728,26 +1135,27 @@ func TestReconciler(t *testing.T) {
 		require.Contains(t, notifications[0].Description, "ze-failure-one")
 		require.Equal(t, notification.NotificationStateFailure, notifications[1].State)
 		require.Contains(t, notifications[1].Description, "ze-failure-two")
-	}()
+	})
 
-	// test notification with different revisions
-	func() {
+	t.Run("test notification with different revisions", func(t *testing.T) {
 		defer resetClients()
-		{
-			sourceClient.GetResponse(&source.SourceApps{
-				"foo": source.SourceApp{
-					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha1",
-					Metadata: map[string]string{
-						"name": "foo",
-					},
-					Specification: &source.SourceAppSpecification{
-						App: &armappcontainers.ContainerApp{},
+		t.Run("first revision", func(t *testing.T) {
+			sourceClient.GetResponse(&source.Sources{
+				Apps: &source.SourceApps{
+					"foo": source.SourceApp{
+						Kind:       "AzureContainerApp",
+						APIVersion: "aca.xenit.io/v1alpha2",
+						Metadata: map[string]string{
+							"name": "foo",
+						},
+						Specification: &source.SourceAppSpecification{
+							App: &armappcontainers.ContainerApp{},
+						},
 					},
 				},
 			}, "first-revision", nil)
-			remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-			remoteClient.GetSecondResponse(&remote.RemoteApps{
+			remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+			remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 				"foo": remote.RemoteApp{
 					App:     &armappcontainers.ContainerApp{},
 					Managed: true,
@@ -755,23 +1163,25 @@ func TestReconciler(t *testing.T) {
 			}, nil)
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
+		})
 
-		}
-		{
-			sourceClient.GetResponse(&source.SourceApps{
-				"foo": source.SourceApp{
-					Kind:       "AzureContainerApp",
-					APIVersion: "aca.xenit.io/v1alpha1",
-					Metadata: map[string]string{
-						"name": "foo",
-					},
-					Specification: &source.SourceAppSpecification{
-						App: &armappcontainers.ContainerApp{},
+		t.Run("second revision", func(t *testing.T) {
+			sourceClient.GetResponse(&source.Sources{
+				Apps: &source.SourceApps{
+					"foo": source.SourceApp{
+						Kind:       "AzureContainerApp",
+						APIVersion: "aca.xenit.io/v1alpha2",
+						Metadata: map[string]string{
+							"name": "foo",
+						},
+						Specification: &source.SourceAppSpecification{
+							App: &armappcontainers.ContainerApp{},
+						},
 					},
 				},
 			}, "second-revision", nil)
-			remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-			remoteClient.GetSecondResponse(&remote.RemoteApps{
+			remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+			remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 				"foo": remote.RemoteApp{
 					App:     &armappcontainers.ContainerApp{},
 					Managed: true,
@@ -779,16 +1189,15 @@ func TestReconciler(t *testing.T) {
 			}, nil)
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-		}
+		})
 
 		notifications := notificationClient.GetNotifications()
 		require.Len(t, notifications, 2)
 		require.Equal(t, "first-revision", notifications[0].Revision)
 		require.Equal(t, "second-revision", notifications[1].Revision)
-	}()
+	})
 
-	// test notification deduplication
-	func() {
+	t.Run("test notification deduplication", func(t *testing.T) {
 		defer resetClients()
 		{
 			sourceClient.GetResponse(nil, defaultFakeRevision, fmt.Errorf("ze-failure"))
@@ -805,26 +1214,27 @@ func TestReconciler(t *testing.T) {
 		require.Len(t, notifications, 1)
 		require.Equal(t, notification.NotificationStateFailure, notifications[0].State)
 		require.Contains(t, notifications[0].Description, "ze-failure")
-	}()
+	})
 
-	// test notification error
-	func() {
+	t.Run("test notification error", func(t *testing.T) {
 		defer resetClients()
 
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -833,58 +1243,60 @@ func TestReconciler(t *testing.T) {
 		notificationClient.SendResponse(fmt.Errorf("fake notification error"))
 		err := reconciler.Run(ctx)
 		require.ErrorContains(t, err, "fake notification error")
-	}()
+	})
 
-	// test locationFilter
-	func() {
+	t.Run("test locationFilter", func(t *testing.T) {
 		defer resetClients()
 
 		cfg := config.Config{
 			Location: "foobar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
 		require.NoError(t, err)
 
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					LocationFilter: []source.LocationFilterSpecification{
-						"zefakeregion",
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
 					},
-					App: &armappcontainers.ContainerApp{},
+					Specification: &source.SourceAppSpecification{
+						LocationFilter: []source.LocationFilterSpecification{
+							"zefakeregion",
+						},
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{}, nil)
 		err = reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 0)
-	}()
+	})
 
-	// verify that metrics work
-	func() {
+	t.Run("verify that metrics work", func(t *testing.T) {
 		defer resetClients()
-		sourceClient.GetResponse(&source.SourceApps{
-			"foo": source.SourceApp{
-				Kind:       "AzureContainerApp",
-				APIVersion: "aca.xenit.io/v1alpha1",
-				Metadata: map[string]string{
-					"name": "foo",
-				},
-				Specification: &source.SourceAppSpecification{
-					App: &armappcontainers.ContainerApp{},
+		sourceClient.GetResponse(&source.Sources{
+			Apps: &source.SourceApps{
+				"foo": source.SourceApp{
+					Kind:       "AzureContainerApp",
+					APIVersion: "aca.xenit.io/v1alpha2",
+					Metadata: map[string]string{
+						"name": "foo",
+					},
+					Specification: &source.SourceAppSpecification{
+						App: &armappcontainers.ContainerApp{},
+					},
 				},
 			},
 		}, defaultFakeRevision, nil)
-		remoteClient.GetFirstResponse(&remote.RemoteApps{}, nil)
-		remoteClient.GetSecondResponse(&remote.RemoteApps{
+		remoteAppClient.GetFirstResponse(&remote.RemoteApps{}, nil)
+		remoteAppClient.GetSecondResponse(&remote.RemoteApps{
 			"foo": remote.RemoteApp{
 				App:     &armappcontainers.ContainerApp{},
 				Managed: true,
@@ -892,10 +1304,10 @@ func TestReconciler(t *testing.T) {
 		}, nil)
 		err := reconciler.Run(ctx)
 		require.NoError(t, err)
-		actions := remoteClient.Actions()
+		actions := remoteAppClient.Actions()
 		require.Len(t, actions, 1)
 		require.Equal(t, actions[0].Name, "foo")
-		require.Equal(t, actions[0].Action, remote.InMemRemoteActionsCreate)
+		require.Equal(t, actions[0].Action, remote.InMemAppActionsCreate)
 		intStats := metricsClient.IntStats()
 		require.Len(t, intStats, 1)
 		require.Equal(t, 1, intStats[0])
@@ -905,5 +1317,5 @@ func TestReconciler(t *testing.T) {
 		successStats := metricsClient.SuccessStats()
 		require.Len(t, successStats, 1)
 		require.True(t, successStats[0])
-	}()
+	})
 }

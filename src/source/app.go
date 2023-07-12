@@ -14,33 +14,9 @@ import (
 )
 
 const (
-	AzureContainerAppVersion = "aca.xenit.io/v1alpha1"
+	AzureContainerAppVersion = "aca.xenit.io/v1alpha2"
 	AzureContainerAppKind    = "AzureContainerApp"
 )
-
-type RemoteSecretSpecification struct {
-	AppSecretName    *string `json:"appSecretName,omitempty" yaml:"appSecretName,omitempty"`
-	RemoteSecretName *string `json:"remoteSecretName,omitempty" yaml:"remoteSecretName,omitempty"`
-}
-
-func (r *RemoteSecretSpecification) Valid() bool {
-	if r.AppSecretName == nil || r.RemoteSecretName == nil {
-		return false
-	}
-	if *r.AppSecretName == "" || *r.RemoteSecretName == "" {
-		return false
-	}
-	return true
-}
-
-type LocationFilterSpecification string
-type ImageReplacementSpecification struct {
-	ImageName   *string `json:"imageName,omitempty" yaml:"imageName,omitempty"`
-	NewImageTag *string `json:"newImageTag,omitempty" yaml:"newImageTag,omitempty"`
-}
-type ReplacementsSpecification struct {
-	Images []ImageReplacementSpecification `json:"images,omitempty" yaml:"image,omitempty"`
-}
 
 type SourceAppSpecification struct {
 	App            *armappcontainers.ContainerApp `json:"app,omitempty" yaml:"app,omitempty"`
@@ -177,8 +153,11 @@ func (app *SourceApp) GetRemoteSecrets() []RemoteSecretSpecification {
 
 func (app *SourceApp) ValidateFields() error {
 	var result *multierror.Error
+	if app.Kind == "" {
+		return fmt.Errorf("kind is missing")
+	}
 	if app.Kind != "" && app.Kind != AzureContainerAppKind {
-		result = multierror.Append(fmt.Errorf("kind should be %s", AzureContainerAppKind), result)
+		return fmt.Errorf("kind not AzureContainerApp")
 	}
 	requiredVersion := AzureContainerAppVersion
 	if app.APIVersion != "" && app.APIVersion != requiredVersion {
@@ -215,26 +194,55 @@ func (app *SourceApp) ValidateFields() error {
 	return result.ErrorOrNil()
 }
 
-func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
+func validateJsonIsAppKind(j []byte) (bool, error) {
+	dec := json.NewDecoder(bytes.NewReader(j))
+	var newapp SourceApp
+	err := dec.Decode(&newapp)
+	if err != nil {
+		return false, err
+	}
+
+	if newapp.Kind == "" {
+		return false, fmt.Errorf("kind is missing")
+	}
+
+	if newapp.Kind != "" && newapp.Kind != AzureContainerAppKind {
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) (bool, error) {
 	j, err := yaml.YAMLToJSON(y)
 	if err != nil {
-		return err
+		return true, err
 	}
+
+	isContainerApp, err := validateJsonIsAppKind(j)
+	if err != nil {
+		return isContainerApp, err
+	}
+
+	if !isContainerApp {
+		return false, nil
+	}
+
 	dec := json.NewDecoder(bytes.NewReader(j))
 	dec.DisallowUnknownFields()
 	var newapp SourceApp
 	err = dec.Decode(&newapp)
 	if err != nil {
-		return err
+		return true, err
 	}
 
 	err = newapp.ValidateFields()
 	if err != nil {
-		return err
+		return true, err
 	}
 
 	if cfg.ManagedEnvironmentID == "" {
-		return fmt.Errorf("cfg.ManagedEnvironmentID is not set")
+		return true, fmt.Errorf("cfg.ManagedEnvironmentID is not set")
 	}
 
 	if newapp.Specification.App.Properties == nil {
@@ -243,7 +251,7 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 	newapp.Specification.App.Properties.ManagedEnvironmentID = &cfg.ManagedEnvironmentID
 
 	if cfg.Location == "" {
-		return fmt.Errorf("cfg.Location is not set")
+		return true, fmt.Errorf("cfg.Location is not set")
 	}
 	newapp.Specification.App.Location = &cfg.Location
 
@@ -263,11 +271,11 @@ func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) error {
 
 	err = newapp.applyReplacements()
 	if err != nil {
-		return err
+		return true, err
 	}
 
 	*app = newapp
-	return nil
+	return true, nil
 }
 
 func (app *SourceApp) applyReplacements() error {
@@ -307,12 +315,6 @@ func (app *SourceApp) ShoudRunInLocation(currentLocation string) bool {
 	return false
 }
 
-func sanitizeAzureLocation(filter LocationFilterSpecification) LocationFilterSpecification {
-	filterWithoutSpaces := strings.ReplaceAll(string(filter), " ", "")
-	lowercaseFilter := strings.ToLower(filterWithoutSpaces)
-	return LocationFilterSpecification(lowercaseFilter)
-}
-
 type SourceApps map[string]SourceApp
 
 func (apps *SourceApps) Unmarshal(path string, y []byte, cfg config.Config) {
@@ -322,10 +324,13 @@ func (apps *SourceApps) Unmarshal(path string, y []byte, cfg config.Config) {
 	parts := strings.Split(string(y), "---")
 	for i, part := range parts {
 		var app SourceApp
-		err := app.Unmarshal([]byte(part), cfg)
+		isContainerApp, err := app.Unmarshal([]byte(part), cfg)
 		if err != nil {
 			app.Err = fmt.Errorf("unable to unmarshal SourceApp from %s (document %d): %w", path, i, err)
 			(*apps)[fmt.Sprintf("%s-%d", path, i)] = app
+			continue
+		}
+		if !isContainerApp {
 			continue
 		}
 		_, ok := (*apps)[app.Name()]
@@ -362,10 +367,10 @@ func (apps *SourceApps) Delete(name string) {
 	delete(*apps, name)
 }
 
-func (apps *SourceApps) SetAppSecret(appName string, secretName string, secretValue string) error {
-	app, ok := (*apps)[appName]
+func (apps *SourceApps) SetSecret(name string, secretName string, secretValue string) error {
+	app, ok := (*apps)[name]
 	if !ok {
-		return fmt.Errorf("no sourceApp with name %q", appName)
+		return fmt.Errorf("no sourceApp with name %q", name)
 	}
 
 	err := app.SetSecret(secretName, secretValue)
@@ -373,15 +378,15 @@ func (apps *SourceApps) SetAppSecret(appName string, secretName string, secretVa
 		return err
 	}
 
-	(*apps)[appName] = app
+	(*apps)[name] = app
 
 	return nil
 }
 
-func (apps *SourceApps) SetAppRegistry(appName string, server string, username string, password string) error {
-	app, ok := (*apps)[appName]
+func (apps *SourceApps) SetRegistry(name string, server string, username string, password string) error {
+	app, ok := (*apps)[name]
 	if !ok {
-		return fmt.Errorf("no sourceApp with name %q", appName)
+		return fmt.Errorf("no sourceApp with name %q", name)
 	}
 
 	err := app.SetRegistry(server, username, password)
@@ -389,7 +394,7 @@ func (apps *SourceApps) SetAppRegistry(appName string, server string, username s
 		return err
 	}
 
-	(*apps)[appName] = app
+	(*apps)[name] = app
 
 	return nil
 }
@@ -422,13 +427,4 @@ func (apps *SourceApps) Error() error {
 	}
 
 	return result.ErrorOrNil()
-}
-
-func getSourceAppsFromFiles(yamlFiles *map[string][]byte, cfg config.Config) *SourceApps {
-	apps := SourceApps{}
-	for path := range *yamlFiles {
-		content := (*yamlFiles)[path]
-		apps.Unmarshal(path, content, cfg)
-	}
-	return &apps
 }

@@ -63,7 +63,12 @@ func run(ctx context.Context, cfg config.Config) error {
 		return err
 	}
 
-	remoteClient, err := remote.NewAzureRemote(cfg, cred)
+	remoteAppClient, err := remote.NewAzureApp(cfg, cred)
+	if err != nil {
+		return err
+	}
+
+	remoteJobClient, err := remote.NewAzureJob(cfg, cred)
 	if err != nil {
 		return err
 	}
@@ -81,9 +86,10 @@ func run(ctx context.Context, cfg config.Config) error {
 	metricsClient := metrics.NewAzureMetrics(cfg, cred)
 
 	appCache := cache.NewAppCache()
+	jobCache := cache.NewJobCache()
 	secretCache := cache.NewSecretCache()
 
-	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteClient, secretClient, notificationClient, metricsClient, appCache, secretCache)
+	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
 	if err != nil {
 		return err
 	}

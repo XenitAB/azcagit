@@ -35,7 +35,7 @@ import (
 const (
 	testFixtureYAML1 = `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo1
 spec:
@@ -53,7 +53,7 @@ spec:
           maxReplicas: 1`
 	testFixtureYAML2 = `
 kind: AzureContainerApp
-apiVersion: aca.xenit.io/v1alpha1
+apiVersion: aca.xenit.io/v1alpha2
 metadata:
   name: foo2
 spec:
@@ -116,22 +116,23 @@ func TestGitSource(t *testing.T) {
 	firstCommit, err := testCommitFile(t, ctx, ggc, "foo1.yaml", testFixtureYAML1)
 	require.NoError(t, err)
 
-	firstSourceApps, firstRevision, err := sourceClient.Get(ctx)
+	firstSources, firstRevision, err := sourceClient.Get(ctx)
 	require.NoError(t, err)
 	require.Equal(t, firstCommit, firstRevision)
-	require.NotNil(t, firstSourceApps)
-	require.NoError(t, firstSourceApps.Error())
-	require.Len(t, firstSourceApps.GetSortedNames(), 1)
+	require.NotNil(t, firstSources)
+	require.NotNil(t, firstSources.Apps)
+	require.NoError(t, firstSources.Apps.Error())
+	require.Len(t, firstSources.Apps.GetSortedNames(), 1)
 
 	secondCommit, err := testCommitFile(t, ctx, ggc, "foo2.yaml", testFixtureYAML2)
 	require.NoError(t, err)
 
-	secondSourceApps, secondRevision, err := sourceClient.Get(ctx)
+	secondSources, secondRevision, err := sourceClient.Get(ctx)
 	require.NoError(t, err)
 	require.Equal(t, secondCommit, secondRevision)
-	require.NotNil(t, secondSourceApps)
-	require.NoError(t, secondSourceApps.Error())
-	require.Len(t, secondSourceApps.GetSortedNames(), 2)
+	require.NotNil(t, secondSources.Apps)
+	require.NoError(t, secondSources.Apps.Error())
+	require.Len(t, secondSources.Apps.GetSortedNames(), 2)
 }
 
 func testCommitFile(t *testing.T, ctx context.Context, ggc *gg.Client, path, content string) (string, error) {

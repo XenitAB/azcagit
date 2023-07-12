@@ -49,6 +49,7 @@ run:
 	go run ./src \
 		--debug \
 		--resource-group-name $${RG_NAME} \
+		--own-resource-group-name $${OWN_RG_NAME} \
 		--subscription-id $${SUB_ID} \
 		--managed-environment-id $${ME_ID} \
 		--key-vault-name $${KV_NAME} \
@@ -58,7 +59,8 @@ run:
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
 		--git-yaml-path "yaml/" \
-		--notifications-enabled
+		--notifications-enabled \
+		--environment $${ENV} 
 
 docker-build:
 	docker build . -t $(IMG)
