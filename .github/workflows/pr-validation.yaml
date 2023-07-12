@@ -56,7 +56,7 @@ jobs:
         run: |
           if [[ $(git status --porcelain) ]]; then
             git diff
-            echo 'run make fmt and commit changes'
+            echo 'run make generate-schema and commit changes'
             exit 1
           fi
 
