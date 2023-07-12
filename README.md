@@ -6,6 +6,19 @@ It's [GitOps](https://opengitops.dev/#principles) for [Azure Container Apps](htt
 
 > Please note: This is an early version and will have lots of breaking changes in the future.
 
+## Changelog
+
+Below, large (and eventually breaking) will be documented:
+
+### v0.0.18
+
+Support for `AzureContainerJob` was added.
+
+**BREAKING CHANGES**
+
+- `spec.remoteSecrets[].appSecretName` has been renamed `spec.remoteSecrets[].secretName`
+- `apiVersion` has been updated from `aca.xenit.io/v1alpha1` to `aca.xenit.io/v1alpha2` for kind `AzureContainerApp`
+
 ## Overview
 
 ![overview](docs/overview.png "Overview of azcagit")
