@@ -32,7 +32,7 @@ Platform is used for what we call "platform services", in this case the virtual 
 
 Tenant is used only to synchronize the Container Apps manifests. The Container Apps that are created by `azcagit` will reside here.
 
-The manifests are in the same format as Kubernetes manifests ([Kubernetes Resource Model aka KRM](https://cloud.google.com/blog/topics/developers-practitioners/build-platform-krm-part-2-how-kubernetes-resource-model-works)), but with a hard coupling to the [Azure Container Apps specification](https://docs.microsoft.com/en-us/azure/templates/microsoft.app/containerapps?pivots=deployment-language-arm-template) for `spec.app` when using `kind: AzureContainerApp` and [Azure Container Jobs specification](https://learn.microsoft.com/en-us/azure/templates/microsoft.app/jobs?pivots=deployment-language-arm-template) for `spec.job` when using `kind: AzureContainerJob`.
+The manifests are in the same format as Kubernetes manifests ([Kubernetes Resource Model aka KRM](https://cloud.google.com/blog/topics/developers-practitioners/build-platform-krm-part-2-how-kubernetes-resource-model-works)), but with a hard coupling to the [Azure Container Apps specification](https://docs.microsoft.com/en-us/azure/templates/microsoft.app/containerapps?pivots=deployment-language-arm-template) for `spec.app` when using `kind: AzureContainerApp` and [Azure Container Jobs specification](https://learn.microsoft.com/en-us/azure/templates/microsoft.app/jobs?pivots=deployment-language-arm-template) for `spec.job` when using `kind: AzureContainerJob`. Auto generated schemas can be found in the [schemas](schemas/) directory.
 
 An example manifest of an app:
 
