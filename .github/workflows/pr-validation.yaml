@@ -39,6 +39,27 @@ jobs:
             echo 'run make fmt and commit changes'
             exit 1
           fi
+
+  generate-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repo
+        uses: actions/checkout@v3
+      - name: Setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "^1.20.5"
+      - name: Generate schema
+        run: |
+          make generate-schema
+      - name: Check if working tree is dirty
+        run: |
+          if [[ $(git status --porcelain) ]]; then
+            git diff
+            echo 'run make generate-schema and commit changes'
+            exit 1
+          fi
+
   build:
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,791 @@
+$defs:
+    Configuration:
+        additionalProperties: false
+        properties:
+            ActiveRevisionsMode:
+                type: string
+            Dapr:
+                $ref: '#/$defs/Dapr'
+            Ingress:
+                $ref: '#/$defs/Ingress'
+            MaxInactiveRevisions:
+                type: integer
+            Registries:
+                items:
+                    $ref: '#/$defs/RegistryCredentials'
+                type: array
+            Secrets:
+                items:
+                    $ref: '#/$defs/Secret'
+                type: array
+        required:
+            - ActiveRevisionsMode
+            - Dapr
+            - Ingress
+            - MaxInactiveRevisions
+            - Registries
+            - Secrets
+        type: object
+    Container:
+        additionalProperties: false
+        properties:
+            Args:
+                items:
+                    type: string
+                type: array
+            Command:
+                items:
+                    type: string
+                type: array
+            Env:
+                items:
+                    $ref: '#/$defs/EnvironmentVar'
+                type: array
+            Image:
+                type: string
+            Name:
+                type: string
+            Probes:
+                items:
+                    $ref: '#/$defs/ContainerAppProbe'
+                type: array
+            Resources:
+                $ref: '#/$defs/ContainerResources'
+            VolumeMounts:
+                items:
+                    $ref: '#/$defs/VolumeMount'
+                type: array
+        required:
+            - Args
+            - Command
+            - Env
+            - Image
+            - Name
+            - Probes
+            - Resources
+            - VolumeMounts
+        type: object
+    ContainerApp:
+        additionalProperties: false
+        properties:
+            ExtendedLocation:
+                $ref: '#/$defs/ExtendedLocation'
+            ID:
+                type: string
+            Identity:
+                $ref: '#/$defs/ManagedServiceIdentity'
+            Location:
+                type: string
+            ManagedBy:
+                type: string
+            Name:
+                type: string
+            Properties:
+                $ref: '#/$defs/ContainerAppProperties'
+            SystemData:
+                $ref: '#/$defs/SystemData'
+            Tags:
+                patternProperties:
+                    .*:
+                        type: string
+                type: object
+            Type:
+                type: string
+        required:
+            - Location
+            - ExtendedLocation
+            - Identity
+            - ManagedBy
+            - Properties
+            - Tags
+            - ID
+            - Name
+            - SystemData
+            - Type
+        type: object
+    ContainerAppProbe:
+        additionalProperties: false
+        properties:
+            FailureThreshold:
+                type: integer
+            HTTPGet:
+                $ref: '#/$defs/ContainerAppProbeHTTPGet'
+            InitialDelaySeconds:
+                type: integer
+            PeriodSeconds:
+                type: integer
+            SuccessThreshold:
+                type: integer
+            TCPSocket:
+                $ref: '#/$defs/ContainerAppProbeTCPSocket'
+            TerminationGracePeriodSeconds:
+                type: integer
+            TimeoutSeconds:
+                type: integer
+            Type:
+                type: string
+        required:
+            - FailureThreshold
+            - HTTPGet
+            - InitialDelaySeconds
+            - PeriodSeconds
+            - SuccessThreshold
+            - TCPSocket
+            - TerminationGracePeriodSeconds
+            - TimeoutSeconds
+            - Type
+        type: object
+    ContainerAppProbeHTTPGet:
+        additionalProperties: false
+        properties:
+            HTTPHeaders:
+                items:
+                    $ref: '#/$defs/ContainerAppProbeHTTPGetHTTPHeadersItem'
+                type: array
+            Host:
+                type: string
+            Path:
+                type: string
+            Port:
+                type: integer
+            Scheme:
+                type: string
+        required:
+            - Port
+            - HTTPHeaders
+            - Host
+            - Path
+            - Scheme
+        type: object
+    ContainerAppProbeHTTPGetHTTPHeadersItem:
+        additionalProperties: false
+        properties:
+            Name:
+                type: string
+            Value:
+                type: string
+        required:
+            - Name
+            - Value
+        type: object
+    ContainerAppProbeTCPSocket:
+        additionalProperties: false
+        properties:
+            Host:
+                type: string
+            Port:
+                type: integer
+        required:
+            - Port
+            - Host
+        type: object
+    ContainerAppProperties:
+        additionalProperties: false
+        properties:
+            Configuration:
+                $ref: '#/$defs/Configuration'
+            CustomDomainVerificationID:
+                type: string
+            EnvironmentID:
+                type: string
+            EventStreamEndpoint:
+                type: string
+            LatestReadyRevisionName:
+                type: string
+            LatestRevisionFqdn:
+                type: string
+            LatestRevisionName:
+                type: string
+            ManagedEnvironmentID:
+                type: string
+            OutboundIPAddresses:
+                items:
+                    type: string
+                type: array
+            ProvisioningState:
+                type: string
+            Template:
+                $ref: '#/$defs/Template'
+            WorkloadProfileName:
+                type: string
+        required:
+            - Configuration
+            - EnvironmentID
+            - ManagedEnvironmentID
+            - Template
+            - WorkloadProfileName
+            - CustomDomainVerificationID
+            - EventStreamEndpoint
+            - LatestReadyRevisionName
+            - LatestRevisionFqdn
+            - LatestRevisionName
+            - OutboundIPAddresses
+            - ProvisioningState
+        type: object
+    ContainerResources:
+        additionalProperties: false
+        properties:
+            CPU:
+                type: number
+            EphemeralStorage:
+                type: string
+            Memory:
+                type: string
+        required:
+            - CPU
+            - Memory
+            - EphemeralStorage
+        type: object
+    CorsPolicy:
+        additionalProperties: false
+        properties:
+            AllowCredentials:
+                type: boolean
+            AllowedHeaders:
+                items:
+                    type: string
+                type: array
+            AllowedMethods:
+                items:
+                    type: string
+                type: array
+            AllowedOrigins:
+                items:
+                    type: string
+                type: array
+            ExposeHeaders:
+                items:
+                    type: string
+                type: array
+            MaxAge:
+                type: integer
+        required:
+            - AllowedOrigins
+            - AllowCredentials
+            - AllowedHeaders
+            - AllowedMethods
+            - ExposeHeaders
+            - MaxAge
+        type: object
+    CustomDomain:
+        additionalProperties: false
+        properties:
+            BindingType:
+                type: string
+            CertificateID:
+                type: string
+            Name:
+                type: string
+        required:
+            - Name
+            - BindingType
+            - CertificateID
+        type: object
+    CustomScaleRule:
+        additionalProperties: false
+        properties:
+            Auth:
+                items:
+                    $ref: '#/$defs/ScaleRuleAuth'
+                type: array
+            Metadata:
+                patternProperties:
+                    .*:
+                        type: string
+                type: object
+            Type:
+                type: string
+        required:
+            - Auth
+            - Metadata
+            - Type
+        type: object
+    Dapr:
+        additionalProperties: false
+        properties:
+            AppID:
+                type: string
+            AppPort:
+                type: integer
+            AppProtocol:
+                type: string
+            EnableAPILogging:
+                type: boolean
+            Enabled:
+                type: boolean
+            HTTPMaxRequestSize:
+                type: integer
+            HTTPReadBufferSize:
+                type: integer
+            LogLevel:
+                type: string
+        required:
+            - AppID
+            - AppPort
+            - AppProtocol
+            - EnableAPILogging
+            - Enabled
+            - HTTPMaxRequestSize
+            - HTTPReadBufferSize
+            - LogLevel
+        type: object
+    EnvironmentVar:
+        additionalProperties: false
+        properties:
+            Name:
+                type: string
+            SecretRef:
+                type: string
+            Value:
+                type: string
+        required:
+            - Name
+            - SecretRef
+            - Value
+        type: object
+    ExtendedLocation:
+        additionalProperties: false
+        properties:
+            Name:
+                type: string
+            Type:
+                type: string
+        required:
+            - Name
+            - Type
+        type: object
+    HTTPScaleRule:
+        additionalProperties: false
+        properties:
+            Auth:
+                items:
+                    $ref: '#/$defs/ScaleRuleAuth'
+                type: array
+            Metadata:
+                patternProperties:
+                    .*:
+                        type: string
+                type: object
+        required:
+            - Auth
+            - Metadata
+        type: object
+    IPSecurityRestrictionRule:
+        additionalProperties: false
+        properties:
+            Action:
+                type: string
+            Description:
+                type: string
+            IPAddressRange:
+                type: string
+            Name:
+                type: string
+        required:
+            - Action
+            - IPAddressRange
+            - Name
+            - Description
+        type: object
+    ImageReplacementSpecification:
+        additionalProperties: false
+        properties:
+            imageName:
+                type: string
+            newImageTag:
+                type: string
+        type: object
+    Ingress:
+        additionalProperties: false
+        properties:
+            AllowInsecure:
+                type: boolean
+            ClientCertificateMode:
+                type: string
+            CorsPolicy:
+                $ref: '#/$defs/CorsPolicy'
+            CustomDomains:
+                items:
+                    $ref: '#/$defs/CustomDomain'
+                type: array
+            ExposedPort:
+                type: integer
+            External:
+                type: boolean
+            Fqdn:
+                type: string
+            IPSecurityRestrictions:
+                items:
+                    $ref: '#/$defs/IPSecurityRestrictionRule'
+                type: array
+            StickySessions:
+                $ref: '#/$defs/IngressStickySessions'
+            TargetPort:
+                type: integer
+            Traffic:
+                items:
+                    $ref: '#/$defs/TrafficWeight'
+                type: array
+            Transport:
+                type: string
+        required:
+            - AllowInsecure
+            - ClientCertificateMode
+            - CorsPolicy
+            - CustomDomains
+            - ExposedPort
+            - External
+            - IPSecurityRestrictions
+            - StickySessions
+            - TargetPort
+            - Traffic
+            - Transport
+            - Fqdn
+        type: object
+    IngressStickySessions:
+        additionalProperties: false
+        properties:
+            Affinity:
+                type: string
+        required:
+            - Affinity
+        type: object
+    InitContainer:
+        additionalProperties: false
+        properties:
+            Args:
+                items:
+                    type: string
+                type: array
+            Command:
+                items:
+                    type: string
+                type: array
+            Env:
+                items:
+                    $ref: '#/$defs/EnvironmentVar'
+                type: array
+            Image:
+                type: string
+            Name:
+                type: string
+            Resources:
+                $ref: '#/$defs/ContainerResources'
+            VolumeMounts:
+                items:
+                    $ref: '#/$defs/VolumeMount'
+                type: array
+        required:
+            - Args
+            - Command
+            - Env
+            - Image
+            - Name
+            - Resources
+            - VolumeMounts
+        type: object
+    ManagedServiceIdentity:
+        additionalProperties: false
+        properties:
+            PrincipalID:
+                type: string
+            TenantID:
+                type: string
+            Type:
+                type: string
+            UserAssignedIdentities:
+                patternProperties:
+                    .*:
+                        $ref: '#/$defs/UserAssignedIdentity'
+                type: object
+        required:
+            - Type
+            - UserAssignedIdentities
+            - PrincipalID
+            - TenantID
+        type: object
+    QueueScaleRule:
+        additionalProperties: false
+        properties:
+            Auth:
+                items:
+                    $ref: '#/$defs/ScaleRuleAuth'
+                type: array
+            QueueLength:
+                type: integer
+            QueueName:
+                type: string
+        required:
+            - Auth
+            - QueueLength
+            - QueueName
+        type: object
+    RegistryCredentials:
+        additionalProperties: false
+        properties:
+            Identity:
+                type: string
+            PasswordSecretRef:
+                type: string
+            Server:
+                type: string
+            Username:
+                type: string
+        required:
+            - Identity
+            - PasswordSecretRef
+            - Server
+            - Username
+        type: object
+    RemoteSecretSpecification:
+        additionalProperties: false
+        properties:
+            remoteSecretName:
+                type: string
+            secretName:
+                type: string
+        type: object
+    ReplacementsSpecification:
+        additionalProperties: false
+        properties:
+            images:
+                items:
+                    $ref: '#/$defs/ImageReplacementSpecification'
+                type: array
+        type: object
+    Scale:
+        additionalProperties: false
+        properties:
+            MaxReplicas:
+                type: integer
+            MinReplicas:
+                type: integer
+            Rules:
+                items:
+                    $ref: '#/$defs/ScaleRule'
+                type: array
+        required:
+            - MaxReplicas
+            - MinReplicas
+            - Rules
+        type: object
+    ScaleRule:
+        additionalProperties: false
+        properties:
+            AzureQueue:
+                $ref: '#/$defs/QueueScaleRule'
+            Custom:
+                $ref: '#/$defs/CustomScaleRule'
+            HTTP:
+                $ref: '#/$defs/HTTPScaleRule'
+            Name:
+                type: string
+            TCP:
+                $ref: '#/$defs/TCPScaleRule'
+        required:
+            - AzureQueue
+            - Custom
+            - HTTP
+            - Name
+            - TCP
+        type: object
+    ScaleRuleAuth:
+        additionalProperties: false
+        properties:
+            SecretRef:
+                type: string
+            TriggerParameter:
+                type: string
+        required:
+            - SecretRef
+            - TriggerParameter
+        type: object
+    Secret:
+        additionalProperties: false
+        properties:
+            Identity:
+                type: string
+            KeyVaultURL:
+                type: string
+            Name:
+                type: string
+            Value:
+                type: string
+        required:
+            - Identity
+            - KeyVaultURL
+            - Name
+            - Value
+        type: object
+    SecretVolumeItem:
+        additionalProperties: false
+        properties:
+            Path:
+                type: string
+            SecretRef:
+                type: string
+        required:
+            - Path
+            - SecretRef
+        type: object
+    SourceApp:
+        additionalProperties: false
+        properties:
+            Err: true
+            apiVersion:
+                type: string
+            kind:
+                type: string
+            metadata:
+                patternProperties:
+                    .*:
+                        type: string
+                type: object
+            spec:
+                $ref: '#/$defs/SourceAppSpecification'
+        required:
+            - Err
+        type: object
+    SourceAppSpecification:
+        additionalProperties: false
+        properties:
+            app:
+                $ref: '#/$defs/ContainerApp'
+            locationFilter:
+                items:
+                    type: string
+                type: array
+            remoteSecrets:
+                items:
+                    $ref: '#/$defs/RemoteSecretSpecification'
+                type: array
+            replacements:
+                $ref: '#/$defs/ReplacementsSpecification'
+        type: object
+    SystemData:
+        additionalProperties: false
+        properties:
+            CreatedAt:
+                format: date-time
+                type: string
+            CreatedBy:
+                type: string
+            CreatedByType:
+                type: string
+            LastModifiedAt:
+                format: date-time
+                type: string
+            LastModifiedBy:
+                type: string
+            LastModifiedByType:
+                type: string
+        required:
+            - CreatedAt
+            - CreatedBy
+            - CreatedByType
+            - LastModifiedAt
+            - LastModifiedBy
+            - LastModifiedByType
+        type: object
+    TCPScaleRule:
+        additionalProperties: false
+        properties:
+            Auth:
+                items:
+                    $ref: '#/$defs/ScaleRuleAuth'
+                type: array
+            Metadata:
+                patternProperties:
+                    .*:
+                        type: string
+                type: object
+        required:
+            - Auth
+            - Metadata
+        type: object
+    Template:
+        additionalProperties: false
+        properties:
+            Containers:
+                items:
+                    $ref: '#/$defs/Container'
+                type: array
+            InitContainers:
+                items:
+                    $ref: '#/$defs/InitContainer'
+                type: array
+            RevisionSuffix:
+                type: string
+            Scale:
+                $ref: '#/$defs/Scale'
+            Volumes:
+                items:
+                    $ref: '#/$defs/Volume'
+                type: array
+        required:
+            - Containers
+            - InitContainers
+            - RevisionSuffix
+            - Scale
+            - Volumes
+        type: object
+    TrafficWeight:
+        additionalProperties: false
+        properties:
+            Label:
+                type: string
+            LatestRevision:
+                type: boolean
+            RevisionName:
+                type: string
+            Weight:
+                type: integer
+        required:
+            - Label
+            - LatestRevision
+            - RevisionName
+            - Weight
+        type: object
+    UserAssignedIdentity:
+        additionalProperties: false
+        properties:
+            ClientID:
+                type: string
+            PrincipalID:
+                type: string
+        required:
+            - ClientID
+            - PrincipalID
+        type: object
+    Volume:
+        additionalProperties: false
+        properties:
+            Name:
+                type: string
+            Secrets:
+                items:
+                    $ref: '#/$defs/SecretVolumeItem'
+                type: array
+            StorageName:
+                type: string
+            StorageType:
+                type: string
+        required:
+            - Name
+            - Secrets
+            - StorageName
+            - StorageType
+        type: object
+    VolumeMount:
+        additionalProperties: false
+        properties:
+            MountPath:
+                type: string
+            VolumeName:
+                type: string
+        required:
+            - MountPath
+            - VolumeName
+        type: object
+$ref: '#/$defs/SourceApp'
+$schema: https://json-schema.org/draft/2020-12/schema
