@@ -276,10 +276,6 @@ func TestReconciler(t *testing.T) {
 		require.Equal(t, actions[1].Action, remote.InMemAppActionsUpdate)
 	})
 
-	//
-	//
-	//
-	//
 	t.Run("verify that if any sourceApp contains parsing error, reconciliation stops, sourceClient.Get() returns one SourceApp with error, first remoteClient.Get() returns two RemoteApps without error, second remoteClient.Get() returns one RemoteApps without error", func(t *testing.T) {
 		defer resetClients()
 		sourceClient.GetResponse(&source.Sources{
@@ -319,10 +315,6 @@ func TestReconciler(t *testing.T) {
 		require.Len(t, actions, 0)
 	})
 
-	//
-	//
-	//
-	//
 	t.Run("test appCache, sourceClient.Get() returns one SourceApp without error, first remoteClient.Get() returns one RemoteApp without error, second remoteClient.Get() returns one RemoteApp without error", func(t *testing.T) {
 		defer resetClients()
 		now := time.Now()
@@ -472,10 +464,6 @@ func TestReconciler(t *testing.T) {
 		require.ErrorContains(t, err, "delete foobar")
 	})
 
-	//
-	//
-	//
-	//
 	t.Run("update failure, sourceClient.Get() returns one SourceApp without error, first remoteClient.Get() returns one RemoteApp without error, remoteClient.Set() returns error", func(t *testing.T) {
 		defer resetClients()
 		sourceClient.GetResponse(&source.Sources{
