@@ -13,7 +13,7 @@
           "$ref": "#/$defs/Ingress"
         },
         "MaxInactiveRevisions": {
-          "type": "integer"
+        "type": "integer"
         },
         "Registries": {
           "items": {
@@ -212,13 +212,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Port",
-        "HTTPHeaders",
-        "Host",
-        "Path",
-        "Scheme"
-      ],
+      "required": ["Port", "HTTPHeaders", "Host", "Path", "Scheme"],
       "type": "object"
     },
     "ContainerAppProbeHTTPGetHTTPHeadersItem": {
@@ -231,10 +225,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Name",
-        "Value"
-      ],
+      "required": ["Name", "Value"],
       "type": "object"
     },
     "ContainerAppProbeTCPSocket": {
@@ -247,10 +238,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "Port",
-        "Host"
-      ],
+      "required": ["Port", "Host"],
       "type": "object"
     },
     "ContainerAppProperties": {
@@ -325,11 +313,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "CPU",
-        "Memory",
-        "EphemeralStorage"
-      ],
+      "required": ["CPU", "Memory", "EphemeralStorage"],
       "type": "object"
     },
     "CorsPolicy": {
@@ -389,11 +373,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Name",
-        "BindingType",
-        "CertificateID"
-      ],
+      "required": ["Name", "BindingType", "CertificateID"],
       "type": "object"
     },
     "CustomScaleRule": {
@@ -417,11 +397,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Auth",
-        "Metadata",
-        "Type"
-      ],
+      "required": ["Auth", "Metadata", "Type"],
       "type": "object"
     },
     "Dapr": {
@@ -477,11 +453,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Name",
-        "SecretRef",
-        "Value"
-      ],
+      "required": ["Name", "SecretRef", "Value"],
       "type": "object"
     },
     "ExtendedLocation": {
@@ -494,10 +466,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Name",
-        "Type"
-      ],
+      "required": ["Name", "Type"],
       "type": "object"
     },
     "HTTPScaleRule": {
@@ -518,10 +487,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "Auth",
-        "Metadata"
-      ],
+      "required": ["Auth", "Metadata"],
       "type": "object"
     },
     "IPSecurityRestrictionRule": {
@@ -540,12 +506,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Action",
-        "IPAddressRange",
-        "Name",
-        "Description"
-      ],
+      "required": ["Action", "IPAddressRange", "Name", "Description"],
       "type": "object"
     },
     "ImageReplacementSpecification": {
@@ -632,9 +593,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Affinity"
-      ],
+      "required": ["Affinity"],
       "type": "object"
     },
     "InitContainer": {
@@ -706,12 +665,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "Type",
-        "UserAssignedIdentities",
-        "PrincipalID",
-        "TenantID"
-      ],
+      "required": ["Type", "UserAssignedIdentities", "PrincipalID", "TenantID"],
       "type": "object"
     },
     "QueueScaleRule": {
@@ -730,11 +684,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Auth",
-        "QueueLength",
-        "QueueName"
-      ],
+      "required": ["Auth", "QueueLength", "QueueName"],
       "type": "object"
     },
     "RegistryCredentials": {
@@ -753,12 +703,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Identity",
-        "PasswordSecretRef",
-        "Server",
-        "Username"
-      ],
+      "required": ["Identity", "PasswordSecretRef", "Server", "Username"],
       "type": "object"
     },
     "RemoteSecretSpecification": {
@@ -801,11 +746,7 @@
           "type": "array"
         }
       },
-      "required": [
-        "MaxReplicas",
-        "MinReplicas",
-        "Rules"
-      ],
+      "required": ["MaxReplicas", "MinReplicas", "Rules"],
       "type": "object"
     },
     "ScaleRule": {
@@ -827,13 +768,7 @@
           "$ref": "#/$defs/TCPScaleRule"
         }
       },
-      "required": [
-        "AzureQueue",
-        "Custom",
-        "HTTP",
-        "Name",
-        "TCP"
-      ],
+      "required": ["AzureQueue", "Custom", "HTTP", "Name", "TCP"],
       "type": "object"
     },
     "ScaleRuleAuth": {
@@ -846,10 +781,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "SecretRef",
-        "TriggerParameter"
-      ],
+      "required": ["SecretRef", "TriggerParameter"],
       "type": "object"
     },
     "Secret": {
@@ -868,12 +800,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Identity",
-        "KeyVaultURL",
-        "Name",
-        "Value"
-      ],
+      "required": ["Identity", "KeyVaultURL", "Name", "Value"],
       "type": "object"
     },
     "SecretVolumeItem": {
@@ -886,10 +813,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Path",
-        "SecretRef"
-      ],
+      "required": ["Path", "SecretRef"],
       "type": "object"
     },
     "SourceApp": {
@@ -914,9 +838,7 @@
           "$ref": "#/$defs/SourceAppSpecification"
         }
       },
-      "required": [
-        "Err"
-      ],
+      "required": ["Err"],
       "type": "object"
     },
     "SourceAppSpecification": {
@@ -995,10 +917,7 @@
           "type": "object"
         }
       },
-      "required": [
-        "Auth",
-        "Metadata"
-      ],
+      "required": ["Auth", "Metadata"],
       "type": "object"
     },
     "Template": {
@@ -1054,12 +973,7 @@
           "type": "integer"
         }
       },
-      "required": [
-        "Label",
-        "LatestRevision",
-        "RevisionName",
-        "Weight"
-      ],
+      "required": ["Label", "LatestRevision", "RevisionName", "Weight"],
       "type": "object"
     },
     "UserAssignedIdentity": {
@@ -1072,10 +986,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "ClientID",
-        "PrincipalID"
-      ],
+      "required": ["ClientID", "PrincipalID"],
       "type": "object"
     },
     "Volume": {
@@ -1097,12 +1008,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "Name",
-        "Secrets",
-        "StorageName",
-        "StorageType"
-      ],
+      "required": ["Name", "Secrets", "StorageName", "StorageType"],
       "type": "object"
     },
     "VolumeMount": {
@@ -1115,10 +1021,7 @@
           "type": "string"
         }
       },
-      "required": [
-        "MountPath",
-        "VolumeName"
-      ],
+      "required": ["MountPath", "VolumeName"],
       "type": "object"
     }
   },
