@@ -76,11 +76,11 @@ resource "azurerm_servicebus_namespace" "azcagit_trigger" {
   name                = "sb${replace(local.eln, "-", "")}${var.unique_suffix}"
   location            = azurerm_resource_group.platform.location
   resource_group_name = azurerm_resource_group.platform.name
-  sku                 = "Standard"
+  sku                 = "Basic"
 }
 
 resource "azuread_group" "azcagit_trigger" {
-  display_name     = "aad-${local.eln}"
+  display_name     = "aad-${local.eln}-trigger"
   security_enabled = true
   owners           = var.aad_resource_owner_object_ids
 }
@@ -102,28 +102,9 @@ resource "azurerm_role_assignment" "azcagit_trigger" {
   principal_id         = azuread_group.azcagit_trigger.object_id
 }
 
-resource "azurerm_servicebus_topic" "azcagit_trigger" {
-  name         = "sbt-${local.eln}-trigger"
+resource "azurerm_servicebus_queue" "azcagit_trigger" {
+  name         = "sbq-${local.eln}-trigger"
   namespace_id = azurerm_servicebus_namespace.azcagit_trigger.id
 
   enable_partitioning = true
 }
-
-resource "azurerm_container_app_environment_dapr_component" "azcagit_trigger" {
-  name                         = "azcagit-trigger"
-  container_app_environment_id = azurerm_container_app_environment.this.id
-  component_type               = "pubsub.azure.servicebus"
-  version                      = "v1"
-  scopes                       = ["azcagit"]
-
-  secret {
-    name  = "sb-root-connectionstring"
-    value = azurerm_servicebus_namespace.azcagit_trigger.default_primary_connection_string
-  }
-
-  metadata {
-    name        = "connectionString"
-    secret_name = "sb-root-connectionstring"
-  }
-}
-

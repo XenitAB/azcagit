@@ -19,14 +19,10 @@ func TestNewConfig(t *testing.T) {
 		"CONTAINER_REGISTRY_SERVER",
 		"CONTAINER_REGISTRY_USERNAME",
 		"CONTAINER_REGISTRY_PASSWORD",
-		"RECONCILE_INTERVAL",
 		"CHECKOUT_PATH",
 		"GIT_URL",
 		"GIT_BRANCH",
 		"GIT_YAML_ROOT",
-		"DAPR_APP_PORT",
-		"DAPR_PUBSUB_NAME",
-		"DAPR_TOPIC_NAME",
 		"NOTIFICATIONS_ENABLED",
 		"NOTIFICATION_GROUP",
 		"DEBUG",
@@ -55,8 +51,6 @@ func TestNewConfig(t *testing.T) {
 		"westeurope",
 		"--git-url",
 		"https://github.com/foo/bar.git",
-		"--dapr-topic-name",
-		"ze-topic",
 	}
 	cfg, err := NewConfig(args[1:])
 	require.NoError(t, err)
@@ -69,13 +63,9 @@ func TestNewConfig(t *testing.T) {
 		OwnContainerAppName:  "azcagit",
 		OwnResourceGroupName: "platform",
 		Location:             "westeurope",
-		ReconcileInterval:    "5m",
 		CheckoutPath:         "/tmp",
 		GitUrl:               "https://github.com/foo/bar.git",
 		GitBranch:            "main",
-		DaprAppPort:          8080,
-		DaprPubsubName:       "azcagit-trigger",
-		DaprTopic:            "ze-topic",
 		NotificationGroup:    "apps",
 	}, cfg)
 }
