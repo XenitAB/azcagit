@@ -33,7 +33,7 @@ func run(cfg config) error {
 
 type config struct {
 	FullyQualifiedNamespace string `arg:"-n,--fully-qualified-namespace,required" help:"Service Bus Fully Qualified Namespace"`
-	Topic                   string `arg:"-t,--topic,required" help:"Service Bus Topic"`
+	Queue                   string `arg:"-t,--queue,required" help:"Service Bus Queue"`
 }
 
 func newConfig(args []string) (config, error) {

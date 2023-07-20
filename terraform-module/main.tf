@@ -8,12 +8,18 @@ terraform {
       version = "3.64.0"
       source  = "hashicorp/azurerm"
     }
+    azapi = {
+      source  = "Azure/azapi"
+      version = "1.7.0"
+    }
   }
 }
 
 provider "azurerm" {
   features {}
 }
+
+provider "azapi" {}
 
 data "azurerm_client_config" "current" {}
 data "azuread_client_config" "current" {}

@@ -43,7 +43,9 @@ resource "azurerm_role_assignment" "azcagit_tenant" {
 }
 
 resource "azapi_resource" "azcagit_schedule" {
-  type      = "Microsoft.App/jobs@2022-11-01-preview"
+  schema_validation_enabled = false
+
+  type      = "Microsoft.App/jobs@2023-04-01-preview"
   name      = "azcagit-schedule"
   location  = azurerm_resource_group.platform.location
   parent_id = azurerm_resource_group.platform.id
@@ -137,7 +139,9 @@ resource "azapi_resource" "azcagit_schedule" {
 }
 
 resource "azapi_resource" "azcagit_event" {
-  type      = "Microsoft.App/jobs@2022-11-01-preview"
+  schema_validation_enabled = false
+
+  type      = "Microsoft.App/jobs@2023-04-01-preview"
   name      = "azcagit-event"
   location  = azurerm_resource_group.platform.location
   parent_id = azurerm_resource_group.platform.id
