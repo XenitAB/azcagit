@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
 	"github.com/go-logr/logr"
 	"github.com/xenitab/azcagit/src/azure"
@@ -121,12 +122,33 @@ func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
 		return err
 	}
 
-	client, err := armappcontainers.NewJobsClient(cfg.SubscriptionID, cred, nil)
+	sbClient, err := azservicebus.NewClient(cfg.ServiceBusFullyQualifiedNamespace, cred, nil)
 	if err != nil {
 		return err
 	}
 
-	res, err := client.BeginStart(ctx, cfg.ResourceGroupName, cfg.JobName, armappcontainers.JobExecutionTemplate{}, &armappcontainers.JobsClientBeginStartOptions{})
+	receiver, err := sbClient.NewReceiverForQueue(cfg.ServiceBusQueueName, &azservicebus.ReceiverOptions{})
+	if err != nil {
+		return err
+	}
+
+	peekedMessages, err := receiver.PeekMessages(ctx, 100, &azservicebus.PeekMessagesOptions{})
+	if err != nil {
+		return err
+	}
+	if len(peekedMessages) > 0 {
+		_, err = receiver.ReceiveMessages(ctx, 100, &azservicebus.ReceiveMessagesOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
+	jobClient, err := armappcontainers.NewJobsClient(cfg.SubscriptionID, cred, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := jobClient.BeginStart(ctx, cfg.ResourceGroupName, cfg.JobName, armappcontainers.JobExecutionTemplate{}, &armappcontainers.JobsClientBeginStartOptions{})
 	if err != nil {
 		return err
 	}

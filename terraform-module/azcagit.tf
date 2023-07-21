@@ -209,6 +209,8 @@ resource "azapi_resource" "azcagit_trigger" {
               "--subscription-id", data.azurerm_client_config.current.subscription_id,
               "--job-name", azapi_resource.azcagit_schedule.name,
               "--resource-group-name", azurerm_resource_group.platform.name,
+              "--service-bus-fully-qualified-namespace", "${azurerm_servicebus_namespace.azcagit_trigger.name}.servicebus.windows.net",
+              "--service-bus-queue-name", azurerm_servicebus_queue.azcagit_trigger.name,
             ]
             env = [
               {

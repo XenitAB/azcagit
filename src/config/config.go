@@ -66,9 +66,11 @@ func redactUrl(u string) string {
 }
 
 type TriggerConfig struct {
-	SubscriptionID    string `json:"subscription_id" arg:"-s,--subscription-id,env:AZURE_SUBSCRIPTION_ID,required" help:"Azure Subscription ID"`
-	JobName           string `json:"job_name" arg:"--job-name,env:JOB_NAME,required" help:"The name of the container app job running azcagit"`
-	ResourceGroupName string `json:"resource_group_name" arg:"--resource-group-name,env:RESOURCE_GROUP_NAME,required" help:"The resource group name of where container app job running azcagit is located"`
+	SubscriptionID                    string `json:"subscription_id" arg:"-s,--subscription-id,env:AZURE_SUBSCRIPTION_ID,required" help:"Azure Subscription ID"`
+	JobName                           string `json:"job_name" arg:"--job-name,env:JOB_NAME,required" help:"The name of the container app job running azcagit"`
+	ResourceGroupName                 string `json:"resource_group_name" arg:"--resource-group-name,env:RESOURCE_GROUP_NAME,required" help:"The resource group name of where container app job running azcagit is located"`
+	ServiceBusFullyQualifiedNamespace string `json:"service_bus_fully_qualified_namespace" arg:"--service-bus-fully-qualified-namespace,env:SERVICE_BUS_FULLY_QUALIFIED_NAMESPACE,required" help:"The fully qualified namespace of the service bus"`
+	ServiceBusQueueName               string `json:"service_bus_queue_name" arg:"--service-bus-queue-name,env:SERVICE_BUS_QUEUE_NAME,required" help:"The queue name of where to consume the messages from the service bus"`
 }
 
 type Config struct {
