@@ -61,7 +61,7 @@ func TestNewReconcileConfig(t *testing.T) {
 		SubscriptionID:       "bar",
 		ManagedEnvironmentID: "baz",
 		KeyVaultName:         "ze-keyvault",
-		OwnContainerAppName:  "azcagit",
+		OwnContainerJobName:  "azcagit-reconcile",
 		OwnResourceGroupName: "platform",
 		Location:             "westeurope",
 		CheckoutPath:         "/tmp",

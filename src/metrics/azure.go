@@ -35,7 +35,7 @@ func NewAzureMetrics(cfg config.ReconcileConfig, credential azcore.TokenCredenti
 
 func generateCustomMetricsEndpoint(cfg config.ReconcileConfig) string {
 	azureRegion := sanitizeAzureLocation(cfg.Location)
-	resourceId := fmt.Sprintf("subscriptions/%s/resourceGroups/%s/providers/Microsoft.App/containerApps/%s", cfg.SubscriptionID, cfg.OwnResourceGroupName, cfg.OwnContainerAppName)
+	resourceId := fmt.Sprintf("subscriptions/%s/resourceGroups/%s/providers/Microsoft.App/jobs/%s", cfg.SubscriptionID, cfg.OwnResourceGroupName, cfg.OwnContainerJobName)
 	return fmt.Sprintf("https://%s.monitoring.azure.com/%s/metrics", azureRegion, resourceId)
 
 }

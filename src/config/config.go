@@ -14,7 +14,7 @@ type ReconcileConfig struct {
 	SubscriptionID            string `json:"subscription_id" arg:"-s,--subscription-id,env:AZURE_SUBSCRIPTION_ID,required" help:"Azure Subscription ID"`
 	ManagedEnvironmentID      string `json:"managed_environment_id" arg:"-m,--managed-environment-id,env:MANAGED_ENVIRONMENT_ID,required" help:"Azure Container Apps Managed Environment ID"`
 	KeyVaultName              string `json:"key_vault_name" arg:"-k,--key-vault-name,env:KEY_VAULT_NAME,required" help:"Azure KeyVault name to extract secrets from"`
-	OwnContainerAppName       string `json:"own_container_app_name" arg:"--own-container-app-name,env:OWN_CONTAINER_APP_NAME" default:"azcagit" help:"The name of the Container App that is running azcagit"`
+	OwnContainerJobName       string `json:"own_container_job_name" arg:"--own-container-job-name,env:OWN_CONTAINER_JOB_NAME" default:"azcagit-reconcile" help:"The name of the Container App job that is running azcagit"`
 	OwnResourceGroupName      string `json:"own_resource_group" arg:"--own-resource-group-name,env:OWN_RESOURCE_GROUP_NAME,required" help:"The name of the resource group that the azcagit Container App is located in"`
 	ContainerRegistryServer   string `json:"container_registry_server" arg:"--container-registry-server,env:CONTAINER_REGISTRY_SERVER" help:"The container registry server"`
 	ContainerRegistryUsername string `json:"container_registry_username" arg:"--container-registry-username,env:CONTAINER_REGISTRY_USERNAME" help:"The container registry username"`
