@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
 	"github.com/go-logr/logr"
 	"github.com/xenitab/azcagit/src/azure"
 	"github.com/xenitab/azcagit/src/cache"
@@ -113,6 +116,29 @@ func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
 }
 
 func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
+	cred, err := azure.NewAzureCredential()
+	if err != nil {
+		return err
+	}
+
+	client, err := armappcontainers.NewJobsClient(cfg.SubscriptionID, cred, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := client.BeginStart(ctx, cfg.ResourceGroupName, cfg.JobName, armappcontainers.JobExecutionTemplate{}, &armappcontainers.JobsClientBeginStartOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = res.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{
+		Frequency: 5 * time.Second,
+	})
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

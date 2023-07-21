@@ -1,7 +1,9 @@
 package config
 
 import (
+	"fmt"
 	"net/url"
+	"os"
 
 	"github.com/alexflint/go-arg"
 )
@@ -63,7 +65,11 @@ func redactUrl(u string) string {
 	return parsed.String()
 }
 
-type TriggerConfig struct{}
+type TriggerConfig struct {
+	SubscriptionID    string `json:"subscription_id" arg:"-s,--subscription-id,env:AZURE_SUBSCRIPTION_ID,required" help:"Azure Subscription ID"`
+	JobName           string `json:"job_name" arg:"--job-name,env:JOB_NAME,required" help:"The name of the container app job running azcagit"`
+	ResourceGroupName string `json:"resource_group_name" arg:"--resource-group-name,env:RESOURCE_GROUP_NAME,required" help:"The resource group name of where container app job running azcagit is located"`
+}
 
 type Config struct {
 	ReconcileCfg *ReconcileConfig `arg:"subcommand:reconcile" help:"run reconciliation"`
@@ -84,6 +90,11 @@ func NewConfig(args []string) (Config, error) {
 	err = parser.Parse(args)
 	if err != nil {
 		return Config{}, err
+	}
+
+	if parser.Subcommand() == nil {
+		parser.WriteHelp(os.Stderr)
+		return Config{}, fmt.Errorf("missing subcommand")
 	}
 
 	return cfg, nil

@@ -46,7 +46,7 @@ resource "azapi_resource" "azcagit_schedule" {
   schema_validation_enabled = false
 
   type      = "Microsoft.App/jobs@2023-04-01-preview"
-  name      = "azcagit-schedule"
+  name      = "azcagit-reconcile"
   location  = azurerm_resource_group.platform.location
   parent_id = azurerm_resource_group.platform.id
 
@@ -139,11 +139,11 @@ resource "azapi_resource" "azcagit_schedule" {
   })
 }
 
-resource "azapi_resource" "azcagit_event" {
+resource "azapi_resource" "azcagit_trigger" {
   schema_validation_enabled = false
 
   type      = "Microsoft.App/jobs@2023-04-01-preview"
-  name      = "azcagit-event"
+  name      = "azcagit-trigger"
   location  = azurerm_resource_group.platform.location
   parent_id = azurerm_resource_group.platform.id
 
@@ -206,7 +206,9 @@ resource "azapi_resource" "azcagit_event" {
             image = "ghcr.io/xenitab/azcagit:${var.azcagit_version}"
             args = [
               "trigger",
-              "--azcagit-job-id", azapi_resource.azcagit_schedule.id,
+              "--subscription-id", data.azurerm_client_config.current.subscription_id,
+              "--job-name", azapi_resource.azcagit_schedule.name,
+              "--resource-group-name", azurerm_resource_group.platform.name,
             ]
             env = [
               {
