@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewConfig(t *testing.T) {
+func TestNewReconcileConfig(t *testing.T) {
 	envVarsToClear := []string{
 		"RESOURCE_GROUP_NAME",
 		"ENVIRONMENT",
@@ -35,6 +35,7 @@ func TestNewConfig(t *testing.T) {
 
 	args := []string{
 		"/foo/bar/bin",
+		"reconcile",
 		"--resource-group-name",
 		"foo",
 		"--environment",
@@ -54,7 +55,7 @@ func TestNewConfig(t *testing.T) {
 	}
 	cfg, err := NewConfig(args[1:])
 	require.NoError(t, err)
-	require.Equal(t, Config{
+	require.Equal(t, ReconcileConfig{
 		ResourceGroupName:    "foo",
 		Environment:          "foobar",
 		SubscriptionID:       "bar",
@@ -67,18 +68,18 @@ func TestNewConfig(t *testing.T) {
 		GitUrl:               "https://github.com/foo/bar.git",
 		GitBranch:            "main",
 		NotificationGroup:    "apps",
-	}, cfg)
+	}, *cfg.ReconcileCfg)
 }
 
-func TestRedactedConfig(t *testing.T) {
-	cfgWithUserAndPass := Config{
+func TestRedactedReconcileConfig(t *testing.T) {
+	cfgWithUserAndPass := ReconcileConfig{
 		ContainerRegistryPassword: "secret",                            // secretlint-disable
 		GitUrl:                    "https://foo:bar@foobar.io/abc.git", // secretlint-disable
 	}
 	require.Equal(t, "redacted", cfgWithUserAndPass.Redacted().ContainerRegistryPassword)
 	require.Equal(t, "https://foo:redacted@foobar.io/abc.git", cfgWithUserAndPass.Redacted().GitUrl) // secretlint-disable
 
-	cfg := Config{
+	cfg := ReconcileConfig{
 		ContainerRegistryPassword: "",
 		GitUrl:                    "https://foobar.io/abc.git", // secretlint-disable
 	}

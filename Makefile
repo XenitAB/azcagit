@@ -59,6 +59,7 @@ terraform-mr-up:
 run:
 	# AZURE_TENANT_ID=$${TENANT_ID} AZURE_CLIENT_ID=$${CLIENT_ID} AZURE_CLIENT_SECRET=$${CLIENT_SECRET} \
 	go run ./src \
+		reconcile \
 		--debug \
 		--resource-group-name $${RG_NAME} \
 		--own-resource-group-name $${OWN_RG_NAME} \
@@ -81,6 +82,7 @@ docker-build:
 .PHONY: docker-run
 docker-run: docker-build
 	docker run -it --rm -e AZURE_TENANT_ID=$${TENANT_ID} -e AZURE_CLIENT_ID=$${CLIENT_ID} -e AZURE_CLIENT_SECRET=$${CLIENT_SECRET} $(IMG) \
+		reconcile \
 		--debug \
 		--resource-group-name $${RG_NAME} \
 		--own-resource-group-name $${OWN_RG_NAME} \

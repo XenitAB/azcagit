@@ -213,7 +213,7 @@ func validateJsonIsAppKind(j []byte) (bool, error) {
 	return true, nil
 }
 
-func (app *SourceApp) Unmarshal(y []byte, cfg config.Config) (bool, error) {
+func (app *SourceApp) Unmarshal(y []byte, cfg config.ReconcileConfig) (bool, error) {
 	j, err := yaml.YAMLToJSON(y)
 	if err != nil {
 		return true, err
@@ -317,7 +317,7 @@ func (app *SourceApp) ShoudRunInLocation(currentLocation string) bool {
 
 type SourceApps map[string]SourceApp
 
-func (apps *SourceApps) Unmarshal(path string, y []byte, cfg config.Config) {
+func (apps *SourceApps) Unmarshal(path string, y []byte, cfg config.ReconcileConfig) {
 	if apps == nil {
 		apps = toPtr(make(SourceApps))
 	}

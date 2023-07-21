@@ -94,7 +94,7 @@ func TestGitSource(t *testing.T) {
 	require.NoError(t, err)
 
 	repoURL := server.HTTPAddress() + "/" + repoPath
-	sourceClient, err := NewGitSource(config.Config{
+	sourceClient, err := NewGitSource(config.ReconcileConfig{
 		GitUrl:               repoURL,
 		GitBranch:            defaultBranch,
 		ManagedEnvironmentID: "ze-managed-id",

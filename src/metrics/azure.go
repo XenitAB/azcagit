@@ -21,7 +21,7 @@ type AzureMetrics struct {
 
 var _ Metrics = (*AzureMetrics)(nil)
 
-func NewAzureMetrics(cfg config.Config, credential azcore.TokenCredential) *AzureMetrics {
+func NewAzureMetrics(cfg config.ReconcileConfig, credential azcore.TokenCredential) *AzureMetrics {
 	// The `//` in `https://monitoring.azure.com//.default` is intentional and the required audience is `https://monitoring.azure.com/`,
 	// right now something happens inside of the `runtime` which makes the audience `https://monitoring.azure.com` when there's a single `/`.
 	authPolicy := runtime.NewBearerTokenPolicy(credential, []string{"https://monitoring.azure.com//.default"}, nil)
@@ -33,7 +33,7 @@ func NewAzureMetrics(cfg config.Config, credential azcore.TokenCredential) *Azur
 	}
 }
 
-func generateCustomMetricsEndpoint(cfg config.Config) string {
+func generateCustomMetricsEndpoint(cfg config.ReconcileConfig) string {
 	azureRegion := sanitizeAzureLocation(cfg.Location)
 	resourceId := fmt.Sprintf("subscriptions/%s/resourceGroups/%s/providers/Microsoft.App/containerApps/%s", cfg.SubscriptionID, cfg.OwnResourceGroupName, cfg.OwnContainerAppName)
 	return fmt.Sprintf("https://%s.monitoring.azure.com/%s/metrics", azureRegion, resourceId)

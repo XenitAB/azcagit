@@ -6,7 +6,7 @@ import (
 	"github.com/alexflint/go-arg"
 )
 
-type Config struct {
+type ReconcileConfig struct {
 	ResourceGroupName         string `json:"resource_group_name" arg:"-g,--resource-group-name,env:RESOURCE_GROUP_NAME,required" help:"Azure Resource Group Name"`
 	Environment               string `json:"environment" arg:"--environment,env:ENVIRONMENT,required" help:"The current environment that azcagit is running in"`
 	SubscriptionID            string `json:"subscription_id" arg:"-s,--subscription-id,env:AZURE_SUBSCRIPTION_ID,required" help:"Azure Subscription ID"`
@@ -27,9 +27,9 @@ type Config struct {
 	DebugEnabled              bool   `json:"debug_enabled" arg:"--debug,env:DEBUG" default:"false" help:"Enabled debug logging"`
 }
 
-func (cfg *Config) Redacted() Config {
+func (cfg *ReconcileConfig) Redacted() ReconcileConfig {
 	if cfg == nil {
-		return Config{}
+		return ReconcileConfig{}
 	}
 
 	redactedCfg := *cfg
@@ -61,6 +61,13 @@ func redactUrl(u string) string {
 	}
 
 	return parsed.String()
+}
+
+type TriggerConfig struct{}
+
+type Config struct {
+	ReconcileCfg *ReconcileConfig `arg:"subcommand:reconcile" help:"run reconciliation"`
+	TriggerCfg   *TriggerConfig   `arg:"subcommand:trigger" help:"run trigger"`
 }
 
 func NewConfig(args []string) (Config, error) {

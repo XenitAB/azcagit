@@ -91,6 +91,7 @@ resource "azapi_resource" "azcagit_schedule" {
             name  = "azcagit"
             image = "ghcr.io/xenitab/azcagit:${var.azcagit_version}"
             args = [
+              "reconcile",
               "--resource-group-name", azurerm_resource_group.tenant.name,
               "--environment", var.environment,
               "--subscription-id", data.azurerm_client_config.current.subscription_id,
@@ -179,14 +180,6 @@ resource "azapi_resource" "azcagit_event" {
         }
         secrets = [
           {
-            name  = "git-url"
-            value = local.git_full_url
-          },
-          {
-            name  = "container-registry-password"
-            value = azurerm_container_registry.tenant.admin_password
-          },
-          {
             name  = "azure-tenant-id"
             value = data.azurerm_client_config.current.tenant_id
           },
@@ -212,28 +205,10 @@ resource "azapi_resource" "azcagit_event" {
             name  = "azcagit"
             image = "ghcr.io/xenitab/azcagit:${var.azcagit_version}"
             args = [
-              "--resource-group-name", azurerm_resource_group.tenant.name,
-              "--environment", var.environment,
-              "--subscription-id", data.azurerm_client_config.current.subscription_id,
-              "--managed-environment-id", azurerm_container_app_environment.this.id,
-              "--key-vault-name", azurerm_key_vault.tenant_kv.name,
-              "--own-resource-group-name", azurerm_resource_group.platform.name,
-              "--container-registry-server", azurerm_container_registry.tenant.login_server,
-              "--container-registry-username", azurerm_container_registry.tenant.admin_username,
-              "--location", azurerm_resource_group.tenant.location,
-              "--git-branch", var.git_config.branch,
-              "--git-yaml-path", var.git_config.path,
-              "--notifications-enabled"
+              "trigger",
+              "--azcagit-job-id", azapi_resource.azcagit_schedule.id,
             ]
             env = [
-              {
-                name      = "GIT_URL"
-                secretRef = "git-url"
-              },
-              {
-                name      = "CONTAINER_REGISTRY_PASSWORD"
-                secretRef = "container-registry-password"
-              },
               {
                 name      = "AZURE_TENANT_ID"
                 secretRef = "azure-tenant-id"

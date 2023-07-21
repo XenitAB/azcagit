@@ -33,8 +33,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("configuration loaded", "config", cfg.Redacted())
-
 	err = run(ctx, cfg)
 	if err != nil {
 		log.Error(err, "application returned an error")
@@ -43,6 +41,20 @@ func main() {
 }
 
 func run(ctx context.Context, cfg config.Config) error {
+	log := logr.FromContextOrDiscard(ctx)
+
+	switch {
+	case cfg.ReconcileCfg != nil:
+		log.Info("reconcile configuration loaded", "config", cfg.ReconcileCfg.Redacted())
+		return runReconcile(ctx, *cfg.ReconcileCfg)
+	case cfg.TriggerCfg != nil:
+		return runTrigger(ctx, *cfg.TriggerCfg)
+	}
+
+	return fmt.Errorf("no subcommand executed")
+}
+
+func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
 	sourceClient, err := source.NewGitSource(cfg)
 	if err != nil {
 		return err
@@ -97,6 +109,10 @@ func run(ctx context.Context, cfg config.Config) error {
 		return fmt.Errorf("reconcile error: %w", err)
 	}
 
+	return nil
+}
+
+func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
 	return nil
 }
 

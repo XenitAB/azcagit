@@ -54,7 +54,7 @@ const (
 	NotificationProviderUnknown
 )
 
-func NewNotificationClient(cfg config.Config) (Notification, error) {
+func NewNotificationClient(cfg config.ReconcileConfig) (Notification, error) {
 	if !cfg.NotificationsEnabled {
 		return NewDiscardNotification(), nil
 	}

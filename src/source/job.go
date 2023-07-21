@@ -213,7 +213,7 @@ func validateJsonIsJobKind(j []byte) (bool, error) {
 	return true, nil
 }
 
-func (job *SourceJob) Unmarshal(y []byte, cfg config.Config) (bool, error) {
+func (job *SourceJob) Unmarshal(y []byte, cfg config.ReconcileConfig) (bool, error) {
 	j, err := yaml.YAMLToJSON(y)
 	if err != nil {
 		return true, err
@@ -317,7 +317,7 @@ func (job *SourceJob) ShoudRunInLocation(currentLocation string) bool {
 
 type SourceJobs map[string]SourceJob
 
-func (jobs *SourceJobs) Unmarshal(path string, y []byte, cfg config.Config) {
+func (jobs *SourceJobs) Unmarshal(path string, y []byte, cfg config.ReconcileConfig) {
 	if jobs == nil {
 		jobs = toPtr(make(SourceJobs))
 	}

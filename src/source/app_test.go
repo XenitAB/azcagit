@@ -291,7 +291,7 @@ spec:
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		app := SourceApp{}
-		isContainerApp, err := app.Unmarshal([]byte(c.rawYaml), config.Config{
+		isContainerApp, err := app.Unmarshal([]byte(c.rawYaml), config.ReconcileConfig{
 			Location:             "ze-location",
 			ManagedEnvironmentID: "ze-managedEnvironmentID",
 		})
@@ -477,7 +477,7 @@ spec:
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		apps := SourceApps{}
-		apps.Unmarshal("foobar/baz.yaml", []byte(c.rawYaml), config.Config{
+		apps.Unmarshal("foobar/baz.yaml", []byte(c.rawYaml), config.ReconcileConfig{
 			Location:             "ze-location",
 			ManagedEnvironmentID: "ze-managedEnvironmentID",
 		})
@@ -830,7 +830,7 @@ spec:
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		app := &SourceApp{}
-		isContainerApp, err := app.Unmarshal([]byte(c.input), config.Config{
+		isContainerApp, err := app.Unmarshal([]byte(c.input), config.ReconcileConfig{
 			ManagedEnvironmentID: "ze-me-id",
 			Location:             "zefakeregion",
 		})

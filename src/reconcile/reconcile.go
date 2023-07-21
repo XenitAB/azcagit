@@ -18,7 +18,7 @@ import (
 )
 
 type Reconciler struct {
-	cfg                       config.Config
+	cfg                       config.ReconcileConfig
 	sourceClient              source.Source
 	remoteAppClient           remote.App
 	remoteJobClient           remote.Job
@@ -31,7 +31,7 @@ type Reconciler struct {
 	previousNotificationEvent notification.NotificationEvent
 }
 
-func NewReconciler(cfg config.Config, sourceClient source.Source, remoteAppClient remote.App, remoteJobClient remote.Job, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache *cache.AppCache, jobCache *cache.JobCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+func NewReconciler(cfg config.ReconcileConfig, sourceClient source.Source, remoteAppClient remote.App, remoteJobClient remote.Job, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache *cache.AppCache, jobCache *cache.JobCache, secretCache *cache.SecretCache) (*Reconciler, error) {
 	previousNotificationEvent := notification.NotificationEvent{}
 	return &Reconciler{
 		cfg,

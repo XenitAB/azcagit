@@ -16,13 +16,13 @@ import (
 )
 
 type GitSource struct {
-	cfg          config.Config
+	cfg          config.ReconcileConfig
 	lastRevision string
 }
 
 var _ Source = (*GitSource)(nil)
 
-func NewGitSource(cfg config.Config) (*GitSource, error) {
+func NewGitSource(cfg config.ReconcileConfig) (*GitSource, error) {
 	return &GitSource{
 		cfg:          cfg,
 		lastRevision: "",

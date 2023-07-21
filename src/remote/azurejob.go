@@ -18,7 +18,7 @@ type AzureJob struct {
 
 var _ Job = (*AzureJob)(nil)
 
-func NewAzureJob(cfg config.Config, cred azcore.TokenCredential) (*AzureJob, error) {
+func NewAzureJob(cfg config.ReconcileConfig, cred azcore.TokenCredential) (*AzureJob, error) {
 	client, err := armappcontainers.NewJobsClient(cfg.SubscriptionID, cred, nil)
 	if err != nil {
 		return nil, err

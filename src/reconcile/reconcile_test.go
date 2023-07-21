@@ -32,7 +32,7 @@ func TestReconciler(t *testing.T) {
 
 	ctx := context.Background()
 
-	reconciler, err := NewReconciler(config.Config{}, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
+	reconciler, err := NewReconciler(config.ReconcileConfig{}, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
 	require.NoError(t, err)
 
 	resetClients := func() {
@@ -1027,7 +1027,7 @@ func TestReconciler(t *testing.T) {
 	t.Run("test populate registry", func(t *testing.T) {
 		defer resetClients()
 
-		cfg := config.Config{
+		cfg := config.ReconcileConfig{
 			ContainerRegistryServer:   "foobar.io",
 			ContainerRegistryUsername: "foo",
 			ContainerRegistryPassword: "bar",
@@ -1248,7 +1248,7 @@ func TestReconciler(t *testing.T) {
 	t.Run("test locationFilter", func(t *testing.T) {
 		defer resetClients()
 
-		cfg := config.Config{
+		cfg := config.ReconcileConfig{
 			Location: "foobar",
 		}
 		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
