@@ -117,6 +117,8 @@ func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
 }
 
 func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
+	log := logr.FromContextOrDiscard(ctx)
+
 	cred, err := azure.NewAzureCredential()
 	if err != nil {
 		return err
@@ -127,6 +129,13 @@ func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
 		return err
 	}
 
+	defer func() {
+		err := sbClient.Close(ctx)
+		if err != nil {
+			log.Error(err, "failed to close the service bus client")
+		}
+	}()
+
 	receiver, err := sbClient.NewReceiverForQueue(cfg.ServiceBusQueueName, &azservicebus.ReceiverOptions{})
 	if err != nil {
 		return err
@@ -136,10 +145,17 @@ func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
 	if err != nil {
 		return err
 	}
+
 	if len(peekedMessages) > 0 {
-		_, err = receiver.ReceiveMessages(ctx, 100, &azservicebus.ReceiveMessagesOptions{})
+		receivedMessages, err := receiver.ReceiveMessages(ctx, 100, &azservicebus.ReceiveMessagesOptions{})
 		if err != nil {
 			return err
+		}
+		for _, msg := range receivedMessages {
+			err := receiver.CompleteMessage(ctx, msg, &azservicebus.CompleteMessageOptions{})
+			if err != nil {
+				return err
+			}
 		}
 	}
 

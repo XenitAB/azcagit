@@ -102,6 +102,12 @@ resource "azurerm_role_assignment" "azcagit_trigger" {
   principal_id         = azuread_group.azcagit_trigger.object_id
 }
 
+resource "azurerm_role_assignment" "azcagit_trigger_receiver" {
+  scope                = azurerm_servicebus_namespace.azcagit_trigger.id
+  role_definition_name = "Azure Service Bus Data Receiver"
+  principal_id         = azuread_service_principal.azcagit.object_id
+}
+
 resource "azurerm_servicebus_queue" "azcagit_trigger" {
   name         = "sbq-${local.eln}-trigger"
   namespace_id = azurerm_servicebus_namespace.azcagit_trigger.id
