@@ -620,11 +620,9 @@ func TestReconciler(t *testing.T) {
 		})
 
 		t.Run("verify no actions taken", func(t *testing.T) {
-			actions := remoteAppClient.Actions()
-			require.Len(t, actions, 0)
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions = remoteAppClient.Actions()
+			actions := remoteAppClient.Actions()
 			require.Len(t, actions, 0)
 		})
 
