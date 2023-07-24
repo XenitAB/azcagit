@@ -234,7 +234,6 @@ resource "azurerm_cosmosdb_sql_container" "notification_cache" {
   database_name         = azurerm_cosmosdb_sql_database.this.name
   partition_key_path    = "/name"
   partition_key_version = 1
-  default_ttl           = 3600
 
   indexing_policy {
     indexing_mode = "consistent"
