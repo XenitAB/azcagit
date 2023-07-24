@@ -26,16 +26,3 @@ func (c *SecretCache) Get(name string) (string, bool) {
 	entry, ok := (*c)[name]
 	return entry.value, ok
 }
-
-func (c *SecretCache) NeedsUpdate(name string, modified time.Time) bool {
-	entry, ok := (*c)[name]
-	if !ok {
-		return true
-	}
-
-	if modified != entry.modified {
-		return true
-	}
-
-	return false
-}

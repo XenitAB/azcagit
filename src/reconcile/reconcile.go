@@ -95,6 +95,11 @@ func (r *Reconciler) run(ctx context.Context) (string, error) {
 		return revision, err
 	}
 
+	err = r.populateSecretCache(ctx, sources)
+	if err != nil {
+		return revision, err
+	}
+
 	var result *multierror.Error
 	err = r.runSourceApps(ctx, sources)
 	if err != nil {
@@ -483,27 +488,30 @@ func (r *Reconciler) filterSourceJobs(ctx context.Context, sourceJobs *source.So
 	}
 }
 
-func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *source.SourceApps) error {
+func (r *Reconciler) populateSecretCache(ctx context.Context, sources *source.Sources) error {
 	secretItems, err := r.secretClient.ListItems(ctx)
 	if err != nil {
 		return err
 	}
 
-	for _, secretName := range sourceApps.GetUniqueRemoteSecretNames() {
-		item, ok := secretItems.Get(secretName)
+	for _, secretName := range sources.GetUniqueRemoteSecretNames() {
+		_, ok := secretItems.Get(secretName)
 		if !ok {
 			return fmt.Errorf("secret not found %q", secretName)
 		}
 
-		if r.secretCache.NeedsUpdate(secretName, item.LastChange()) {
-			secretValue, changedAt, err := r.secretClient.Get(ctx, secretName)
-			if err != nil {
-				return err
-			}
-			r.secretCache.Set(secretName, secretValue, changedAt)
+		secretValue, changedAt, err := r.secretClient.Get(ctx, secretName)
+		if err != nil {
+			return err
 		}
+
+		r.secretCache.Set(secretName, secretValue, changedAt)
 	}
 
+	return nil
+}
+
+func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *source.SourceApps) error {
 	for _, name := range sourceApps.GetSortedNames() {
 		app, _ := sourceApps.Get(name)
 		for i, remoteSecret := range app.GetRemoteSecrets() {
@@ -516,7 +524,7 @@ func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *
 				return fmt.Errorf("unable to get secret %d for app %q from cache", i, name)
 			}
 
-			err = sourceApps.SetSecret(name, *remoteSecret.SecretName, secretValue)
+			err := sourceApps.SetSecret(name, *remoteSecret.SecretName, secretValue)
 			if err != nil {
 				return fmt.Errorf("unable to set secret %q for app %q", *remoteSecret.SecretName, name)
 			}
@@ -527,26 +535,6 @@ func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *
 }
 
 func (r *Reconciler) populateSourceJobsSecrets(ctx context.Context, sourceJobs *source.SourceJobs) error {
-	secretItems, err := r.secretClient.ListItems(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, secretName := range sourceJobs.GetUniqueRemoteSecretNames() {
-		item, ok := secretItems.Get(secretName)
-		if !ok {
-			return fmt.Errorf("secret not found %q", secretName)
-		}
-
-		if r.secretCache.NeedsUpdate(secretName, item.LastChange()) {
-			secretValue, changedAt, err := r.secretClient.Get(ctx, secretName)
-			if err != nil {
-				return err
-			}
-			r.secretCache.Set(secretName, secretValue, changedAt)
-		}
-	}
-
 	for _, name := range sourceJobs.GetSortedNames() {
 		job, _ := sourceJobs.Get(name)
 		for i, remoteSecret := range job.GetRemoteSecrets() {
@@ -559,7 +547,7 @@ func (r *Reconciler) populateSourceJobsSecrets(ctx context.Context, sourceJobs *
 				return fmt.Errorf("unable to get secret %d for job %q from cache", i, name)
 			}
 
-			err = sourceJobs.SetSecret(name, *remoteSecret.SecretName, secretValue)
+			err := sourceJobs.SetSecret(name, *remoteSecret.SecretName, secretValue)
 			if err != nil {
 				return fmt.Errorf("unable to set secret %q for job %q", *remoteSecret.SecretName, name)
 			}
