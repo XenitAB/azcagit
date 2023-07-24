@@ -25,13 +25,13 @@ type Reconciler struct {
 	secretClient              secret.Secret
 	notificationClient        notification.Notification
 	metricsClient             metrics.Metrics
-	appCache                  *cache.AppCache
-	jobCache                  *cache.JobCache
+	appCache                  cache.AppCache
+	jobCache                  cache.JobCache
 	secretCache               *cache.SecretCache
 	previousNotificationEvent notification.NotificationEvent
 }
 
-func NewReconciler(cfg config.ReconcileConfig, sourceClient source.Source, remoteAppClient remote.App, remoteJobClient remote.Job, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache *cache.AppCache, jobCache *cache.JobCache, secretCache *cache.SecretCache) (*Reconciler, error) {
+func NewReconciler(cfg config.ReconcileConfig, sourceClient source.Source, remoteAppClient remote.App, remoteJobClient remote.Job, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache cache.AppCache, jobCache cache.JobCache, secretCache *cache.SecretCache) (*Reconciler, error) {
 	previousNotificationEvent := notification.NotificationEvent{}
 	return &Reconciler{
 		cfg,
@@ -346,7 +346,10 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 	for _, name := range sourceApps.GetSortedNames() {
 		sourceApp, _ := sourceApps.Get(name)
 		remoteApp, ok := remoteApps.Get(name)
-		needsUpdate, updateReason := r.appCache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification.App)
+		needsUpdate, updateReason, err := r.appCache.NeedsUpdate(ctx, name, remoteApp.App, sourceApp.Specification.App)
+		if err != nil {
+			return err
+		}
 		if !needsUpdate {
 			log.Info("skipping update, no changes", "app", name)
 			continue
@@ -364,7 +367,7 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 			continue
 		}
 
-		err := r.remoteAppClient.Create(ctx, name, *sourceApp.Specification.App)
+		err = r.remoteAppClient.Create(ctx, name, *sourceApp.Specification.App)
 		if err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
@@ -380,7 +383,11 @@ func (r *Reconciler) createOrUpdateJobsIfNeeded(ctx context.Context, sourceJobs 
 	for _, name := range sourceJobs.GetSortedNames() {
 		sourceJob, _ := sourceJobs.Get(name)
 		remoteJob, ok := remoteJobs.Get(name)
-		needsUpdate, updateReason := r.jobCache.NeedsUpdate(name, remoteJob.Job, sourceJob.Specification.Job)
+		needsUpdate, updateReason, err := r.jobCache.NeedsUpdate(ctx, name, remoteJob.Job, sourceJob.Specification.Job)
+		if err != nil {
+			return err
+		}
+
 		if !needsUpdate {
 			log.Info("skipping update, no changes", "job", name)
 			continue
@@ -398,7 +405,7 @@ func (r *Reconciler) createOrUpdateJobsIfNeeded(ctx context.Context, sourceJobs 
 			continue
 		}
 
-		err := r.remoteJobClient.Create(ctx, name, *sourceJob.Specification.Job)
+		err = r.remoteJobClient.Create(ctx, name, *sourceJob.Specification.Job)
 		if err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
@@ -420,7 +427,10 @@ func (r *Reconciler) updateAppCache(ctx context.Context, sourceApps *source.Sour
 		if !ok {
 			return fmt.Errorf("unable to locate app %s after create or update", name)
 		}
-		r.appCache.Set(name, remoteApp.App, sourceApp.Specification.App)
+		err := r.appCache.Set(ctx, name, remoteApp.App, sourceApp.Specification.App)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -438,7 +448,10 @@ func (r *Reconciler) updateJobCache(ctx context.Context, sourceJobs *source.Sour
 		if !ok {
 			return fmt.Errorf("unable to locate job %s after create or update", name)
 		}
-		r.jobCache.Set(name, remoteJob.Job, sourceJob.Specification.Job)
+		err := r.jobCache.Set(ctx, name, remoteJob.Job, sourceJob.Specification.Job)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

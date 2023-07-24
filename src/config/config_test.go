@@ -26,6 +26,10 @@ func TestNewReconcileConfig(t *testing.T) {
 		"NOTIFICATIONS_ENABLED",
 		"NOTIFICATION_GROUP",
 		"DEBUG",
+		"COSMOSDB_ACCOUNT",
+		"COSMOSDB_SQL_DB",
+		"COSMOSDB_APP_CACHE_CONTAINER",
+		"COSMOSDB_JOB_CACHE_CONTAINER",
 	}
 
 	for _, envVar := range envVarsToClear {
@@ -52,22 +56,28 @@ func TestNewReconcileConfig(t *testing.T) {
 		"westeurope",
 		"--git-url",
 		"https://github.com/foo/bar.git",
+		"--cosmosdb-account",
+		"ze-cosmosdb-account",
 	}
 	cfg, err := NewConfig(args[1:])
 	require.NoError(t, err)
 	require.Equal(t, ReconcileConfig{
-		ResourceGroupName:    "foo",
-		Environment:          "foobar",
-		SubscriptionID:       "bar",
-		ManagedEnvironmentID: "baz",
-		KeyVaultName:         "ze-keyvault",
-		OwnContainerJobName:  "azcagit-reconcile",
-		OwnResourceGroupName: "platform",
-		Location:             "westeurope",
-		CheckoutPath:         "/tmp",
-		GitUrl:               "https://github.com/foo/bar.git",
-		GitBranch:            "main",
-		NotificationGroup:    "apps",
+		ResourceGroupName:         "foo",
+		Environment:               "foobar",
+		SubscriptionID:            "bar",
+		ManagedEnvironmentID:      "baz",
+		KeyVaultName:              "ze-keyvault",
+		OwnContainerJobName:       "azcagit-reconcile",
+		OwnResourceGroupName:      "platform",
+		Location:                  "westeurope",
+		CheckoutPath:              "/tmp",
+		GitUrl:                    "https://github.com/foo/bar.git",
+		GitBranch:                 "main",
+		NotificationGroup:         "apps",
+		CosmosDBAccount:           "ze-cosmosdb-account",
+		CosmosDBSqlDb:             "azcagit",
+		CosmosDBAppCacheContainer: "app-cache",
+		CosmosDBJobCacheContainer: "job-cache",
 	}, *cfg.ReconcileCfg)
 }
 

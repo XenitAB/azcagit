@@ -67,13 +67,12 @@ run:
 		--managed-environment-id $${ME_ID} \
 		--key-vault-name $${KV_NAME} \
 		--location westeurope \
-		--dapr-topic-name $${DAPR_TOPIC} \
-		--reconcile-interval "10s" \
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
 		--git-yaml-path "yaml/" \
 		--notifications-enabled \
-		--environment $${ENV} 
+		--environment $${ENV}  \
+		--cosmosdb-account $${CDB_ACCOUNT}
 
 .PHONY: docker-build
 docker-build:
@@ -90,13 +89,13 @@ docker-run: docker-build
 		--managed-environment-id $${ME_ID} \
 		--key-vault-name $${KV_NAME} \
 		--location westeurope \
-		--dapr-topic-name $${DAPR_TOPIC} \
 		--reconcile-interval "10s" \
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
 		--git-yaml-path "yaml/" \
 		--notifications-enabled \
-		--environment $${ENV} 
+		--environment $${ENV} \
+		--cosmosdb-account $${CDB_ACCOUNT}
 
 .PHONY: k6-http-get
 k6-http-get:

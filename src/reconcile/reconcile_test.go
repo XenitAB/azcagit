@@ -26,8 +26,8 @@ func TestReconciler(t *testing.T) {
 	secretClient := secret.NewInMemSecret()
 	notificationClient := notification.NewInMemNotification()
 	metricsClient := metrics.NewInMemMetrics()
-	appCache := cache.NewAppCache()
-	jobCache := cache.NewJobCache()
+	appCache := cache.NewInMemAppCache()
+	jobCache := cache.NewInMemJobCache()
 	secretCache := cache.NewSecretCache()
 
 	ctx := context.Background()
@@ -620,9 +620,11 @@ func TestReconciler(t *testing.T) {
 		})
 
 		t.Run("verify no actions taken", func(t *testing.T) {
+			actions := remoteAppClient.Actions()
+			require.Len(t, actions, 0)
 			err := reconciler.Run(ctx)
 			require.NoError(t, err)
-			actions := remoteAppClient.Actions()
+			actions = remoteAppClient.Actions()
 			require.Len(t, actions, 0)
 		})
 

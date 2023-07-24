@@ -26,6 +26,10 @@ type ReconcileConfig struct {
 	GitYamlPath               string `json:"git_yaml_path" arg:"--git-yaml-path,env:GIT_YAML_ROOT" default:"" help:"The path where the yaml files are located"`
 	NotificationsEnabled      bool   `json:"notifications_enabled" arg:"--notifications-enabled,env:NOTIFICATIONS_ENABLED" default:"false" help:"Sets if Notifications should be sent to the git provider, should be disabled if no token is provided in git url"`
 	NotificationGroup         string `json:"notification_group" arg:"--notification-group,env:NOTIFICATION_GROUP" default:"apps" help:"The notification group used by gitops-promotion"`
+	CosmosDBAccount           string `json:"cosmosdb_account" arg:"--cosmosdb-account,env:COSMOSDB_ACCOUNT" help:"The CosmosDB account to be used for cache"`
+	CosmosDBSqlDb             string `json:"cosmosdb_sql_db" arg:"--cosmosdb-sql-db,env:COSMOSDB_SQL_DB" default:"azcagit" help:"The CosmosDB SQL database to be used for cache"`
+	CosmosDBAppCacheContainer string `json:"cosmosdb_app_cache_container" arg:"--cosmosdb-app-cache-container,env:COSMOSDB_APP_CACHE_CONTAINER" default:"app-cache" help:"The CosmosDB container used for the app cache"`
+	CosmosDBJobCacheContainer string `json:"cosmosdb_job_cache_container" arg:"--cosmosdb-job-cache-container,env:COSMOSDB_JOB_CACHE_CONTAINER" default:"job-cache" help:"The CosmosDB container used for the job cache"`
 	DebugEnabled              bool   `json:"debug_enabled" arg:"--debug,env:DEBUG" default:"false" help:"Enabled debug logging"`
 }
 

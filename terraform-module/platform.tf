@@ -113,3 +113,116 @@ resource "azurerm_servicebus_queue" "azcagit_trigger" {
 
   enable_partitioning = true
 }
+
+
+resource "azurerm_cosmosdb_account" "this" {
+  name                      = "ca-${local.eln}"
+  location                  = azurerm_resource_group.platform.location
+  resource_group_name       = azurerm_resource_group.platform.name
+  offer_type                = "Standard"
+  kind                      = "GlobalDocumentDB"
+  enable_automatic_failover = false
+
+  consistency_policy {
+    consistency_level = "Session"
+  }
+
+  geo_location {
+    location          = azurerm_resource_group.platform.location
+    failover_priority = 0
+  }
+
+  capabilities {
+    name = "EnableServerless"
+  }
+}
+
+resource "azurerm_cosmosdb_sql_database" "this" {
+  name                = "azcagit"
+  resource_group_name = azurerm_resource_group.platform.name
+  account_name        = azurerm_cosmosdb_account.this.name
+}
+
+# Cosmos DB Built-in Data Contributor (https://learn.microsoft.com/en-us/azure/cosmos-db/how-to-setup-rbac#built-in-role-definitions)
+# Actions:
+#   - Microsoft.DocumentDB/databaseAccounts/readMetadata
+#   - Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/*
+#   - Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers/items/*
+data "azurerm_cosmosdb_sql_role_definition" "data_contributor" {
+  resource_group_name = azurerm_resource_group.platform.name
+  account_name        = azurerm_cosmosdb_account.this.name
+  role_definition_id  = "00000000-0000-0000-0000-000000000002"
+}
+
+resource "random_uuid" "azcagit_azurerm_cosmosdb_sql_role_assignment" {}
+
+resource "azurerm_cosmosdb_sql_role_assignment" "azcagit" {
+  name                = random_uuid.azcagit_azurerm_cosmosdb_sql_role_assignment.result
+  resource_group_name = azurerm_resource_group.platform.name
+  account_name        = azurerm_cosmosdb_account.this.name
+  scope               = azurerm_cosmosdb_account.this.id
+  role_definition_id  = data.azurerm_cosmosdb_sql_role_definition.data_contributor.id
+  principal_id        = azuread_service_principal.azcagit.object_id
+}
+
+resource "random_uuid" "current_user_azurerm_cosmosdb_sql_role_assignment" {}
+
+resource "azurerm_cosmosdb_sql_role_assignment" "current_user" {
+  for_each = {
+    for s in ["current"] :
+    s => s
+    if var.add_permissions_to_current_user
+  }
+
+  name                = random_uuid.current_user_azurerm_cosmosdb_sql_role_assignment.result
+  resource_group_name = azurerm_resource_group.platform.name
+  account_name        = azurerm_cosmosdb_account.this.name
+  scope               = azurerm_cosmosdb_account.this.id
+  role_definition_id  = data.azurerm_cosmosdb_sql_role_definition.data_contributor.id
+  principal_id        = data.azuread_client_config.current.object_id
+}
+
+resource "azurerm_cosmosdb_sql_container" "app_cache" {
+  name                  = "app-cache"
+  resource_group_name   = azurerm_resource_group.platform.name
+  account_name          = azurerm_cosmosdb_account.this.name
+  database_name         = azurerm_cosmosdb_sql_database.this.name
+  partition_key_path    = "/name"
+  partition_key_version = 1
+  default_ttl           = 3600
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+
+  unique_key {
+    paths = ["/name"]
+  }
+}
+
+
+resource "azurerm_cosmosdb_sql_container" "job_cache" {
+  name                  = "job-cache"
+  resource_group_name   = azurerm_resource_group.platform.name
+  account_name          = azurerm_cosmosdb_account.this.name
+  database_name         = azurerm_cosmosdb_sql_database.this.name
+  partition_key_path    = "/name"
+  partition_key_version = 1
+  default_ttl           = 3600
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+
+  unique_key {
+    paths = ["/name"]
+  }
+}

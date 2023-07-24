@@ -96,8 +96,16 @@ func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
 
 	metricsClient := metrics.NewAzureMetrics(cfg, cred)
 
-	appCache := cache.NewAppCache()
-	jobCache := cache.NewJobCache()
+	appCache, err := cache.NewCosmosDBAppCache(cfg, cred)
+	if err != nil {
+		return err
+	}
+
+	jobCache, err := cache.NewCosmosDBJobCache(cfg, cred)
+	if err != nil {
+		return err
+	}
+
 	secretCache := cache.NewSecretCache()
 
 	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
