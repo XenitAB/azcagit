@@ -100,6 +100,7 @@ resource "azapi_resource" "azcagit_schedule" {
               "--own-resource-group-name", azurerm_resource_group.platform.name,
               "--container-registry-server", azurerm_container_registry.tenant.login_server,
               "--container-registry-username", azurerm_container_registry.tenant.admin_username,
+              "--cosmosdb-account", azurerm_cosmosdb_account.this.name,
               "--location", azurerm_resource_group.tenant.location,
               "--git-branch", var.git_config.branch,
               "--git-yaml-path", var.git_config.path,

@@ -57,7 +57,7 @@ terraform-mr-up:
 
 .PHONY: run
 run:
-	# AZURE_TENANT_ID=$${TENANT_ID} AZURE_CLIENT_ID=$${CLIENT_ID} AZURE_CLIENT_SECRET=$${CLIENT_SECRET} \
+	AZURE_TENANT_ID=$${TENANT_ID} AZURE_CLIENT_ID=$${CLIENT_ID} AZURE_CLIENT_SECRET=$${CLIENT_SECRET} \
 	go run ./src \
 		reconcile \
 		--debug \
