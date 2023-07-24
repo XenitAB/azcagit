@@ -1,4 +1,4 @@
-package cache
+package azure
 
 import (
 	"context"
@@ -10,11 +10,11 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/data/azcosmos"
 )
 
-type cosmosDBCache[T any] struct {
+type CosmosDBClient[T any] struct {
 	containerClient *azcosmos.ContainerClient
 }
 
-func newCosmosDBCache[T any](account string, db string, container string, cred azcore.TokenCredential) (*cosmosDBCache[T], error) {
+func NewCosmosDBClient[T any](account string, db string, container string, cred azcore.TokenCredential) (*CosmosDBClient[T], error) {
 	endpoint := fmt.Sprintf("https://%s.documents.azure.com:443/", account)
 	client, err := azcosmos.NewClient(endpoint, cred, nil)
 	if err != nil {
@@ -26,12 +26,12 @@ func newCosmosDBCache[T any](account string, db string, container string, cred a
 		return nil, err
 	}
 
-	return &cosmosDBCache[T]{
+	return &CosmosDBClient[T]{
 		containerClient,
 	}, nil
 }
 
-func (cache *cosmosDBCache[T]) get(ctx context.Context, key string) (*T, error) {
+func (cache *CosmosDBClient[T]) Get(ctx context.Context, key string) (*T, error) {
 	item, err := cache.containerClient.ReadItem(ctx, azcosmos.NewPartitionKeyString(key), key, &azcosmos.ItemOptions{})
 	isNotFound := err != nil && strings.Contains(err.Error(), "404 Not Found")
 	if err != nil && !isNotFound {
@@ -55,7 +55,7 @@ func (cache *cosmosDBCache[T]) get(ctx context.Context, key string) (*T, error) 
 	return value, nil
 }
 
-func (cache *cosmosDBCache[T]) set(ctx context.Context, key string, value T) error {
+func (cache *CosmosDBClient[T]) Set(ctx context.Context, key string, value T) error {
 	b, err := json.Marshal(value)
 	if err != nil {
 		return err

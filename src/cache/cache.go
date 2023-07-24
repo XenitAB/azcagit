@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
+	"github.com/xenitab/azcagit/src/notification"
 )
 
 type CacheEntry struct {
@@ -31,4 +32,15 @@ type AppCache interface {
 type JobCache interface {
 	Set(ctx context.Context, name string, remoteJob, sourceJob *armappcontainers.Job) error
 	NeedsUpdate(ctx context.Context, name string, remoteJob, sourceJob *armappcontainers.Job) (bool, string, error)
+}
+
+type SecretCacheEntry struct {
+	name     string
+	value    string
+	modified time.Time
+}
+
+type NotificationCache interface {
+	Set(ctx context.Context, event notification.NotificationEvent) error
+	Get(ctx context.Context) (notification.NotificationEvent, bool, error)
 }

@@ -18,21 +18,20 @@ import (
 )
 
 type Reconciler struct {
-	cfg                       config.ReconcileConfig
-	sourceClient              source.Source
-	remoteAppClient           remote.App
-	remoteJobClient           remote.Job
-	secretClient              secret.Secret
-	notificationClient        notification.Notification
-	metricsClient             metrics.Metrics
-	appCache                  cache.AppCache
-	jobCache                  cache.JobCache
-	secretCache               *cache.SecretCache
-	previousNotificationEvent notification.NotificationEvent
+	cfg                config.ReconcileConfig
+	sourceClient       source.Source
+	remoteAppClient    remote.App
+	remoteJobClient    remote.Job
+	secretClient       secret.Secret
+	notificationClient notification.Notification
+	metricsClient      metrics.Metrics
+	appCache           cache.AppCache
+	jobCache           cache.JobCache
+	secretCache        *cache.InMemSecretCache
+	notificationCache  cache.NotificationCache
 }
 
-func NewReconciler(cfg config.ReconcileConfig, sourceClient source.Source, remoteAppClient remote.App, remoteJobClient remote.Job, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache cache.AppCache, jobCache cache.JobCache, secretCache *cache.SecretCache) (*Reconciler, error) {
-	previousNotificationEvent := notification.NotificationEvent{}
+func NewReconciler(cfg config.ReconcileConfig, sourceClient source.Source, remoteAppClient remote.App, remoteJobClient remote.Job, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache cache.AppCache, jobCache cache.JobCache, secretCache *cache.InMemSecretCache, notificationCache cache.NotificationCache) (*Reconciler, error) {
 	return &Reconciler{
 		cfg,
 		sourceClient,
@@ -44,7 +43,7 @@ func NewReconciler(cfg config.ReconcileConfig, sourceClient source.Source, remot
 		appCache,
 		jobCache,
 		secretCache,
-		previousNotificationEvent,
+		notificationCache,
 	}, nil
 }
 
@@ -619,14 +618,24 @@ func (r *Reconciler) sendNotification(ctx context.Context, revision string, reco
 		Description: description,
 	}
 
-	if r.previousNotificationEvent.Equal(event) {
-		log.V(1).Info("skipping notification, events are equal", "current_event", event, "previous_event", r.previousNotificationEvent)
+	previousNotificationEvent, found, err := r.notificationCache.Get(ctx)
+	if err != nil {
+		log.V(1).Error(err, "unable to get previous notification event from cache, received error", "event", event)
+		return err
+	}
+
+	if found && previousNotificationEvent.Equal(event) {
+		log.V(1).Info("skipping notification, events are equal", "current_event", event, "previous_event", previousNotificationEvent)
 		return nil
 	}
 
-	r.previousNotificationEvent = event
+	err = r.notificationCache.Set(ctx, event)
+	if err != nil {
+		log.V(1).Error(err, "unable to set current notification event in cache, received error", "event", event)
+		return err
+	}
 
-	err := r.notificationClient.Send(ctx, event)
+	err = r.notificationClient.Send(ctx, event)
 	if err != nil {
 		log.V(1).Error(err, "unable to send event, received error", "event", event)
 		return err

@@ -226,3 +226,25 @@ resource "azurerm_cosmosdb_sql_container" "job_cache" {
     paths = ["/name"]
   }
 }
+
+resource "azurerm_cosmosdb_sql_container" "notification_cache" {
+  name                  = "notification-cache"
+  resource_group_name   = azurerm_resource_group.platform.name
+  account_name          = azurerm_cosmosdb_account.this.name
+  database_name         = azurerm_cosmosdb_sql_database.this.name
+  partition_key_path    = "/name"
+  partition_key_version = 1
+  default_ttl           = 3600
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+
+  unique_key {
+    paths = ["/name"]
+  }
+}

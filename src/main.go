@@ -106,9 +106,14 @@ func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
 		return err
 	}
 
-	secretCache := cache.NewSecretCache()
+	secretCache := cache.NewInMemSecretCache()
 
-	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
+	notificationCache, err := cache.NewCosmosDBNotificationCache(cfg, cred)
+	if err != nil {
+		return err
+	}
+
+	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache, notificationCache)
 	if err != nil {
 		return err
 	}

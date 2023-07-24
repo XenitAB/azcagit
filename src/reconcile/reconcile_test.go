@@ -28,11 +28,12 @@ func TestReconciler(t *testing.T) {
 	metricsClient := metrics.NewInMemMetrics()
 	appCache := cache.NewInMemAppCache()
 	jobCache := cache.NewInMemJobCache()
-	secretCache := cache.NewSecretCache()
+	secretCache := cache.NewInMemSecretCache()
+	notificationCache := cache.NewInMemNotificationCache()
 
 	ctx := context.Background()
 
-	reconciler, err := NewReconciler(config.ReconcileConfig{}, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
+	reconciler, err := NewReconciler(config.ReconcileConfig{}, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache, notificationCache)
 	require.NoError(t, err)
 
 	resetClients := func() {
@@ -55,7 +56,7 @@ func TestReconciler(t *testing.T) {
 		notificationClient.SendResponse(nil)
 		notificationClient.ResetNotifications()
 		metricsClient.Reset()
-		reconciler.previousNotificationEvent = notification.NotificationEvent{}
+		notificationCache.Reset()
 	}
 
 	t.Run("everything is nil", func(t *testing.T) {
@@ -1032,7 +1033,7 @@ func TestReconciler(t *testing.T) {
 			ContainerRegistryUsername: "foo",
 			ContainerRegistryPassword: "bar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache, notificationCache)
 		require.NoError(t, err)
 		sourceClient.GetResponse(&source.Sources{
 			Apps: &source.SourceApps{
@@ -1251,7 +1252,7 @@ func TestReconciler(t *testing.T) {
 		cfg := config.ReconcileConfig{
 			Location: "foobar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache, notificationCache)
 		require.NoError(t, err)
 
 		sourceClient.GetResponse(&source.Sources{

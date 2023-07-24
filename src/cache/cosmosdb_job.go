@@ -8,17 +8,18 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
+	"github.com/xenitab/azcagit/src/azure"
 	"github.com/xenitab/azcagit/src/config"
 )
 
 type CosmosDBJobCache struct {
-	client *cosmosDBCache[CacheEntry]
+	client *azure.CosmosDBClient[CacheEntry]
 }
 
 var _ JobCache = (*CosmosDBJobCache)(nil)
 
 func NewCosmosDBJobCache(cfg config.ReconcileConfig, cred azcore.TokenCredential) (*CosmosDBJobCache, error) {
-	client, err := newCosmosDBCache[CacheEntry](cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBJobCacheContainer, cred)
+	client, err := azure.NewCosmosDBClient[CacheEntry](cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBJobCacheContainer, cred)
 	if err != nil {
 		return nil, err
 	}
@@ -51,11 +52,11 @@ func (c *CosmosDBJobCache) Set(ctx context.Context, name string, remoteJob, sour
 
 	hash := fmt.Sprintf("%x", md5.Sum(b))
 	cacheEntry := newCacheEntry(name, *timestamp, hash)
-	return c.client.set(ctx, name, cacheEntry)
+	return c.client.Set(ctx, name, cacheEntry)
 }
 
 func (c *CosmosDBJobCache) NeedsUpdate(ctx context.Context, name string, remoteJob, sourceJob *armappcontainers.Job) (bool, string, error) {
-	entry, err := c.client.get(ctx, name)
+	entry, err := c.client.Get(ctx, name)
 	if err != nil {
 		return false, "CosmosDB client returned an error", err
 	}
@@ -65,10 +66,10 @@ func (c *CosmosDBJobCache) NeedsUpdate(ctx context.Context, name string, remoteJ
 	}
 
 	if remoteJob == nil {
-		return true, "remoteApp nil", nil
+		return true, "remoteJob nil", nil
 	}
 	if remoteJob.SystemData == nil {
-		return true, "remoteApp SystemData nil", nil
+		return true, "remoteJob SystemData nil", nil
 	}
 
 	if remoteJob.SystemData.LastModifiedAt != nil {
@@ -83,13 +84,13 @@ func (c *CosmosDBJobCache) NeedsUpdate(ctx context.Context, name string, remoteJ
 
 	b, err := sourceJob.MarshalJSON()
 	if err != nil {
-		return true, "sourceApp MarshalJSON() failed", nil
+		return true, "remoteJob MarshalJSON() failed", nil
 	}
 
 	hash := fmt.Sprintf("%x", md5.Sum(b))
 
 	if entry.Hash != hash {
-		return true, "changed sourceApp hash", nil
+		return true, "changed remoteJob hash", nil
 	}
 
 	return false, "no changes", nil

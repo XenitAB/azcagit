@@ -8,17 +8,18 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
+	"github.com/xenitab/azcagit/src/azure"
 	"github.com/xenitab/azcagit/src/config"
 )
 
 type CosmosDBAppCache struct {
-	client *cosmosDBCache[CacheEntry]
+	client *azure.CosmosDBClient[CacheEntry]
 }
 
 var _ AppCache = (*CosmosDBAppCache)(nil)
 
 func NewCosmosDBAppCache(cfg config.ReconcileConfig, cred azcore.TokenCredential) (*CosmosDBAppCache, error) {
-	client, err := newCosmosDBCache[CacheEntry](cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBAppCacheContainer, cred)
+	client, err := azure.NewCosmosDBClient[CacheEntry](cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBAppCacheContainer, cred)
 	if err != nil {
 		return nil, err
 	}
@@ -51,11 +52,11 @@ func (c *CosmosDBAppCache) Set(ctx context.Context, name string, remoteApp, sour
 
 	hash := fmt.Sprintf("%x", md5.Sum(b))
 	cacheEntry := newCacheEntry(name, *timestamp, hash)
-	return c.client.set(ctx, name, cacheEntry)
+	return c.client.Set(ctx, name, cacheEntry)
 }
 
 func (c *CosmosDBAppCache) NeedsUpdate(ctx context.Context, name string, remoteApp, sourceApp *armappcontainers.ContainerApp) (bool, string, error) {
-	entry, err := c.client.get(ctx, name)
+	entry, err := c.client.Get(ctx, name)
 	if err != nil {
 		return false, "CosmosDB client returned an error", err
 	}
