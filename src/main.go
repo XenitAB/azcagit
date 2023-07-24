@@ -124,7 +124,8 @@ func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
 		return err
 	}
 
-	sbClient, err := azservicebus.NewClient(cfg.ServiceBusFullyQualifiedNamespace, cred, nil)
+	namespaceFqdn := fmt.Sprintf("%s.servicebus.windows.net", cfg.ServiceBusNamespace)
+	sbClient, err := azservicebus.NewClient(namespaceFqdn, cred, nil)
 	if err != nil {
 		return err
 	}
@@ -136,7 +137,7 @@ func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
 		}
 	}()
 
-	receiver, err := sbClient.NewReceiverForQueue(cfg.ServiceBusQueueName, &azservicebus.ReceiverOptions{})
+	receiver, err := sbClient.NewReceiverForQueue(cfg.ServiceBusQueue, &azservicebus.ReceiverOptions{})
 	if err != nil {
 		return err
 	}

@@ -220,12 +220,12 @@ The easiest way to test it is using the terraform code which you can find in `te
 
 ### Manually trigger reconcile
 
-If you have used the example terraform, there will be a service bus created with a topic and subscription. `azcagit` has subscribed to in through Darp and when it receives a message on it, it will trigger a reconcile.
+If you have used the example terraform, there will be a service bus created with a queue. `azcagit-trigger` will start and then trigger `azcagit-reconcile` when a message is received on the queue.
 
 You can use `azcagit-trigger-client` to trigger it:
 
 ```go
-go run ./trigger-client -n example.servicebus.windows.net -t azcagit_trigger
+go run ./trigger-client -n namespace -q queue
 ```
 
 Please note that this requires you to be authenticated with either the Azure CLI and have access to publish to this topic with your current user, or use environment varaibles with a service principal that has access.

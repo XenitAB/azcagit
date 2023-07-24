@@ -54,7 +54,6 @@ resource "azurerm_storage_account" "this" {
   account_tier             = "Premium"
   account_kind             = "FileStorage"
   account_replication_type = var.storage_configuration.account_replication_type
-
 }
 
 resource "azurerm_storage_share" "this" {
