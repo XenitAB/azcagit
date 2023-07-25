@@ -76,7 +76,7 @@ func TestNewReconcileConfig(t *testing.T) {
 		NotificationGroup:      "apps",
 		CosmosDBAccount:        "ze-cosmosdb-account",
 		CosmosDBSqlDb:          "azcagit",
-		CosmosDBCacheContainer: "app-cache",
+		CosmosDBCacheContainer: "cache",
 	}, *cfg.ReconcileCfg)
 }
 
