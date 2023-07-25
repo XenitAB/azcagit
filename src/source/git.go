@@ -12,20 +12,21 @@ import (
 	"github.com/fluxcd/pkg/git/gogit"
 	"github.com/fluxcd/pkg/git/repository"
 	"github.com/go-logr/logr"
+	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
 )
 
 type GitSource struct {
-	cfg          config.ReconcileConfig
-	lastRevision string
+	cfg           config.ReconcileConfig
+	revisionCache cache.RevisionCache
 }
 
 var _ Source = (*GitSource)(nil)
 
-func NewGitSource(cfg config.ReconcileConfig) (*GitSource, error) {
+func NewGitSource(cfg config.ReconcileConfig, revisionCache cache.RevisionCache) (*GitSource, error) {
 	return &GitSource{
-		cfg:          cfg,
-		lastRevision: "",
+		cfg,
+		revisionCache,
 	}, nil
 }
 
@@ -91,9 +92,19 @@ func (s *GitSource) checkout(ctx context.Context) (*map[string][]byte, string, e
 
 	revision := commit.Hash.String()
 	log.V(1).Info("current revision", "revision", revision)
-	if revision != s.lastRevision {
-		log.Info("new commit hash", "new_revision", revision, "last_revision", s.lastRevision)
-		s.lastRevision = revision
+
+	lastRevision, err := s.revisionCache.Get(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if revision != lastRevision {
+		log.Info("new commit hash", "new_revision", revision, "last_revision", lastRevision)
+
+		err := s.revisionCache.Set(ctx, revision)
+		if err != nil {
+			return nil, revision, err
+		}
 	}
 
 	yamlPath := filepath.Clean(tmpDir)

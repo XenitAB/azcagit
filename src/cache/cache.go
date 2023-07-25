@@ -42,3 +42,8 @@ type NotificationCache interface {
 	Set(ctx context.Context, event notification.NotificationEvent) error
 	Get(ctx context.Context) (notification.NotificationEvent, bool, error)
 }
+
+type RevisionCache interface {
+	Set(ctx context.Context, revision string) error
+	Get(ctx context.Context) (string, error)
+}

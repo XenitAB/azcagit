@@ -33,14 +33,14 @@ func (c *CosmosDBNotificationCache) Set(ctx context.Context, event notification.
 }
 
 func (c *CosmosDBNotificationCache) Get(ctx context.Context) (notification.NotificationEvent, bool, error) {
-	cacheEntry, err := c.client.Get(ctx, notificationCacheKey)
+	value, err := c.client.Get(ctx, notificationCacheKey)
 	if err != nil {
 		return notification.NotificationEvent{}, false, err
 	}
 
-	if cacheEntry == nil {
+	if value == nil {
 		return notification.NotificationEvent{}, false, nil
 	}
 
-	return *cacheEntry, true, nil
+	return *value, true, nil
 }

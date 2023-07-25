@@ -59,7 +59,22 @@ func run(ctx context.Context, cfg config.Config) error {
 }
 
 func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
-	sourceClient, err := source.NewGitSource(cfg)
+	cred, err := azure.NewAzureCredential()
+	if err != nil {
+		return err
+	}
+
+	cosmosDBClient, err := azure.NewCosmosDBClient(cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBCacheContainer, cred)
+	if err != nil {
+		return err
+	}
+
+	revisionCache, err := cache.NewCosmosDBRevisionCache(cfg, cosmosDBClient)
+	if err != nil {
+		return err
+	}
+
+	sourceClient, err := source.NewGitSource(cfg, revisionCache)
 	if err != nil {
 		return err
 	}
@@ -67,11 +82,6 @@ func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
 	_, _, err = sourceClient.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to get source: %w", err)
-	}
-
-	cred, err := azure.NewAzureCredential()
-	if err != nil {
-		return err
 	}
 
 	remoteAppClient, err := remote.NewAzureApp(cfg, cred)
@@ -94,13 +104,7 @@ func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
 		return err
 	}
 
-	// metricsClient := metrics.NewAzureMetrics(cfg, cred)
-	metricsClient := metrics.NewInMemMetrics()
-
-	cosmosDBClient, err := azure.NewCosmosDBClient(cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBCacheContainer, cred)
-	if err != nil {
-		return err
-	}
+	metricsClient := metrics.NewAzureMetrics(cfg, cred)
 
 	appCache, err := cache.NewCosmosDBAppCache(cfg, cosmosDBClient)
 	if err != nil {
