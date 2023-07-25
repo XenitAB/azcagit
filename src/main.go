@@ -94,21 +94,27 @@ func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
 		return err
 	}
 
-	metricsClient := metrics.NewAzureMetrics(cfg, cred)
+	// metricsClient := metrics.NewAzureMetrics(cfg, cred)
+	metricsClient := metrics.NewInMemMetrics()
 
-	appCache, err := cache.NewCosmosDBAppCache(cfg, cred)
+	cosmosDBClient, err := azure.NewCosmosDBClient(cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBCacheContainer, cred)
 	if err != nil {
 		return err
 	}
 
-	jobCache, err := cache.NewCosmosDBJobCache(cfg, cred)
+	appCache, err := cache.NewCosmosDBAppCache(cfg, cosmosDBClient)
+	if err != nil {
+		return err
+	}
+
+	jobCache, err := cache.NewCosmosDBJobCache(cfg, cosmosDBClient)
 	if err != nil {
 		return err
 	}
 
 	secretCache := cache.NewInMemSecretCache()
 
-	notificationCache, err := cache.NewCosmosDBNotificationCache(cfg, cred)
+	notificationCache, err := cache.NewCosmosDBNotificationCache(cfg, cosmosDBClient)
 	if err != nil {
 		return err
 	}

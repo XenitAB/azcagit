@@ -9,7 +9,6 @@ import (
 )
 
 type CacheEntry struct {
-	Id       string    `json:"id"`
 	Name     string    `json:"name"`
 	Modified time.Time `json:"modified"`
 	Hash     string    `json:"hash"`
@@ -17,7 +16,6 @@ type CacheEntry struct {
 
 func newCacheEntry(name string, modified time.Time, hash string) CacheEntry {
 	return CacheEntry{
-		Id:       name,
 		Name:     name,
 		Modified: modified.Round(time.Millisecond),
 		Hash:     hash,

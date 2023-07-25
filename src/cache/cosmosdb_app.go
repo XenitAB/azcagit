@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
 	"github.com/xenitab/azcagit/src/azure"
 	"github.com/xenitab/azcagit/src/config"
 )
 
 type CosmosDBAppCache struct {
-	client *azure.CosmosDBClient[CacheEntry]
+	client *azure.CosmosDBContainerClient[CacheEntry]
 }
 
 var _ AppCache = (*CosmosDBAppCache)(nil)
 
-func NewCosmosDBAppCache(cfg config.ReconcileConfig, cred azcore.TokenCredential) (*CosmosDBAppCache, error) {
-	client, err := azure.NewCosmosDBClient[CacheEntry](cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBAppCacheContainer, cred)
+func NewCosmosDBAppCache(cfg config.ReconcileConfig, cosmosDBClient *azure.CosmosDBClient) (*CosmosDBAppCache, error) {
+	ttl := 3600
+	client, err := azure.NewCosmosDBContainerClient[CacheEntry](cosmosDBClient, "app-cache", &ttl)
 	if err != nil {
 		return nil, err
 	}

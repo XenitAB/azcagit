@@ -182,14 +182,14 @@ resource "azurerm_cosmosdb_sql_role_assignment" "current_user" {
   principal_id        = data.azuread_client_config.current.object_id
 }
 
-resource "azurerm_cosmosdb_sql_container" "app_cache" {
-  name                  = "app-cache"
+resource "azurerm_cosmosdb_sql_container" "cache" {
+  name                  = "cache"
   resource_group_name   = azurerm_resource_group.platform.name
   account_name          = azurerm_cosmosdb_account.this.name
   database_name         = azurerm_cosmosdb_sql_database.this.name
-  partition_key_path    = "/name"
+  partition_key_path    = "/partition_key"
   partition_key_version = 1
-  default_ttl           = 3600
+  default_ttl           = -1
 
   indexing_policy {
     indexing_mode = "consistent"
@@ -198,52 +198,5 @@ resource "azurerm_cosmosdb_sql_container" "app_cache" {
       path = "/*"
     }
   }
-
-  unique_key {
-    paths = ["/name"]
-  }
 }
 
-
-resource "azurerm_cosmosdb_sql_container" "job_cache" {
-  name                  = "job-cache"
-  resource_group_name   = azurerm_resource_group.platform.name
-  account_name          = azurerm_cosmosdb_account.this.name
-  database_name         = azurerm_cosmosdb_sql_database.this.name
-  partition_key_path    = "/name"
-  partition_key_version = 1
-  default_ttl           = 3600
-
-  indexing_policy {
-    indexing_mode = "consistent"
-
-    included_path {
-      path = "/*"
-    }
-  }
-
-  unique_key {
-    paths = ["/name"]
-  }
-}
-
-resource "azurerm_cosmosdb_sql_container" "notification_cache" {
-  name                  = "notification-cache"
-  resource_group_name   = azurerm_resource_group.platform.name
-  account_name          = azurerm_cosmosdb_account.this.name
-  database_name         = azurerm_cosmosdb_sql_database.this.name
-  partition_key_path    = "/name"
-  partition_key_version = 1
-
-  indexing_policy {
-    indexing_mode = "consistent"
-
-    included_path {
-      path = "/*"
-    }
-  }
-
-  unique_key {
-    paths = ["/name"]
-  }
-}

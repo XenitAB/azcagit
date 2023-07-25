@@ -6,20 +6,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
 	"github.com/xenitab/azcagit/src/azure"
 	"github.com/xenitab/azcagit/src/config"
 )
 
 type CosmosDBJobCache struct {
-	client *azure.CosmosDBClient[CacheEntry]
+	client *azure.CosmosDBContainerClient[CacheEntry]
 }
 
 var _ JobCache = (*CosmosDBJobCache)(nil)
 
-func NewCosmosDBJobCache(cfg config.ReconcileConfig, cred azcore.TokenCredential) (*CosmosDBJobCache, error) {
-	client, err := azure.NewCosmosDBClient[CacheEntry](cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBJobCacheContainer, cred)
+func NewCosmosDBJobCache(cfg config.ReconcileConfig, cosmosDBClient *azure.CosmosDBClient) (*CosmosDBJobCache, error) {
+	ttl := 3600
+	client, err := azure.NewCosmosDBContainerClient[CacheEntry](cosmosDBClient, "job-cache", &ttl)
 	if err != nil {
 		return nil, err
 	}

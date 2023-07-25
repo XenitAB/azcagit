@@ -62,23 +62,21 @@ func TestNewReconcileConfig(t *testing.T) {
 	cfg, err := NewConfig(args[1:])
 	require.NoError(t, err)
 	require.Equal(t, ReconcileConfig{
-		ResourceGroupName:                  "foo",
-		Environment:                        "foobar",
-		SubscriptionID:                     "bar",
-		ManagedEnvironmentID:               "baz",
-		KeyVaultName:                       "ze-keyvault",
-		OwnContainerJobName:                "azcagit-reconcile",
-		OwnResourceGroupName:               "platform",
-		Location:                           "westeurope",
-		CheckoutPath:                       "/tmp",
-		GitUrl:                             "https://github.com/foo/bar.git",
-		GitBranch:                          "main",
-		NotificationGroup:                  "apps",
-		CosmosDBAccount:                    "ze-cosmosdb-account",
-		CosmosDBSqlDb:                      "azcagit",
-		CosmosDBAppCacheContainer:          "app-cache",
-		CosmosDBJobCacheContainer:          "job-cache",
-		CosmosDBNotificationCacheContainer: "notification-cache",
+		ResourceGroupName:      "foo",
+		Environment:            "foobar",
+		SubscriptionID:         "bar",
+		ManagedEnvironmentID:   "baz",
+		KeyVaultName:           "ze-keyvault",
+		OwnContainerJobName:    "azcagit-reconcile",
+		OwnResourceGroupName:   "platform",
+		Location:               "westeurope",
+		CheckoutPath:           "/tmp",
+		GitUrl:                 "https://github.com/foo/bar.git",
+		GitBranch:              "main",
+		NotificationGroup:      "apps",
+		CosmosDBAccount:        "ze-cosmosdb-account",
+		CosmosDBSqlDb:          "azcagit",
+		CosmosDBCacheContainer: "app-cache",
 	}, *cfg.ReconcileCfg)
 }
 
