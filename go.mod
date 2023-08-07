@@ -10,7 +10,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2 v2.0.0-beta.3
 	github.com/alexflint/go-arg v1.4.3
 	github.com/dapr/go-sdk v1.8.0
-	github.com/fluxcd/pkg/git v0.12.3
+	github.com/fluxcd/pkg/git v0.12.4
 	github.com/fluxcd/pkg/git/gogit v0.12.1
 	github.com/fluxcd/pkg/gittestserver v0.8.4
 	github.com/go-logr/logr v1.2.4
@@ -35,7 +35,7 @@ require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.0.0 // indirect
 	github.com/Masterminds/semver/v3 v3.2.1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20230626094100-7e9e0395ebec // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20230717121422-5aa5874ade95 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/alexflint/go-scalar v1.2.0 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
