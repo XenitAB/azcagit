@@ -116,7 +116,7 @@ resource "azurerm_servicebus_queue" "azcagit_trigger" {
 
 
 resource "azurerm_cosmosdb_account" "this" {
-  name                      = "ca-${local.eln}"
+  name                      = "ca-${local.eln}-${var.unique_suffix}"
   location                  = azurerm_resource_group.platform.location
   resource_group_name       = azurerm_resource_group.platform.name
   offer_type                = "Standard"
