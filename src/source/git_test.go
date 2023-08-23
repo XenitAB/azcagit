@@ -29,6 +29,7 @@ import (
 	"github.com/fluxcd/pkg/git/repository"
 	"github.com/fluxcd/pkg/gittestserver"
 	"github.com/stretchr/testify/require"
+	"github.com/xenitab/azcagit/src/cache"
 	"github.com/xenitab/azcagit/src/config"
 )
 
@@ -94,12 +95,13 @@ func TestGitSource(t *testing.T) {
 	require.NoError(t, err)
 
 	repoURL := server.HTTPAddress() + "/" + repoPath
-	sourceClient, err := NewGitSource(config.Config{
+	revisionCache := cache.NewInMemRevisionCache()
+	sourceClient, err := NewGitSource(config.ReconcileConfig{
 		GitUrl:               repoURL,
 		GitBranch:            defaultBranch,
 		ManagedEnvironmentID: "ze-managed-id",
 		Location:             "ze-location",
-	})
+	}, revisionCache)
 	require.NoError(t, err)
 
 	tmp := t.TempDir()

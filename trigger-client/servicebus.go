@@ -3,10 +3,10 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
-	"github.com/dapr/go-sdk/service/common"
 )
 
 type serviceBusClient struct {
@@ -20,12 +20,13 @@ func newServiceBusClient(cfg config) (*serviceBusClient, error) {
 		return nil, err
 	}
 
-	client, err := azservicebus.NewClient(cfg.FullyQualifiedNamespace, credential, nil)
+	namespaceFqdn := fmt.Sprintf("%s.servicebus.windows.net", cfg.ServiceBusNamespace)
+	client, err := azservicebus.NewClient(namespaceFqdn, credential, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	sender, err := client.NewSender(cfg.Topic, &azservicebus.NewSenderOptions{})
+	sender, err := client.NewSender(cfg.ServiceBusQueue, &azservicebus.NewSenderOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -42,13 +43,8 @@ func (c *serviceBusClient) Trigger(ctx context.Context) error {
 	}{
 		Trigger: true,
 	}
-	event := &common.TopicEvent{
-		PubsubName: "azcagit_trigger",
-		ID:         "azcagit_trigger",
-		Data:       triggerData,
-	}
 
-	b, err := json.Marshal(event)
+	b, err := json.Marshal(triggerData)
 	if err != nil {
 		return err
 	}

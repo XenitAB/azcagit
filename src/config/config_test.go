@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewConfig(t *testing.T) {
+func TestNewReconcileConfig(t *testing.T) {
 	envVarsToClear := []string{
 		"RESOURCE_GROUP_NAME",
 		"ENVIRONMENT",
@@ -19,17 +19,17 @@ func TestNewConfig(t *testing.T) {
 		"CONTAINER_REGISTRY_SERVER",
 		"CONTAINER_REGISTRY_USERNAME",
 		"CONTAINER_REGISTRY_PASSWORD",
-		"RECONCILE_INTERVAL",
 		"CHECKOUT_PATH",
 		"GIT_URL",
 		"GIT_BRANCH",
 		"GIT_YAML_ROOT",
-		"DAPR_APP_PORT",
-		"DAPR_PUBSUB_NAME",
-		"DAPR_TOPIC_NAME",
 		"NOTIFICATIONS_ENABLED",
 		"NOTIFICATION_GROUP",
 		"DEBUG",
+		"COSMOSDB_ACCOUNT",
+		"COSMOSDB_SQL_DB",
+		"COSMOSDB_APP_CACHE_CONTAINER",
+		"COSMOSDB_JOB_CACHE_CONTAINER",
 	}
 
 	for _, envVar := range envVarsToClear {
@@ -39,6 +39,7 @@ func TestNewConfig(t *testing.T) {
 
 	args := []string{
 		"/foo/bar/bin",
+		"reconcile",
 		"--resource-group-name",
 		"foo",
 		"--environment",
@@ -55,40 +56,39 @@ func TestNewConfig(t *testing.T) {
 		"westeurope",
 		"--git-url",
 		"https://github.com/foo/bar.git",
-		"--dapr-topic-name",
-		"ze-topic",
+		"--cosmosdb-account",
+		"ze-cosmosdb-account",
 	}
 	cfg, err := NewConfig(args[1:])
 	require.NoError(t, err)
-	require.Equal(t, Config{
-		ResourceGroupName:    "foo",
-		Environment:          "foobar",
-		SubscriptionID:       "bar",
-		ManagedEnvironmentID: "baz",
-		KeyVaultName:         "ze-keyvault",
-		OwnContainerAppName:  "azcagit",
-		OwnResourceGroupName: "platform",
-		Location:             "westeurope",
-		ReconcileInterval:    "5m",
-		CheckoutPath:         "/tmp",
-		GitUrl:               "https://github.com/foo/bar.git",
-		GitBranch:            "main",
-		DaprAppPort:          8080,
-		DaprPubsubName:       "azcagit-trigger",
-		DaprTopic:            "ze-topic",
-		NotificationGroup:    "apps",
-	}, cfg)
+	require.Equal(t, ReconcileConfig{
+		ResourceGroupName:      "foo",
+		Environment:            "foobar",
+		SubscriptionID:         "bar",
+		ManagedEnvironmentID:   "baz",
+		KeyVaultName:           "ze-keyvault",
+		OwnContainerJobName:    "azcagit-reconcile",
+		OwnResourceGroupName:   "platform",
+		Location:               "westeurope",
+		CheckoutPath:           "/tmp",
+		GitUrl:                 "https://github.com/foo/bar.git",
+		GitBranch:              "main",
+		NotificationGroup:      "apps",
+		CosmosDBAccount:        "ze-cosmosdb-account",
+		CosmosDBSqlDb:          "azcagit",
+		CosmosDBCacheContainer: "cache",
+	}, *cfg.ReconcileCfg)
 }
 
-func TestRedactedConfig(t *testing.T) {
-	cfgWithUserAndPass := Config{
+func TestRedactedReconcileConfig(t *testing.T) {
+	cfgWithUserAndPass := ReconcileConfig{
 		ContainerRegistryPassword: "secret",                            // secretlint-disable
 		GitUrl:                    "https://foo:bar@foobar.io/abc.git", // secretlint-disable
 	}
 	require.Equal(t, "redacted", cfgWithUserAndPass.Redacted().ContainerRegistryPassword)
 	require.Equal(t, "https://foo:redacted@foobar.io/abc.git", cfgWithUserAndPass.Redacted().GitUrl) // secretlint-disable
 
-	cfg := Config{
+	cfg := ReconcileConfig{
 		ContainerRegistryPassword: "",
 		GitUrl:                    "https://foobar.io/abc.git", // secretlint-disable
 	}

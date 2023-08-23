@@ -16,7 +16,7 @@ type KeyVaultSecret struct {
 
 var _ Secret = (*KeyVaultSecret)(nil)
 
-func NewKeyVaultSecret(cfg config.Config, cred azcore.TokenCredential) (*KeyVaultSecret, error) {
+func NewKeyVaultSecret(cfg config.ReconcileConfig, cred azcore.TokenCredential) (*KeyVaultSecret, error) {
 	vaultUrl := fmt.Sprintf("https://%s.vault.azure.net", cfg.KeyVaultName)
 	client, err := azsecrets.NewClient(vaultUrl, cred, nil)
 	if err != nil {

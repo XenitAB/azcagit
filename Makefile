@@ -59,6 +59,7 @@ terraform-mr-up:
 run:
 	# AZURE_TENANT_ID=$${TENANT_ID} AZURE_CLIENT_ID=$${CLIENT_ID} AZURE_CLIENT_SECRET=$${CLIENT_SECRET} \
 	go run ./src \
+		reconcile \
 		--debug \
 		--resource-group-name $${RG_NAME} \
 		--own-resource-group-name $${OWN_RG_NAME} \
@@ -66,13 +67,12 @@ run:
 		--managed-environment-id $${ME_ID} \
 		--key-vault-name $${KV_NAME} \
 		--location westeurope \
-		--dapr-topic-name $${DAPR_TOPIC} \
-		--reconcile-interval "10s" \
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
 		--git-yaml-path "yaml/" \
 		--notifications-enabled \
-		--environment $${ENV} 
+		--environment $${ENV}  \
+		--cosmosdb-account $${CDB_ACCOUNT}
 
 .PHONY: docker-build
 docker-build:
@@ -81,6 +81,7 @@ docker-build:
 .PHONY: docker-run
 docker-run: docker-build
 	docker run -it --rm -e AZURE_TENANT_ID=$${TENANT_ID} -e AZURE_CLIENT_ID=$${CLIENT_ID} -e AZURE_CLIENT_SECRET=$${CLIENT_SECRET} $(IMG) \
+		reconcile \
 		--debug \
 		--resource-group-name $${RG_NAME} \
 		--own-resource-group-name $${OWN_RG_NAME} \
@@ -88,13 +89,13 @@ docker-run: docker-build
 		--managed-environment-id $${ME_ID} \
 		--key-vault-name $${KV_NAME} \
 		--location westeurope \
-		--dapr-topic-name $${DAPR_TOPIC} \
 		--reconcile-interval "10s" \
 		--git-url $${GIT_URL_AND_CREDS} \
 		--git-branch "main" \
 		--git-yaml-path "yaml/" \
 		--notifications-enabled \
-		--environment $${ENV} 
+		--environment $${ENV} \
+		--cosmosdb-account $${CDB_ACCOUNT}
 
 .PHONY: k6-http-get
 k6-http-get:

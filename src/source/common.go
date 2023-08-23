@@ -36,7 +36,7 @@ func sanitizeAzureLocation(filter LocationFilterSpecification) LocationFilterSpe
 	return LocationFilterSpecification(lowercaseFilter)
 }
 
-func getSourcesFromFiles(yamlFiles *map[string][]byte, cfg config.Config) *Sources {
+func getSourcesFromFiles(yamlFiles *map[string][]byte, cfg config.ReconcileConfig) *Sources {
 	apps := &SourceApps{}
 	for path := range *yamlFiles {
 		content := (*yamlFiles)[path]

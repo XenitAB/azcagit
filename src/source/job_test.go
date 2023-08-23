@@ -278,7 +278,7 @@ spec:
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		job := SourceJob{}
-		isContainerJob, err := job.Unmarshal([]byte(c.rawYaml), config.Config{
+		isContainerJob, err := job.Unmarshal([]byte(c.rawYaml), config.ReconcileConfig{
 			Location:             "ze-location",
 			ManagedEnvironmentID: "ze-EnvironmentID",
 		})
@@ -464,7 +464,7 @@ spec:
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		jobs := SourceJobs{}
-		jobs.Unmarshal("foobar/baz.yaml", []byte(c.rawYaml), config.Config{
+		jobs.Unmarshal("foobar/baz.yaml", []byte(c.rawYaml), config.ReconcileConfig{
 			Location:             "ze-location",
 			ManagedEnvironmentID: "ze-EnvironmentID",
 		})
@@ -817,7 +817,7 @@ spec:
 	for i, c := range cases {
 		t.Logf("Test #%d: %s", i, c.testDescription)
 		job := &SourceJob{}
-		isContainerJob, err := job.Unmarshal([]byte(c.input), config.Config{
+		isContainerJob, err := job.Unmarshal([]byte(c.input), config.ReconcileConfig{
 			ManagedEnvironmentID: "ze-me-id",
 			Location:             "zefakeregion",
 		})

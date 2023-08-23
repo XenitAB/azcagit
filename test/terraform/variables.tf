@@ -39,6 +39,12 @@ variable "unique_suffix" {
   default     = ""
 }
 
+variable "add_permissions_to_current_user" {
+  description = "Enable if you want permissions be added to the current user"
+  type        = bool
+  default     = false
+}
+
 variable "aad_resource_owner_object_ids" {
   description = "Add the list of object_ids as owners to the Azure AD applications, service principals and groups"
   type        = list(string)

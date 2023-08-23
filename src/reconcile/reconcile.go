@@ -18,21 +18,20 @@ import (
 )
 
 type Reconciler struct {
-	cfg                       config.Config
-	sourceClient              source.Source
-	remoteAppClient           remote.App
-	remoteJobClient           remote.Job
-	secretClient              secret.Secret
-	notificationClient        notification.Notification
-	metricsClient             metrics.Metrics
-	appCache                  *cache.AppCache
-	jobCache                  *cache.JobCache
-	secretCache               *cache.SecretCache
-	previousNotificationEvent notification.NotificationEvent
+	cfg                config.ReconcileConfig
+	sourceClient       source.Source
+	remoteAppClient    remote.App
+	remoteJobClient    remote.Job
+	secretClient       secret.Secret
+	notificationClient notification.Notification
+	metricsClient      metrics.Metrics
+	appCache           cache.AppCache
+	jobCache           cache.JobCache
+	secretCache        *cache.InMemSecretCache
+	notificationCache  cache.NotificationCache
 }
 
-func NewReconciler(cfg config.Config, sourceClient source.Source, remoteAppClient remote.App, remoteJobClient remote.Job, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache *cache.AppCache, jobCache *cache.JobCache, secretCache *cache.SecretCache) (*Reconciler, error) {
-	previousNotificationEvent := notification.NotificationEvent{}
+func NewReconciler(cfg config.ReconcileConfig, sourceClient source.Source, remoteAppClient remote.App, remoteJobClient remote.Job, secretClient secret.Secret, notificationClient notification.Notification, metricsClient metrics.Metrics, appCache cache.AppCache, jobCache cache.JobCache, secretCache *cache.InMemSecretCache, notificationCache cache.NotificationCache) (*Reconciler, error) {
 	return &Reconciler{
 		cfg,
 		sourceClient,
@@ -44,7 +43,7 @@ func NewReconciler(cfg config.Config, sourceClient source.Source, remoteAppClien
 		appCache,
 		jobCache,
 		secretCache,
-		previousNotificationEvent,
+		notificationCache,
 	}, nil
 }
 
@@ -91,6 +90,11 @@ func (r *Reconciler) reportReconcileMetrics(ctx context.Context, startTime time.
 
 func (r *Reconciler) run(ctx context.Context) (string, error) {
 	sources, revision, err := r.getSources(ctx)
+	if err != nil {
+		return revision, err
+	}
+
+	err = r.populateSecretCache(ctx, sources)
 	if err != nil {
 		return revision, err
 	}
@@ -346,7 +350,10 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 	for _, name := range sourceApps.GetSortedNames() {
 		sourceApp, _ := sourceApps.Get(name)
 		remoteApp, ok := remoteApps.Get(name)
-		needsUpdate, updateReason := r.appCache.NeedsUpdate(name, remoteApp.App, sourceApp.Specification.App)
+		needsUpdate, updateReason, err := r.appCache.NeedsUpdate(ctx, name, remoteApp.App, sourceApp.Specification.App)
+		if err != nil {
+			return err
+		}
 		if !needsUpdate {
 			log.Info("skipping update, no changes", "app", name)
 			continue
@@ -364,7 +371,7 @@ func (r *Reconciler) createOrUpdateAppsIfNeeded(ctx context.Context, sourceApps 
 			continue
 		}
 
-		err := r.remoteAppClient.Create(ctx, name, *sourceApp.Specification.App)
+		err = r.remoteAppClient.Create(ctx, name, *sourceApp.Specification.App)
 		if err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
@@ -380,7 +387,11 @@ func (r *Reconciler) createOrUpdateJobsIfNeeded(ctx context.Context, sourceJobs 
 	for _, name := range sourceJobs.GetSortedNames() {
 		sourceJob, _ := sourceJobs.Get(name)
 		remoteJob, ok := remoteJobs.Get(name)
-		needsUpdate, updateReason := r.jobCache.NeedsUpdate(name, remoteJob.Job, sourceJob.Specification.Job)
+		needsUpdate, updateReason, err := r.jobCache.NeedsUpdate(ctx, name, remoteJob.Job, sourceJob.Specification.Job)
+		if err != nil {
+			return err
+		}
+
 		if !needsUpdate {
 			log.Info("skipping update, no changes", "job", name)
 			continue
@@ -398,7 +409,7 @@ func (r *Reconciler) createOrUpdateJobsIfNeeded(ctx context.Context, sourceJobs 
 			continue
 		}
 
-		err := r.remoteJobClient.Create(ctx, name, *sourceJob.Specification.Job)
+		err = r.remoteJobClient.Create(ctx, name, *sourceJob.Specification.Job)
 		if err != nil {
 			return fmt.Errorf("failed to create %s: %w", name, err)
 		}
@@ -420,7 +431,10 @@ func (r *Reconciler) updateAppCache(ctx context.Context, sourceApps *source.Sour
 		if !ok {
 			return fmt.Errorf("unable to locate app %s after create or update", name)
 		}
-		r.appCache.Set(name, remoteApp.App, sourceApp.Specification.App)
+		err := r.appCache.Set(ctx, name, remoteApp.App, sourceApp.Specification.App)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -438,7 +452,10 @@ func (r *Reconciler) updateJobCache(ctx context.Context, sourceJobs *source.Sour
 		if !ok {
 			return fmt.Errorf("unable to locate job %s after create or update", name)
 		}
-		r.jobCache.Set(name, remoteJob.Job, sourceJob.Specification.Job)
+		err := r.jobCache.Set(ctx, name, remoteJob.Job, sourceJob.Specification.Job)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -470,27 +487,30 @@ func (r *Reconciler) filterSourceJobs(ctx context.Context, sourceJobs *source.So
 	}
 }
 
-func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *source.SourceApps) error {
+func (r *Reconciler) populateSecretCache(ctx context.Context, sources *source.Sources) error {
 	secretItems, err := r.secretClient.ListItems(ctx)
 	if err != nil {
 		return err
 	}
 
-	for _, secretName := range sourceApps.GetUniqueRemoteSecretNames() {
-		item, ok := secretItems.Get(secretName)
+	for _, secretName := range sources.GetUniqueRemoteSecretNames() {
+		_, ok := secretItems.Get(secretName)
 		if !ok {
 			return fmt.Errorf("secret not found %q", secretName)
 		}
 
-		if r.secretCache.NeedsUpdate(secretName, item.LastChange()) {
-			secretValue, changedAt, err := r.secretClient.Get(ctx, secretName)
-			if err != nil {
-				return err
-			}
-			r.secretCache.Set(secretName, secretValue, changedAt)
+		secretValue, changedAt, err := r.secretClient.Get(ctx, secretName)
+		if err != nil {
+			return err
 		}
+
+		r.secretCache.Set(secretName, secretValue, changedAt)
 	}
 
+	return nil
+}
+
+func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *source.SourceApps) error {
 	for _, name := range sourceApps.GetSortedNames() {
 		app, _ := sourceApps.Get(name)
 		for i, remoteSecret := range app.GetRemoteSecrets() {
@@ -503,7 +523,7 @@ func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *
 				return fmt.Errorf("unable to get secret %d for app %q from cache", i, name)
 			}
 
-			err = sourceApps.SetSecret(name, *remoteSecret.SecretName, secretValue)
+			err := sourceApps.SetSecret(name, *remoteSecret.SecretName, secretValue)
 			if err != nil {
 				return fmt.Errorf("unable to set secret %q for app %q", *remoteSecret.SecretName, name)
 			}
@@ -514,26 +534,6 @@ func (r *Reconciler) populateSourceAppsSecrets(ctx context.Context, sourceApps *
 }
 
 func (r *Reconciler) populateSourceJobsSecrets(ctx context.Context, sourceJobs *source.SourceJobs) error {
-	secretItems, err := r.secretClient.ListItems(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, secretName := range sourceJobs.GetUniqueRemoteSecretNames() {
-		item, ok := secretItems.Get(secretName)
-		if !ok {
-			return fmt.Errorf("secret not found %q", secretName)
-		}
-
-		if r.secretCache.NeedsUpdate(secretName, item.LastChange()) {
-			secretValue, changedAt, err := r.secretClient.Get(ctx, secretName)
-			if err != nil {
-				return err
-			}
-			r.secretCache.Set(secretName, secretValue, changedAt)
-		}
-	}
-
 	for _, name := range sourceJobs.GetSortedNames() {
 		job, _ := sourceJobs.Get(name)
 		for i, remoteSecret := range job.GetRemoteSecrets() {
@@ -546,7 +546,7 @@ func (r *Reconciler) populateSourceJobsSecrets(ctx context.Context, sourceJobs *
 				return fmt.Errorf("unable to get secret %d for job %q from cache", i, name)
 			}
 
-			err = sourceJobs.SetSecret(name, *remoteSecret.SecretName, secretValue)
+			err := sourceJobs.SetSecret(name, *remoteSecret.SecretName, secretValue)
 			if err != nil {
 				return fmt.Errorf("unable to set secret %q for job %q", *remoteSecret.SecretName, name)
 			}
@@ -618,14 +618,24 @@ func (r *Reconciler) sendNotification(ctx context.Context, revision string, reco
 		Description: description,
 	}
 
-	if r.previousNotificationEvent.Equal(event) {
-		log.V(1).Info("skipping notification, events are equal", "current_event", event, "previous_event", r.previousNotificationEvent)
+	previousNotificationEvent, found, err := r.notificationCache.Get(ctx)
+	if err != nil {
+		log.V(1).Error(err, "unable to get previous notification event from cache, received error", "event", event)
+		return err
+	}
+
+	if found && previousNotificationEvent.Equal(event) {
+		log.V(1).Info("skipping notification, events are equal", "current_event", event, "previous_event", previousNotificationEvent)
 		return nil
 	}
 
-	r.previousNotificationEvent = event
+	err = r.notificationCache.Set(ctx, event)
+	if err != nil {
+		log.V(1).Error(err, "unable to set current notification event in cache, received error", "event", event)
+		return err
+	}
 
-	err := r.notificationClient.Send(ctx, event)
+	err = r.notificationClient.Send(ctx, event)
 	if err != nil {
 		log.V(1).Error(err, "unable to send event, received error", "event", event)
 		return err

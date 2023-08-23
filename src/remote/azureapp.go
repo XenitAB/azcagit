@@ -18,7 +18,7 @@ type AzureApp struct {
 
 var _ App = (*AzureApp)(nil)
 
-func NewAzureApp(cfg config.Config, cred azcore.TokenCredential) (*AzureApp, error) {
+func NewAzureApp(cfg config.ReconcileConfig, cred azcore.TokenCredential) (*AzureApp, error) {
 	client, err := armappcontainers.NewContainerAppsClient(cfg.SubscriptionID, cred, nil)
 	if err != nil {
 		return nil, err

@@ -7,6 +7,9 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
+	"github.com/Azure/azure-sdk-for-go/sdk/messaging/azservicebus"
+	"github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/appcontainers/armappcontainers/v2"
 	"github.com/go-logr/logr"
 	"github.com/xenitab/azcagit/src/azure"
 	"github.com/xenitab/azcagit/src/cache"
@@ -18,8 +21,6 @@ import (
 	"github.com/xenitab/azcagit/src/remote"
 	"github.com/xenitab/azcagit/src/secret"
 	"github.com/xenitab/azcagit/src/source"
-	"github.com/xenitab/azcagit/src/trigger"
-	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -36,8 +37,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("configuration loaded", "config", cfg.Redacted())
-
 	err = run(ctx, cfg)
 	if err != nil {
 		log.Error(err, "application returned an error")
@@ -48,7 +47,34 @@ func main() {
 func run(ctx context.Context, cfg config.Config) error {
 	log := logr.FromContextOrDiscard(ctx)
 
-	sourceClient, err := source.NewGitSource(cfg)
+	switch {
+	case cfg.ReconcileCfg != nil:
+		log.Info("reconcile configuration loaded", "config", cfg.ReconcileCfg.Redacted())
+		return runReconcile(ctx, *cfg.ReconcileCfg)
+	case cfg.TriggerCfg != nil:
+		return runTrigger(ctx, *cfg.TriggerCfg)
+	}
+
+	return fmt.Errorf("no subcommand executed")
+}
+
+func runReconcile(ctx context.Context, cfg config.ReconcileConfig) error {
+	cred, err := azure.NewAzureCredential()
+	if err != nil {
+		return err
+	}
+
+	cosmosDBClient, err := azure.NewCosmosDBClient(cfg.CosmosDBAccount, cfg.CosmosDBSqlDb, cfg.CosmosDBCacheContainer, cred)
+	if err != nil {
+		return err
+	}
+
+	revisionCache, err := cache.NewCosmosDBRevisionCache(cfg, cosmosDBClient)
+	if err != nil {
+		return err
+	}
+
+	sourceClient, err := source.NewGitSource(cfg, revisionCache)
 	if err != nil {
 		return err
 	}
@@ -56,11 +82,6 @@ func run(ctx context.Context, cfg config.Config) error {
 	_, _, err = sourceClient.Get(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to get source: %w", err)
-	}
-
-	cred, err := azure.NewAzureCredential()
-	if err != nil {
-		return err
 	}
 
 	remoteAppClient, err := remote.NewAzureApp(cfg, cred)
@@ -85,16 +106,24 @@ func run(ctx context.Context, cfg config.Config) error {
 
 	metricsClient := metrics.NewAzureMetrics(cfg, cred)
 
-	appCache := cache.NewAppCache()
-	jobCache := cache.NewJobCache()
-	secretCache := cache.NewSecretCache()
-
-	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
+	appCache, err := cache.NewCosmosDBAppCache(cfg, cosmosDBClient)
 	if err != nil {
 		return err
 	}
 
-	trig, err := trigger.NewDaprSubTrigger(cfg)
+	jobCache, err := cache.NewCosmosDBJobCache(cfg, cosmosDBClient)
+	if err != nil {
+		return err
+	}
+
+	secretCache := cache.NewInMemSecretCache()
+
+	notificationCache, err := cache.NewCosmosDBNotificationCache(cfg, cosmosDBClient)
+	if err != nil {
+		return err
+	}
+
+	reconciler, err := reconcile.NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache, notificationCache)
 	if err != nil {
 		return err
 	}
@@ -102,46 +131,77 @@ func run(ctx context.Context, cfg config.Config) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	g, ctx := errgroup.WithContext(ctx)
+	err = reconciler.Run(ctx)
+	if err != nil {
+		return fmt.Errorf("reconcile error: %w", err)
+	}
 
-	g.Go(func() error {
-		return trig.Start()
-	})
+	return nil
+}
 
-	tickerInterval, err := time.ParseDuration(cfg.ReconcileInterval)
+func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
+	log := logr.FromContextOrDiscard(ctx)
+
+	cred, err := azure.NewAzureCredential()
 	if err != nil {
 		return err
 	}
 
-	ticker := time.NewTicker(1 * time.Second)
+	namespaceFqdn := fmt.Sprintf("%s.servicebus.windows.net", cfg.ServiceBusNamespace)
+	sbClient, err := azservicebus.NewClient(namespaceFqdn, cred, nil)
+	if err != nil {
+		return err
+	}
 
-	reconcile := func(triggeredBy trigger.TriggeredBy) {
-		log.Info("reconcile triggered", "triggeredBy", triggeredBy)
-		err := reconciler.Run(ctx)
+	defer func() {
+		err := sbClient.Close(ctx)
 		if err != nil {
-			log.Error(err, "reconcile error")
+			log.Error(err, "failed to close the service bus client")
 		}
-		ticker.Reset(tickerInterval)
+	}()
+
+	receiver, err := sbClient.NewReceiverForQueue(cfg.ServiceBusQueue, &azservicebus.ReceiverOptions{})
+	if err != nil {
+		return err
 	}
 
-OUTER:
-	for {
-		select {
-		case <-ctx.Done():
-			log.Info("context done, shutting down")
-			break OUTER
-		case <-ticker.C:
-			reconcile(trigger.TriggeredByTicker)
-		case triggeredBy := <-trig.WaitForTrigger():
-			reconcile(triggeredBy)
+	peekedMessages, err := receiver.PeekMessages(ctx, 100, &azservicebus.PeekMessagesOptions{})
+	if err != nil {
+		return err
+	}
+
+	if len(peekedMessages) > 0 {
+		receivedMessages, err := receiver.ReceiveMessages(ctx, 100, &azservicebus.ReceiveMessagesOptions{})
+		if err != nil {
+			return err
+		}
+		for _, msg := range receivedMessages {
+			err := receiver.CompleteMessage(ctx, msg, &azservicebus.CompleteMessageOptions{})
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	g.Go(func() error {
-		return trig.Stop()
+	jobClient, err := armappcontainers.NewJobsClient(cfg.SubscriptionID, cred, nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := jobClient.BeginStart(ctx, cfg.ResourceGroupName, cfg.JobName, armappcontainers.JobExecutionTemplate{}, &armappcontainers.JobsClientBeginStartOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = res.PollUntilDone(ctx, &runtime.PollUntilDoneOptions{
+		Frequency: 5 * time.Second,
 	})
 
-	return g.Wait()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func isDebugEnabled(args []string) bool {

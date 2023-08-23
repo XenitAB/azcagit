@@ -13,10 +13,10 @@ type Notification interface {
 }
 
 type NotificationEvent struct {
-	Revision    string
-	State       NotificationState
-	Name        string
-	Description string
+	Revision    string            `json:"revision"`
+	State       NotificationState `json:"state"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
 }
 
 func (e *NotificationEvent) Equal(other NotificationEvent) bool {
@@ -54,7 +54,7 @@ const (
 	NotificationProviderUnknown
 )
 
-func NewNotificationClient(cfg config.Config) (Notification, error) {
+func NewNotificationClient(cfg config.ReconcileConfig) (Notification, error) {
 	if !cfg.NotificationsEnabled {
 		return NewDiscardNotification(), nil
 	}

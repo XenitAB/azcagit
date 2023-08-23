@@ -26,13 +26,14 @@ func TestReconciler(t *testing.T) {
 	secretClient := secret.NewInMemSecret()
 	notificationClient := notification.NewInMemNotification()
 	metricsClient := metrics.NewInMemMetrics()
-	appCache := cache.NewAppCache()
-	jobCache := cache.NewJobCache()
-	secretCache := cache.NewSecretCache()
+	appCache := cache.NewInMemAppCache()
+	jobCache := cache.NewInMemJobCache()
+	secretCache := cache.NewInMemSecretCache()
+	notificationCache := cache.NewInMemNotificationCache()
 
 	ctx := context.Background()
 
-	reconciler, err := NewReconciler(config.Config{}, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
+	reconciler, err := NewReconciler(config.ReconcileConfig{}, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache, notificationCache)
 	require.NoError(t, err)
 
 	resetClients := func() {
@@ -55,7 +56,7 @@ func TestReconciler(t *testing.T) {
 		notificationClient.SendResponse(nil)
 		notificationClient.ResetNotifications()
 		metricsClient.Reset()
-		reconciler.previousNotificationEvent = notification.NotificationEvent{}
+		notificationCache.Reset()
 	}
 
 	t.Run("everything is nil", func(t *testing.T) {
@@ -1027,12 +1028,12 @@ func TestReconciler(t *testing.T) {
 	t.Run("test populate registry", func(t *testing.T) {
 		defer resetClients()
 
-		cfg := config.Config{
+		cfg := config.ReconcileConfig{
 			ContainerRegistryServer:   "foobar.io",
 			ContainerRegistryUsername: "foo",
 			ContainerRegistryPassword: "bar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache, notificationCache)
 		require.NoError(t, err)
 		sourceClient.GetResponse(&source.Sources{
 			Apps: &source.SourceApps{
@@ -1248,10 +1249,10 @@ func TestReconciler(t *testing.T) {
 	t.Run("test locationFilter", func(t *testing.T) {
 		defer resetClients()
 
-		cfg := config.Config{
+		cfg := config.ReconcileConfig{
 			Location: "foobar",
 		}
-		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache)
+		reconciler, err := NewReconciler(cfg, sourceClient, remoteAppClient, remoteJobClient, secretClient, notificationClient, metricsClient, appCache, jobCache, secretCache, notificationCache)
 		require.NoError(t, err)
 
 		sourceClient.GetResponse(&source.Sources{
