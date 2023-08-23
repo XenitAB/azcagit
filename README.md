@@ -10,6 +10,17 @@ It's [GitOps](https://opengitops.dev/#principles) for [Azure Container Apps](htt
 
 Below, large (and eventually breaking) will be documented:
 
+### v0.0.19
+
+Refactored `azcagit` to run as an [Azure Container App Job](https://github.com/XenitAB/azcagit/pull/57) on a schedule. Lots of breaking changes.
+
+**BREAKING CHANGES**
+
+- trigger-client cli parameter: `--namespace` instead of `--fully-qualified-namespace` (note: don't use the full name anymore)
+- trigger-client cli parameter: `--queue` instead of `--topic`
+- CosmosDB is used for cache
+- Service Bus is now basic
+
 ### v0.0.18
 
 Support for `AzureContainerJob` was added.
