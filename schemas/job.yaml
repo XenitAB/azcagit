@@ -200,9 +200,8 @@ $defs:
             SystemData:
                 $ref: '#/$defs/SystemData'
             Tags:
-                patternProperties:
-                    .*:
-                        type: string
+                additionalProperties:
+                    type: string
                 type: object
             Type:
                 type: string
@@ -219,6 +218,8 @@ $defs:
     JobConfiguration:
         additionalProperties: false
         properties:
+            EventTriggerConfig:
+                $ref: '#/$defs/JobConfigurationEventTriggerConfig'
             ManualTriggerConfig:
                 $ref: '#/$defs/JobConfigurationManualTriggerConfig'
             Registries:
@@ -240,11 +241,26 @@ $defs:
         required:
             - ReplicaTimeout
             - TriggerType
+            - EventTriggerConfig
             - ManualTriggerConfig
             - Registries
             - ReplicaRetryLimit
             - ScheduleTriggerConfig
             - Secrets
+        type: object
+    JobConfigurationEventTriggerConfig:
+        additionalProperties: false
+        properties:
+            Parallelism:
+                type: integer
+            ReplicaCompletionCount:
+                type: integer
+            Scale:
+                $ref: '#/$defs/JobScale'
+        required:
+            - Parallelism
+            - ReplicaCompletionCount
+            - Scale
         type: object
     JobConfigurationManualTriggerConfig:
         additionalProperties: false
@@ -299,6 +315,43 @@ $defs:
             - OutboundIPAddresses
             - ProvisioningState
         type: object
+    JobScale:
+        additionalProperties: false
+        properties:
+            MaxExecutions:
+                type: integer
+            MinExecutions:
+                type: integer
+            PollingInterval:
+                type: integer
+            Rules:
+                items:
+                    $ref: '#/$defs/JobScaleRule'
+                type: array
+        required:
+            - MaxExecutions
+            - MinExecutions
+            - PollingInterval
+            - Rules
+        type: object
+    JobScaleRule:
+        additionalProperties: false
+        properties:
+            Auth:
+                items:
+                    $ref: '#/$defs/ScaleRuleAuth'
+                type: array
+            Metadata: true
+            Name:
+                type: string
+            Type:
+                type: string
+        required:
+            - Auth
+            - Metadata
+            - Name
+            - Type
+        type: object
     JobTemplate:
         additionalProperties: false
         properties:
@@ -329,9 +382,8 @@ $defs:
             Type:
                 type: string
             UserAssignedIdentities:
-                patternProperties:
-                    .*:
-                        $ref: '#/$defs/UserAssignedIdentity'
+                additionalProperties:
+                    $ref: '#/$defs/UserAssignedIdentity'
                 type: object
         required:
             - Type
@@ -372,6 +424,17 @@ $defs:
                     $ref: '#/$defs/ImageReplacementSpecification'
                 type: array
         type: object
+    ScaleRuleAuth:
+        additionalProperties: false
+        properties:
+            SecretRef:
+                type: string
+            TriggerParameter:
+                type: string
+        required:
+            - SecretRef
+            - TriggerParameter
+        type: object
     Secret:
         additionalProperties: false
         properties:
@@ -409,9 +472,8 @@ $defs:
             kind:
                 type: string
             metadata:
-                patternProperties:
-                    .*:
-                        type: string
+                additionalProperties:
+                    type: string
                 type: object
             spec:
                 $ref: '#/$defs/SourceJobSpecification'
@@ -473,6 +535,8 @@ $defs:
     Volume:
         additionalProperties: false
         properties:
+            MountOptions:
+                type: string
             Name:
                 type: string
             Secrets:
@@ -484,6 +548,7 @@ $defs:
             StorageType:
                 type: string
         required:
+            - MountOptions
             - Name
             - Secrets
             - StorageName
@@ -494,10 +559,13 @@ $defs:
         properties:
             MountPath:
                 type: string
+            SubPath:
+                type: string
             VolumeName:
                 type: string
         required:
             - MountPath
+            - SubPath
             - VolumeName
         type: object
 $ref: '#/$defs/SourceJob'
