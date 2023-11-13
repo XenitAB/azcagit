@@ -26,6 +26,9 @@
             "$ref": "#/$defs/Secret"
           },
           "type": "array"
+        },
+        "Service": {
+          "$ref": "#/$defs/Service"
         }
       },
       "required": [
@@ -34,7 +37,8 @@
         "Ingress",
         "MaxInactiveRevisions",
         "Registries",
-        "Secrets"
+        "Secrets",
+        "Service"
       ],
       "type": "object"
     },
@@ -121,10 +125,8 @@
           "$ref": "#/$defs/SystemData"
         },
         "Tags": {
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           },
           "type": "object"
         },
@@ -406,10 +408,8 @@
           "type": "array"
         },
         "Metadata": {
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           },
           "type": "object"
         },
@@ -510,10 +510,8 @@
           "type": "array"
         },
         "Metadata": {
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           },
           "type": "object"
         }
@@ -698,10 +696,8 @@
           "type": "string"
         },
         "UserAssignedIdentities": {
-          "patternProperties": {
-            ".*": {
-              "$ref": "#/$defs/UserAssignedIdentity"
-            }
+          "additionalProperties": {
+            "$ref": "#/$defs/UserAssignedIdentity"
           },
           "type": "object"
         }
@@ -892,6 +888,34 @@
       ],
       "type": "object"
     },
+    "Service": {
+      "additionalProperties": false,
+      "properties": {
+        "Type": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Type"
+      ],
+      "type": "object"
+    },
+    "ServiceBind": {
+      "additionalProperties": false,
+      "properties": {
+        "Name": {
+          "type": "string"
+        },
+        "ServiceID": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "Name",
+        "ServiceID"
+      ],
+      "type": "object"
+    },
     "SourceApp": {
       "additionalProperties": false,
       "properties": {
@@ -903,10 +927,8 @@
           "type": "string"
         },
         "metadata": {
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           },
           "type": "object"
         },
@@ -987,10 +1009,8 @@
           "type": "array"
         },
         "Metadata": {
-          "patternProperties": {
-            ".*": {
-              "type": "string"
-            }
+          "additionalProperties": {
+            "type": "string"
           },
           "type": "object"
         }
@@ -1022,6 +1042,15 @@
         "Scale": {
           "$ref": "#/$defs/Scale"
         },
+        "ServiceBinds": {
+          "items": {
+            "$ref": "#/$defs/ServiceBind"
+          },
+          "type": "array"
+        },
+        "TerminationGracePeriodSeconds": {
+          "type": "integer"
+        },
         "Volumes": {
           "items": {
             "$ref": "#/$defs/Volume"
@@ -1034,6 +1063,8 @@
         "InitContainers",
         "RevisionSuffix",
         "Scale",
+        "ServiceBinds",
+        "TerminationGracePeriodSeconds",
         "Volumes"
       ],
       "type": "object"
@@ -1081,6 +1112,9 @@
     "Volume": {
       "additionalProperties": false,
       "properties": {
+        "MountOptions": {
+          "type": "string"
+        },
         "Name": {
           "type": "string"
         },
@@ -1098,6 +1132,7 @@
         }
       },
       "required": [
+        "MountOptions",
         "Name",
         "Secrets",
         "StorageName",
@@ -1111,12 +1146,16 @@
         "MountPath": {
           "type": "string"
         },
+        "SubPath": {
+          "type": "string"
+        },
         "VolumeName": {
           "type": "string"
         }
       },
       "required": [
         "MountPath",
+        "SubPath",
         "VolumeName"
       ],
       "type": "object"

@@ -188,7 +188,7 @@ func runTrigger(ctx context.Context, cfg config.TriggerConfig) error {
 		return err
 	}
 
-	res, err := jobClient.BeginStart(ctx, cfg.ResourceGroupName, cfg.JobName, armappcontainers.JobExecutionTemplate{}, &armappcontainers.JobsClientBeginStartOptions{})
+	res, err := jobClient.BeginStart(ctx, cfg.ResourceGroupName, cfg.JobName, &armappcontainers.JobsClientBeginStartOptions{})
 	if err != nil {
 		return err
 	}
