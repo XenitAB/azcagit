@@ -23,7 +23,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	github.com/whilp/git-urls v1.0.0
 	go.uber.org/zap v1.26.0
-	golang.org/x/oauth2 v0.10.0
+	golang.org/x/oauth2 v0.11.0
 	sigs.k8s.io/yaml v1.3.0
 )
 
