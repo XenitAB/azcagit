@@ -17,7 +17,7 @@ require (
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/invopop/jsonschema v0.10.0
+	github.com/invopop/jsonschema v0.12.0
 	github.com/invopop/yaml v0.2.0
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
 	github.com/stretchr/testify v1.8.4
