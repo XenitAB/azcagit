@@ -62,8 +62,8 @@ github.com/emirpasic/gods v1.18.1 h1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc
 github.com/emirpasic/gods v1.18.1/go.mod h1:8tpGGwCnJ5H4r6BWwaV6OrWmMoPhUl5jm/FMNAnJvWQ=
 github.com/fluxcd/gitkit v0.6.0 h1:iNg5LTx6ePo+Pl0ZwqHTAkhbUHxGVSY3YCxCdw7VIFg=
 github.com/fluxcd/gitkit v0.6.0/go.mod h1:svOHuKi0fO9HoawdK4HfHAJJseZDHHjk7I3ihnCIqNo=
-github.com/fluxcd/pkg/git v0.14.1 h1:LSb5BwzCm/MFmCeRPhotKJFblzgIs8pHFSUG9z1I49c=
-github.com/fluxcd/pkg/git v0.14.1/go.mod h1:6xOdxAQ2/tkDrOVHJcUSBVz5wSAGDbzN2be7ggXzPzs=
+github.com/fluxcd/pkg/git v0.15.0 h1:QPqv+b4sQXXpWQhigf/sPE5qzK4BrQhkltnYuEy4AYw=
+github.com/fluxcd/pkg/git v0.15.0/go.mod h1:zqmLfw4d+mS77bMRkeQ+8dmFSgxB/c2ZDkafIyY6bAQ=
 github.com/fluxcd/pkg/git/gogit v0.14.2 h1:Ygou2C+SDCCQTgFm4LwkbUfX8EZhVd7jzEWC5KVKq5A=
 github.com/fluxcd/pkg/git/gogit v0.14.2/go.mod h1:n9N2dFD/di9zCjVf8Ng7aHBmYMLn3cSwzYstkuLnkGY=
 github.com/fluxcd/pkg/gittestserver v0.8.6 h1:YM8prVKB3LC9LBBe+a2p7l1BlfV9erXCgC1em9sbqW4=
