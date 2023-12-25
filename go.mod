@@ -13,7 +13,7 @@ require (
 	github.com/fluxcd/pkg/git v0.14.1
 	github.com/fluxcd/pkg/git/gogit v0.14.2
 	github.com/fluxcd/pkg/gittestserver v0.8.6
-	github.com/go-logr/logr v1.3.0
+	github.com/go-logr/logr v1.4.1
 	github.com/go-logr/zapr v1.3.0
 	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-multierror v1.1.1
