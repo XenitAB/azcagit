@@ -1,6 +1,6 @@
 module github.com/xenitab/azcagit
 
-go 1.21
+go 1.24
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.9.0
@@ -60,7 +60,7 @@ require (
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/klauspost/compress v1.15.14 // indirect
+	github.com/klauspost/compress v1.18.7 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
